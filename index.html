@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ohlun'Joie - Association</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="flex items-center justify-between">
+                <h1 class="header-title">🤝 Ohlun'Joie</h1>
+                <button class="btn btn--outline" id="adminBtn">
+                    🔧 Administration
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Logo Section -->
+    <section class="logo-section" id="logoSection">
+        <div class="container text-center">
+            <div class="association-logo" id="associationLogo">
+                🤝
+            </div>
+        </div>
+    </section>
+
+    <!-- Presentation Section -->
+    <section class="presentation-section">
+        <div class="container">
+            <div class="presentation-content">
+                <div class="presentation-text">
+                    <h2 class="presentation-title">Rejoignez notre communauté !</h2>
+                    <p class="presentation-description" id="introText">
+                        Notre association rassemble des bénévoles passionnés qui organisent des événements variés pour créer du lien social et enrichir la vie de notre commune. Ensemble, nous partageons des moments conviviaux et construisons une communauté solidaire.
+                    </p>
+                    <div class="presentation-cta">
+                        <span class="cta-text">✨ Inscrivez-vous aux événements ci-dessous et rejoignez l'aventure !</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interface Bénévole -->
+    <main class="main-content" id="publicView">
+        <div class="container">
+            <!-- View Controls -->
+            <div class="view-controls">
+                <div class="view-buttons">
+                    <button class="btn btn--primary active" data-view="timeline">
+                        📅 Timeline
+                    </button>
+                    <button class="btn btn--outline" data-view="list">
+                        📋 Liste
+                    </button>
+                    <button class="btn btn--outline" data-view="cards">
+                        🎴 Cartes
+                    </button>
+                </div>
+                <div class="next-event-info">
+                    <div class="countdown-label">Prochain événement dans</div>
+                    <div class="countdown-timer" id="countdownTimer">-</div>
+                </div>
+            </div>
+
+            <!-- Timeline View -->
+            <div class="events-container timeline-view active" id="timelineView">
+                <div class="timeline-rail"></div>
+            </div>
+
+            <!-- List View -->
+            <div class="events-container list-view" id="listView">
+                <div class="list-header">
+                    <div>Date</div>
+                    <div>Titre</div>
+                    <div>Lieu</div>
+                    <div>Participants</div>
+                    <div>Action</div>
+                </div>
+                <div class="list-body"></div>
+            </div>
+
+            <!-- Cards View -->
+            <div class="events-container cards-view" id="cardsView">
+                <div class="cards-grid"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel hidden" id="adminPanel">
+        <div class="container">
+            <div class="admin-header">
+                <h2>🔧 Administration</h2>
+                <button class="btn btn--secondary" id="logoutBtn">
+                    🚪 Déconnexion
+                </button>
+            </div>
+
+            <!-- Admin Navigation -->
+            <div class="admin-nav">
+                <button class="admin-nav-btn active" data-section="events">
+                    📅 Événements
+                </button>
+                <button class="admin-nav-btn" data-section="members">
+                    👥 Statistiques Membres
+                </button>
+                <button class="admin-nav-btn" data-section="users">
+                    👤 Utilisateurs
+                </button>
+                <button class="admin-nav-btn" data-section="config">
+                    ⚙️ Configuration
+                </button>
+            </div>
+
+            <!-- Events Section -->
+            <div class="admin-section active" id="eventsSection">
+                <h3>Gestion des Événements</h3>
+                <div class="events-admin-list" id="eventsAdminList">
+                    <!-- Admin events list -->
+                </div>
+            </div>
+
+            <!-- Members Section -->
+            <div class="admin-section" id="membersSection">
+                <h3>Statistiques des Membres</h3>
+                <div class="members-list" id="membersList">
+                    <!-- Members stats -->
+                </div>
+            </div>
+
+            <!-- Users Section -->
+            <div class="admin-section" id="usersSection">
+                <h3>Gestion des Utilisateurs</h3>
+                <div class="users-list" id="usersList">
+                    <!-- Users management -->
+                </div>
+            </div>
+
+            <!-- Config Section -->
+            <div class="admin-section" id="configSection">
+                <h3>Configuration</h3>
+                <div class="config-forms">
+                    <!-- Logo Upload -->
+                    <div class="config-group">
+                        <h4>Logo de l'association</h4>
+                        <input type="file" id="logoUpload" accept="image/*">
+                        <button class="btn btn--outline" id="removeLogo">Supprimer le logo</button>
+                    </div>
+                    
+                    <!-- Intro Text -->
+                    <div class="config-group">
+                        <h4>Texte de présentation</h4>
+                        <textarea id="introTextArea" rows="4"></textarea>
+                        <button class="btn btn--primary" id="saveIntroText">Sauvegarder</button>
+                    </div>
+                    
+                    <!-- Event Types -->
+                    <div class="config-group">
+                        <h4>Types d'événements</h4>
+                        <div id="eventTypesList">
+                            <!-- Event types list -->
+                        </div>
+                        <input type="text" id="newEventType" placeholder="Nouveau type">
+                        <button class="btn btn--primary" id="addEventType">Ajouter</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay hidden" id="loginModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🔐 Connexion Administration</h3>
+                <button class="modal-close" id="closeLoginBtn">×</button>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="adminEmail">Email :</label>
+                    <input type="email" id="adminEmail" value="zinck.maxime@gmail.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Mot de passe :</label>
+                    <input type="password" id="adminPassword" required>
+                </div>
+                <div class="error-message hidden" id="loginError">
+                    Email ou mot de passe incorrect !
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn--outline" id="cancelLoginBtn">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn btn--primary">
+                        Se connecter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Registration Modal -->
+    <div class="modal-overlay hidden" id="registrationModal">
+        <div class="modal modal--large">
+            <div class="modal-header">
+                <h3>Inscription à l'événement</h3>
+                <button class="modal-close" id="closeRegModalBtn">×</button>
+            </div>
+            <form id="registrationForm">
+                <div class="form-section">
+                    <h4>Informations personnelles</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regFirstName">Prénom *</label>
+                            <input type="text" id="regFirstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regLastName">Nom *</label>
+                            <input type="text" id="regLastName" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regEmail">Email *</label>
+                            <input type="email" id="regEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regPhone">Téléphone *</label>
+                            <input type="tel" id="regPhone" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>Votre participation <span class="required">(minimum 1 obligatoire)</span></h4>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="preparationSalle" name="participation">
+                            <label for="preparationSalle">Préparation salle jour J</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="partieEvenement" name="participation">
+                            <label for="partieEvenement">Une partie de la soirée</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="evenementEntier" name="participation">
+                            <label for="evenementEntier">La soirée entière</label>
+                        </div>
+                    </div>
+                    <div class="error-message hidden" id="participationError">
+                        Veuillez sélectionner au moins une option de participation
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="regComment">Commentaires</label>
+                        <textarea id="regComment" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn--outline" id="cancelRegBtn">Annuler</button>
+                    <button type="submit" class="btn btn--primary">Confirmer l'inscription</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast hidden" id="successToast">
+        <div class="toast-content">
+            <span class="toast-icon">✓</span>
+            <span class="toast-message" id="toastMessage">Opération réussie !</span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-text">
+                Développé avec ❤️ par <strong>Zinck Maxime</strong>
+            </p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
