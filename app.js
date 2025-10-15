@@ -1,718 +1,338 @@
-// Application Ohlun'Joie - Gestion des événements et administration
+/* Ohlun'Joie — version stable sans erreurs de template strings */
 let eventsData = {
-  "evenements": [
-    {
-      "id": 1,
-      "titre": "Assemblée Générale Annuelle", 
-      "date": "2025-10-20",
-      "heure": "18:30",
-      "description": "Assemblée générale annuelle avec présentation du bilan et vote sur les nouveaux projets de l'association.",
-      "lieu": "Salle municipale",
-      "type": "assemblée",
-      "image": "🏛️",
-      "maxParticipants": 50,
-      "inscriptions": [
-        {
-          "nom": "Dupont",
-          "prenom": "Marie",
-          "email": "marie.dupont@email.com",
-          "telephone": "06 12 34 56 78",
-          "commentaire": "Hâte de découvrir les nouveaux projets",
-          "participation": {
-            "preparationSalle": true,
-            "partieEvenement": false,
-            "evenementEntier": true
-          },
-          "dateInscription": "2025-10-08"
-        },
-        {
-          "nom": "Martin",
-          "prenom": "Paul",
-          "email": "paul.martin@email.com",
-          "telephone": "06 23 45 67 89",
-          "commentaire": "Disponible de 19h à 21h",
-          "participation": {
-            "preparationSalle": false,
-            "partieEvenement": true,
-            "evenementEntier": false
-          },
-          "dateInscription": "2025-10-09"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "titre": "Atelier Cuisine d'Automne",
-      "date": "2025-11-15", 
-      "heure": "14:00",
-      "description": "Découverte de la cuisine traditionnelle avec un chef local. Atelier pratique et dégustation.",
-      "lieu": "Centre culturel",
-      "type": "atelier", 
-      "image": "👨‍🍳",
-      "maxParticipants": 15,
-      "inscriptions": [
-        {
-          "nom": "Leblanc",
-          "prenom": "Sophie", 
-          "email": "sophie.leblanc@email.com",
-          "telephone": "06 34 56 78 90",
-          "commentaire": "J'adore cuisiner !",
-          "participation": {
-            "preparationSalle": false,
-            "partieEvenement": false,
-            "evenementEntier": true
-          },
-          "dateInscription": "2025-10-07"
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "titre": "Randonnée Hivernale",
-      "date": "2025-12-10",
-      "heure": "09:00", 
-      "description": "Randonnée découverte dans la forêt enneigée. Niveau facile, vin chaud offert.",
-      "lieu": "Forêt des Vosges",
-      "type": "sport",
-      "image": "🥾",
-      "maxParticipants": 25,
-      "inscriptions": []
-    }
-  ]
+"evenements": [
+{
+"id": 1,
+"titre": "Assemblée Générale Annuelle",
+"date": "2025-10-20",
+"heure": "18:30",
+"description": "Assemblée générale annuelle avec présentation du bilan et vote sur les nouveaux projets de l'association.",
+"lieu": "Salle municipale",
+"type": "assemblée",
+"image": "🏛️",
+"maxParticipants": 50,
+"inscriptions": [
+{
+"nom": "Dupont",
+"prenom": "Marie",
+"email": "marie.dupont@email.com",
+"telephone": "06 12 34 56 78",
+"commentaire": "Hâte de découvrir les nouveaux projets",
+"participation": { "preparationSalle": true, "partieEvenement": false, "evenementEntier": true },
+"dateInscription": "2025-10-08"
+}
+]
+},
+{
+"id": 2,
+"titre": "Atelier Cuisine d'Automne",
+"date": "2025-11-15",
+"heure": "14:00",
+"description": "Découverte de la cuisine traditionnelle avec un chef local. Atelier pratique et dégustation.",
+"lieu": "Centre culturel",
+"type": "atelier",
+"image": "👨‍🍳",
+"maxParticipants": 15,
+"inscriptions": []
+}
+]
 };
 
-// Configuration de l'application
 let appConfig = {
-  introText: "Notre association rassemble des bénévoles passionnés qui organisent des événements variés pour créer du lien social et enrichir la vie de notre commune. Ensemble, nous partageons des moments conviviaux et construisons une communauté solidaire.",
-  logoUrl: "",
-  eventTypes: ["assemblée", "atelier", "sport", "fête", "conférence", "événement"],
-  adminCredentials: {
-    email: "zinck.maxime@gmail.com",
-    password: "Sto/nuqi0"
-  }
+introText: "Notre association rassemble des bénévoles passionnés qui organisent des événements variés pour créer du lien social et enrichir la vie de notre commune. Ensemble, nous partageons des moments conviviaux et construisons une communauté solidaire.",
+logoUrl: "",
+eventTypes: ["assemblée", "atelier", "sport", "fête", "conférence", "événement"],
+adminCredentials: { email: "zinck.maxime@gmail.com", password: "Sto/nuqi0" }
 };
 
-// Variables d'état
-let currentView = 'timeline';
+let currentView = "timeline";
 let currentEvent = null;
 let isAdminLoggedIn = false;
-let currentAdminSection = 'events';
 
-// Initialisation
-document.addEventListener('DOMContentLoaded', function() {
-    setupEventListeners();
-    loadStoredData();
-    renderCurrentView();
-    updateCountdown();
-    setInterval(updateCountdown, 60000);
+document.addEventListener("DOMContentLoaded", () => {
+wireBasics();
+renderCurrentView();
+updateCountdown();
+setInterval(updateCountdown, 60000);
 });
 
-// Configuration des écouteurs d'événements
-function setupEventListeners() {
-    // Changement de vue
-    document.querySelectorAll('[data-view]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const view = e.target.dataset.view;
-            switchView(view);
-        });
-    });
-    
-    // Administration
-    document.getElementById('adminBtn').addEventListener('click', () => {
-        document.getElementById('loginModal').classList.remove('hidden');
-    });
-    
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        isAdminLoggedIn = false;
-        document.getElementById('adminPanel').classList.add('hidden');
-        document.getElementById('publicView').classList.remove('hidden');
-        showToast('Déconnexion réussie');
-    });
-    
-    // Navigation admin
-    document.querySelectorAll('.admin-nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const section = btn.dataset.section;
-            switchAdminSection(section);
-        });
-    });
-    
-    // Formulaires
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('registrationForm').addEventListener('submit', handleRegistration);
-    
-    // Configuration
-    document.getElementById('logoUpload').addEventListener('change', handleLogoUpload);
-    document.getElementById('removeLogo').addEventListener('click', removeLogo);
-    document.getElementById('saveIntroText').addEventListener('click', saveIntroText);
-    document.getElementById('addEventType').addEventListener('click', addEventType);
-    
-    // Fermeture des modales
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal-overlay') || e.target.classList.contains('modal-close')) {
-            closeAllModals();
-        }
-    });
+function wireBasics() {
+// Switch view
+document.querySelectorAll("[data-view]").forEach(btn => {
+btn.addEventListener("click", e => switchView(e.currentTarget.dataset.view));
+});
+
+// Open admin modal
+const adminBtn = document.getElementById("adminBtn");
+if (adminBtn) {
+adminBtn.addEventListener("click", () => {
+const m = document.getElementById("loginModal");
+if (m) m.classList.remove("hidden");
+});
 }
 
-// Changement de vue
+// Close modals
+document.addEventListener("click", (e) => {
+if (e.target.classList.contains("modal-overlay") || e.target.classList.contains("modal-close")) {
+closeAllModals();
+}
+});
+
+// Forms
+const loginForm = document.getElementById("loginForm");
+if (loginForm) loginForm.addEventListener("submit", handleLogin);
+
+const regForm = document.getElementById("registrationForm");
+if (regForm) regForm.addEventListener("submit", handleRegistration);
+
+// Admin actions
+const logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+logoutBtn.addEventListener("click", () => {
+isAdminLoggedIn = false;
+document.getElementById("adminPanel").classList.add("hidden");
+document.getElementById("publicView").classList.remove("hidden");
+toast("Déconnexion réussie");
+});
+}
+
+// Config
+byId("logoUpload")?.addEventListener("change", handleLogoUpload);
+byId("removeLogo")?.addEventListener("click", removeLogo);
+byId("saveIntroText")?.addEventListener("click", saveIntroText);
+byId("addEventType")?.addEventListener("click", addEventType);
+
+// Apply intro text and logo on load
+const intro = byId("introText");
+if (intro) intro.textContent = appConfig.introText;
+updateLogoDisplay();
+}
+
+function byId(id) { return document.getElementById(id); }
+
 function switchView(view) {
-    // Mise à jour des boutons
-    document.querySelectorAll('[data-view]').forEach(btn => {
-        if (btn.dataset.view === view) {
-            btn.classList.remove('btn--outline');
-            btn.classList.add('btn--primary', 'active');
-        } else {
-            btn.classList.remove('btn--primary', 'active');
-            btn.classList.add('btn--outline');
-        }
-    });
-    
-    // Mise à jour des conteneurs
-    document.querySelectorAll('.events-container').forEach(container => {
-        container.classList.remove('active');
-    });
-    
-    currentView = view;
-    renderCurrentView();
+document.querySelectorAll("[data-view]").forEach(btn => {
+const active = btn.dataset.view === view;
+btn.classList.toggle("btn--primary", active);
+btn.classList.toggle("active", active);
+btn.classList.toggle("btn--outline", !active);
+});
+
+document.querySelectorAll(".events-container").forEach(c => c.classList.remove("active"));
+currentView = view;
+renderCurrentView();
 }
 
-// Rendu de la vue courante
 function renderCurrentView() {
-    const viewContainer = document.getElementById(`${currentView}View`);
-    viewContainer.classList.add('active');
-    
-    switch (currentView) {
-        case 'timeline':
-            renderTimelineView();
-            break;
-        case 'list':
-            renderListView();
-            break;
-        case 'cards':
-            renderCardsView();
-            break;
-    }
+const container = byId(${currentView}View);
+container?.classList.add("active");
+if (currentView === "timeline") renderTimeline();
+if (currentView === "list") renderList();
+if (currentView === "cards") renderCards();
 }
 
-// Rendu Timeline
-function renderTimelineView() {
-    const timelineView = document.getElementById('timelineView');
-    const events = eventsData.evenements.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    timelineView.innerHTML = '<div class="timeline-rail"></div>';
-    
-    events.forEach((event, index) => {
-        const eventElement = createTimelineEvent(event, index);
-        timelineView.appendChild(eventElement);
-    });
+function renderTimeline() {
+const wrap = byId("timelineView");
+const events = sortedEvents();
+wrap.innerHTML = '<div class="timeline-rail"></div>';
+events.forEach((ev, i) => wrap.appendChild(timelineEvent(ev)));
 }
 
-function createTimelineEvent(event, index) {
-    const inscriptions = event.inscriptions.length;
-    const maxParticipants = event.maxParticipants;
-    const participationRate = (inscriptions / maxParticipants) * 100;
-    const isEventFull = inscriptions >= maxParticipants;
-    
-    const eventDate = new Date(event.date);
-    const formattedDate = eventDate.toLocaleDateString('fr-FR', { 
-        day: 'numeric', 
-        month: 'long' 
-    });
-    
-    // Couleur de la jauge
-    let gaugeColor = '#10B981';
-    if (participationRate > 60) gaugeColor = '#F59E0B';
-    if (participationRate > 85) gaugeColor = '#EF4444';
-    
-    const eventDiv = document.createElement('div');
-    eventDiv.className = 'timeline-event';
-    
-    eventDiv.innerHTML = `
-        <div class="timeline-content">
-            <div class="timeline-dot"></div>
-            <div class="timeline-date">${formattedDate}</div>
-            
-            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-gray-900);">
-                ${event.image} ${event.titre}
-            </h3>
-            
-            <div style="font-size: 0.875rem; color: var(--text-gray-600); margin-bottom: 1rem;">
-                <div style="margin-bottom: 0.25rem;">📅 ${event.heure} • 📍 ${event.lieu}</div>
-                <div>${event.description}</div>
-            </div>
-            
-            <div class="participants-gauge">
-                <div class="gauge-container">
-                    <div class="gauge-bar">
-                        <div class="gauge-fill" style="width: ${participationRate}%; background-color: ${gaugeColor};"></div>
-                    </div>
-                    <span class="gauge-text">${inscriptions}/${maxParticipants}</span>
-                </div>
-                <div class="gauge-percentage">${Math.round(participationRate)}% complet</div>
-            </div>
-            
-            <div class="participants-dropdown">
-                <button class="btn btn--outline dropdown-toggle" onclick="toggleParticipantsList(${event.id}, this)">
-                    👥 Voir les inscrits <span>▼</span>
-                </button>
-                <div class="dropdown-content hidden" id="participants-${event.id}">
-                    ${event.inscriptions.length > 0 
-                        ? event.inscriptions.map(p => `<div class="participant-item">${p.prenom} ${p.nom}</div>`).join('')
-                        : '<div class="participant-item" style="text-align: center; font-style: italic;">Aucune inscription</div>'
-                    }
-                </div>
-            </div>
-            
-            <div style="margin-top: 1rem;">
-                <button class="btn ${isEventFull ? 'btn--secondary' : 'btn--success'}" 
-                        ${isEventFull ? 'disabled' : ''}
-                        onclick="openRegistrationModal(${event.id})">
-                    ${isEventFull ? '❌ Complet' : '✅ S\\'inscrire'}
-                </button>
-            </div>
-        </div>
-    `;
-    
-    return eventDiv;
+function timelineEvent(ev) {
+const rate = Math.min(100, (ev.inscriptions.length / ev.maxParticipants) * 100);
+const full = ev.inscriptions.length >= ev.maxParticipants;
+const d = new Date(ev.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+const color = rate > 85 ? "#EF4444" : rate > 60 ? "#F59E0B" : "#10B981";
+const el = document.createElement("div");
+el.className = "timeline-event";
+el.innerHTML = <div class="timeline-content"> <div class="timeline-dot"></div> <div class="timeline-date">${d}</div> <h3 style="font-size:1.25rem;font-weight:600;margin-bottom:0.75rem;color:#111827;">${ev.image} ${ev.titre}</h3> <div style="font-size:0.875rem;color:#4b5563;margin-bottom:1rem;"> <div style="margin-bottom:0.25rem;">📅 ${ev.heure} - 📍 ${ev.lieu}</div> <div>${ev.description}</div> </div> <div class="participants-gauge"> <div class="gauge-container"> <div class="gauge-bar"> <div class="gauge-fill" style="width:${Math.round(rate)}%;background-color:${color};"></div> </div> <span class="gauge-text">${ev.inscriptions.length}/${ev.maxParticipants}</span> </div> <div class="gauge-percentage">${Math.round(rate)}% complet</div> </div> <div class="participants-dropdown"> <button class="btn btn--outline dropdown-toggle" onclick="toggleParticipantsList(${ev.id}, this)">👥 Voir les inscrits <span>▼</span></button> <div class="dropdown-content hidden" id="participants-${ev.id}"> ${ev.inscriptions.length ? ev.inscriptions.map(p =><div class="participant-item">${p.prenom} ${p.nom}</div>).join("") : <div class="participant-item" style="text-align:center;font-style:italic;">Aucune inscription</div>} </div> </div> <div style="margin-top:1rem;"> <button class="btn ${full ? "btn--secondary" : "btn--success"}" ${full ? "disabled" : ""} onclick="openRegistrationModal(${ev.id})">${full ? "❌ Complet" : "✅ S'inscrire"}</button> </div> </div> ;
+return el;
 }
 
-// Rendu Liste
-function renderListView() {
-    const listBody = document.querySelector('#listView .list-body');
-    const events = eventsData.evenements.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    listBody.innerHTML = '';
-    
-    events.forEach(event => {
-        const eventElement = createListEvent(event);
-        listBody.appendChild(eventElement);
-    });
+function renderList() {
+const body = document.querySelector("#listView .list-body");
+body.innerHTML = "";
+sortedEvents().forEach(ev => body.appendChild(listEvent(ev)));
 }
 
-function createListEvent(event) {
-    const inscriptions = event.inscriptions.length;
-    const maxParticipants = event.maxParticipants;
-    const participationRate = (inscriptions / maxParticipants) * 100;
-    const isEventFull = inscriptions >= maxParticipants;
-    
-    const eventDate = new Date(event.date);
-    const formattedDate = eventDate.toLocaleDateString('fr-FR', { 
-        day: '2-digit', 
-        month: '2-digit' 
-    });
-    
-    let gaugeColor = '#10B981';
-    if (participationRate > 60) gaugeColor = '#F59E0B';
-    if (participationRate > 85) gaugeColor = '#EF4444';
-    
-    const eventDiv = document.createElement('div');
-    eventDiv.className = 'list-event';
-    
-    eventDiv.innerHTML = `
-        <div>${formattedDate}<br><small>${event.heure}</small></div>
-        <div>
-            <strong>${event.titre}</strong><br>
-            <button class="btn btn--outline" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-top: 0.25rem;" onclick="toggleParticipantsList(${event.id}, this)">
-                👥 Inscrits <span>▼</span>
-            </button>
-            <div class="dropdown-content hidden" id="participants-${event.id}">
-                ${event.inscriptions.length > 0 
-                    ? event.inscriptions.map(p => `<div class="participant-item">${p.prenom} ${p.nom}</div>`).join('')
-                    : '<div class="participant-item" style="text-align: center; font-style: italic;">Aucune inscription</div>'
-                }
-            </div>
-        </div>
-        <div>${event.lieu}</div>
-        <div style="text-align: center;">
-            <div class="gauge-container" style="margin-bottom: 0.25rem;">
-                <div class="gauge-bar" style="width: 60px; height: 6px;">
-                    <div class="gauge-fill" style="width: ${participationRate}%; background-color: ${gaugeColor};"></div>
-                </div>
-            </div>
-            <div style="font-size: 0.75rem;">${inscriptions}/${maxParticipants}</div>
-        </div>
-        <div>
-            <button class="btn ${isEventFull ? 'btn--secondary' : 'btn--success'}" 
-                    style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"
-                    ${isEventFull ? 'disabled' : ''}
-                    onclick="openRegistrationModal(${event.id})">
-                ${isEventFull ? 'Complet' : 'S\\'inscrire'}
-            </button>
-        </div>
-    `;
-    
-    return eventDiv;
+function listEvent(ev) {
+const rate = Math.min(100, (ev.inscriptions.length / ev.maxParticipants) * 100);
+const full = ev.inscriptions.length >= ev.maxParticipants;
+const d = new Date(ev.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+const color = rate > 85 ? "#EF4444" : rate > 60 ? "#F59E0B" : "#10B981";
+const el = document.createElement("div");
+el.className = "list-event";
+el.innerHTML = <div>${d}<br><small>${ev.heure}</small></div> <div> <strong>${ev.titre}</strong><br> <button class="btn btn--outline" style="font-size:0.75rem;padding:0.25rem 0.5rem;margin-top:0.25rem;" onclick="toggleParticipantsList(${ev.id}, this)">👥 Inscrits <span>▼</span></button> <div class="dropdown-content hidden" id="participants-${ev.id}"> ${ev.inscriptions.length ? ev.inscriptions.map(p =><div class="participant-item">${p.prenom} ${p.nom}</div>).join("") : <div class="participant-item" style="text-align:center;font-style:italic;">Aucune inscription</div>} </div> </div> <div>${ev.lieu}</div> <div style="text-align:center;"> <div class="gauge-container" style="margin-bottom:0.25rem;"> <div class="gauge-bar" style="width:60px;height:6px;"> <div class="gauge-fill" style="width:${Math.round(rate)}%;background-color:${color};"></div> </div> </div> <div style="font-size:0.75rem;">${ev.inscriptions.length}/${ev.maxParticipants}</div> </div> <div> <button class="btn ${full ? "btn--secondary" : "btn--success"}" style="font-size:0.75rem;padding:0.25rem 0.5rem;" ${full ? "disabled" : ""} onclick="openRegistrationModal(${ev.id})">${full ? "Complet" : "S'inscrire"}</button> </div> ;
+return el;
 }
 
-// Rendu Cartes
-function renderCardsView() {
-    const cardsGrid = document.querySelector('#cardsView .cards-grid');
-    const events = eventsData.evenements.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    cardsGrid.innerHTML = '';
-    
-    events.forEach(event => {
-        const cardElement = createCardEvent(event);
-        cardsGrid.appendChild(cardElement);
-    });
+function renderCards() {
+const grid = document.querySelector("#cardsView .cards-grid");
+grid.innerHTML = "";
+sortedEvents().forEach(ev => grid.appendChild(cardEvent(ev)));
 }
 
-function createCardEvent(event) {
-    const inscriptions = event.inscriptions.length;
-    const maxParticipants = event.maxParticipants;
-    const participationRate = (inscriptions / maxParticipants) * 100;
-    const isEventFull = inscriptions >= maxParticipants;
-    
-    const eventDate = new Date(event.date);
-    const formattedDate = eventDate.toLocaleDateString('fr-FR', { 
-        weekday: 'long',
-        day: 'numeric', 
-        month: 'long'
-    });
-    
-    let gaugeColor = '#10B981';
-    if (participationRate > 60) gaugeColor = '#F59E0B';
-    if (participationRate > 85) gaugeColor = '#EF4444';
-    
-    const cardDiv = document.createElement('div');
-    cardDiv.className = 'event-card';
-    
-    cardDiv.innerHTML = `
-        <div class="card-header">
-            <span class="card-icon">${event.image}</span>
-            <div class="card-date">${formattedDate}</div>
-            <div>${event.heure}</div>
-        </div>
-        
-        <div class="card-body">
-            <h3 class="card-title">${event.titre}</h3>
-            <div class="card-location">📍 ${event.lieu}</div>
-            <p class="card-description">${event.description}</p>
-            
-            <div class="participants-gauge">
-                <div class="gauge-container">
-                    <div class="gauge-bar">
-                        <div class="gauge-fill" style="width: ${participationRate}%; background-color: ${gaugeColor};"></div>
-                    </div>
-                    <span class="gauge-text">${inscriptions}/${maxParticipants}</span>
-                </div>
-                <div class="gauge-percentage">${Math.round(participationRate)}% complet</div>
-            </div>
-            
-            <div class="participants-dropdown">
-                <button class="btn btn--outline dropdown-toggle" onclick="toggleParticipantsList(${event.id}, this)">
-                    👥 Voir les inscrits <span>▼</span>
-                </button>
-                <div class="dropdown-content hidden" id="participants-${event.id}">
-                    ${event.inscriptions.length > 0 
-                        ? event.inscriptions.map(p => `<div class="participant-item">${p.prenom} ${p.nom}</div>`).join('')
-                        : '<div class="participant-item" style="text-align: center; font-style: italic;">Aucune inscription</div>'
-                    }
-                </div>
-            </div>
-            
-            <button class="btn ${isEventFull ? 'btn--secondary' : 'btn--success'}" 
-                    style="width: 100%; margin-top: 0.75rem;" 
-                    ${isEventFull ? 'disabled' : ''}
-                    onclick="openRegistrationModal(${event.id})">
-                ${isEventFull ? '❌ Complet' : '✅ S\\'inscrire'}
-            </button>
-        </div>
-    `;
-    
-    return cardDiv;
+function cardEvent(ev) {
+const rate = Math.min(100, (ev.inscriptions.length / ev.maxParticipants) * 100);
+const full = ev.inscriptions.length >= ev.maxParticipants;
+const d = new Date(ev.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+const color = rate > 85 ? "#EF4444" : rate > 60 ? "#F59E0B" : "#10B981";
+const el = document.createElement("div");
+el.className = "event-card";
+el.innerHTML = <div class="card-header"> <span class="card-icon">${ev.image}</span> <div class="card-date">${d}</div> <div>${ev.heure}</div> </div> <div class="card-body"> <h3 class="card-title">${ev.titre}</h3> <div class="card-location">📍 ${ev.lieu}</div> <p class="card-description">${ev.description}</p> <div class="participants-gauge"> <div class="gauge-container"> <div class="gauge-bar"> <div class="gauge-fill" style="width:${Math.round(rate)}%;background-color:${color};"></div> </div> <span class="gauge-text">${ev.inscriptions.length}/${ev.maxParticipants}</span> </div> <div class="gauge-percentage">${Math.round(rate)}% complet</div> </div> <div class="participants-dropdown"> <button class="btn btn--outline dropdown-toggle" onclick="toggleParticipantsList(${ev.id}, this)">👥 Voir les inscrits <span>▼</span></button> <div class="dropdown-content hidden" id="participants-${ev.id}"> ${ev.inscriptions.length ? ev.inscriptions.map(p =><div class="participant-item">${p.prenom} ${p.nom}</div>).join("") : <div class="participant-item" style="text-align:center;font-style:italic;">Aucune inscription</div>} </div> </div> <button class="btn ${full ? "btn--secondary" : "btn--success"}" style="width:100%;margin-top:0.75rem;" ${full ? "disabled" : ""} onclick="openRegistrationModal(${ev.id})">${full ? "❌ Complet" : "✅ S'inscrire"}</button> </div> ;
+return el;
 }
 
-// Toggle liste participants
-function toggleParticipantsList(eventId, button) {
-    const dropdown = document.getElementById(`participants-${eventId}`);
-    const arrow = button.querySelector('span:last-child');
-    
-    // Fermer tous les autres dropdowns
-    document.querySelectorAll('.dropdown-content').forEach(d => {
-        if (d.id !== `participants-${eventId}`) {
-            d.classList.add('hidden');
-        }
-    });
-    
-    document.querySelectorAll('.dropdown-toggle span:last-child').forEach(s => {
-        if (s !== arrow) s.textContent = '▼';
-    });
-    
-    // Toggle le dropdown courant
-    if (dropdown.classList.contains('hidden')) {
-        dropdown.classList.remove('hidden');
-        arrow.textContent = '▲';
-    } else {
-        dropdown.classList.add('hidden');
-        arrow.textContent = '▼';
-    }
+function toggleParticipantsList(id, button) {
+const dd = byId(participants-${id});
+const arrow = button.querySelector("span:last-child");
+document.querySelectorAll(".dropdown-content").forEach(d => { if (d !== dd) d.classList.add("hidden"); });
+document.querySelectorAll(".dropdown-toggle span:last-child").forEach(s => { if (s !== arrow) s.textContent = "▼"; });
+const open = dd.classList.contains("hidden");
+dd.classList.toggle("hidden", !open);
+arrow.textContent = open ? "▲" : "▼";
 }
 
-// Connexion admin
 function handleLogin(e) {
-    e.preventDefault();
-    
-    const email = document.getElementById('adminEmail').value;
-    const password = document.getElementById('adminPassword').value;
-    const errorElement = document.getElementById('loginError');
-    
-    if (email === appConfig.adminCredentials.email && password === appConfig.adminCredentials.password) {
-        isAdminLoggedIn = true;
-        closeAllModals();
-        document.getElementById('publicView').classList.add('hidden');
-        document.getElementById('adminPanel').classList.remove('hidden');
-        loadConfigData();
-        showToast('Connexion réussie !');
-    } else {
-        errorElement.classList.remove('hidden');
-        document.getElementById('adminPassword').focus();
-    }
+e.preventDefault();
+const email = byId("adminEmail").value;
+const password = byId("adminPassword").value;
+if (email === appConfig.adminCredentials.email && password === appConfig.adminCredentials.password) {
+isAdminLoggedIn = true;
+closeAllModals();
+byId("publicView").classList.add("hidden");
+byId("adminPanel").classList.remove("hidden");
+toast("Connexion réussie !");
+} else {
+byId("loginError").classList.remove("hidden");
+}
 }
 
-// Modal inscription
-function openRegistrationModal(eventId) {
-    const event = eventsData.evenements.find(e => e.id === eventId);
-    if (!event) return;
-    
-    currentEvent = event;
-    document.getElementById('registrationModal').classList.remove('hidden');
-    document.getElementById('participationError').classList.add('hidden');
+function openRegistrationModal(id) {
+currentEvent = eventsData.evenements.find(e => e.id === id) || null;
+if (!currentEvent) return;
+byId("registrationModal").classList.remove("hidden");
+byId("participationError").classList.add("hidden");
 }
 
-// Traitement inscription
 function handleRegistration(e) {
-    e.preventDefault();
-    
-    if (!currentEvent) return;
-    
-    // Validation des cases à cocher
-    const preparationSalle = document.getElementById('preparationSalle').checked;
-    const partieEvenement = document.getElementById('partieEvenement').checked;
-    const evenementEntier = document.getElementById('evenementEntier').checked;
-    
-    const errorElement = document.getElementById('participationError');
-    
-    if (!preparationSalle && !partieEvenement && !evenementEntier) {
-        errorElement.classList.remove('hidden');
-        return;
-    }
-    
-    errorElement.classList.add('hidden');
-    
-    const registration = {
-        nom: document.getElementById('regLastName').value,
-        prenom: document.getElementById('regFirstName').value,
-        email: document.getElementById('regEmail').value,
-        telephone: document.getElementById('regPhone').value,
-        commentaire: document.getElementById('regComment').value,
-        participation: {
-            preparationSalle: preparationSalle,
-            partieEvenement: partieEvenement,
-            evenementEntier: evenementEntier
-        },
-        dateInscription: new Date().toISOString().split('T')[0]
-    };
-    
-    currentEvent.inscriptions.push(registration);
-    saveStoredData();
-    closeAllModals();
-    showToast('Inscription confirmée !');
-    renderCurrentView();
-    document.getElementById('registrationForm').reset();
+e.preventDefault();
+if (!currentEvent) return;
+const prep = byId("preparationSalle").checked;
+const part = byId("partieEvenement").checked;
+const full = byId("evenementEntier").checked;
+if (!prep && !part && !full) {
+byId("participationError").classList.remove("hidden");
+return;
 }
-
-// Navigation admin
-function switchAdminSection(section) {
-    document.querySelectorAll('.admin-nav-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.section === section);
-    });
-    
-    document.querySelectorAll('.admin-section').forEach(sectionEl => {
-        sectionEl.classList.toggle('active', sectionEl.id === `${section}Section`);
-    });
-    
-    currentAdminSection = section;
-    
-    if (section === 'config') {
-        loadConfigData();
-    }
-}
-
-// Configuration - Logo
-function handleLogoUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    // Validation
-    if (file.size > 2 * 1024 * 1024) {
-        alert('Le fichier est trop volumineux (max 2MB)');
-        return;
-    }
-    
-    if (!file.type.match(/^image\/(png|jpeg|jpg|svg\+xml)$/)) {
-        alert('Format non supporté (PNG, JPG, JPEG, SVG uniquement)');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const logoUrl = e.target.result;
-        appConfig.logoUrl = logoUrl;
-        updateLogoDisplay();
-        saveStoredData();
-        showToast('Logo mis à jour');
-    };
-    reader.readAsDataURL(file);
-}
-
-function removeLogo() {
-    appConfig.logoUrl = "";
-    updateLogoDisplay();
-    saveStoredData();
-    document.getElementById('logoUpload').value = "";
-    showToast('Logo supprimé');
+const reg = {
+nom: byId("regLastName").value,
+prenom: byId("regFirstName").value,
+email: byId("regEmail").value,
+telephone: byId("regPhone").value,
+commentaire: byId("regComment").value,
+participation: { preparationSalle: prep, partieEvenement: part, evenementEntier: full },
+dateInscription: new Date().toISOString().split("T")
+};
+currentEvent.inscriptions.push(reg);
+closeAllModals();
+toast("Inscription confirmée !");
+renderCurrentView();
+byId("registrationForm").reset();
 }
 
 function updateLogoDisplay() {
-    const logoElement = document.getElementById('associationLogo');
-    if (appConfig.logoUrl) {
-        logoElement.innerHTML = `<img src="${appConfig.logoUrl}" alt="Logo association" style="max-height: 200px; width: auto;">`;
-    } else {
-        logoElement.innerHTML = '🤝';
-    }
+const el = byId("associationLogo");
+if (!el) return;
+el.innerHTML = appConfig.logoUrl ? <img src="${appConfig.logoUrl}" alt="Logo association" style="max-height:200px;width:auto;"> : "🤝";
 }
 
-// Configuration - Texte intro
+function handleLogoUpload(e) {
+const file = e.target.files?.;
+if (!file) return;
+if (file.size > 2 * 1024 * 1024) return alert("Le fichier est trop volumineux (max 2MB)");
+const ok = /^(image\/(png|jpeg|jpg|svg\+xml))$/.test(file.type);
+if (!ok) return alert("Format non supporté (PNG, JPG, JPEG, SVG uniquement)");
+const r = new FileReader();
+r.onload = ev => { appConfig.logoUrl = ev.target.result; updateLogoDisplay(); toast("Logo mis à jour"); };
+r.readAsDataURL(file);
+}
+
+function removeLogo() {
+appConfig.logoUrl = "";
+updateLogoDisplay();
+toast("Logo supprimé");
+}
+
 function saveIntroText() {
-    const newText = document.getElementById('introTextArea').value;
-    if (newText.trim()) {
-        appConfig.introText = newText;
-        document.getElementById('introText').textContent = newText;
-        saveStoredData();
-        showToast('Texte mis à jour');
-    }
-}
-
-function loadConfigData() {
-    document.getElementById('introTextArea').value = appConfig.introText;
-    renderEventTypes();
-}
-
-// Configuration - Types d'événements
-function renderEventTypes() {
-    const container = document.getElementById('eventTypesList');
-    container.innerHTML = '';
-    
-    appConfig.eventTypes.forEach(type => {
-        const typeDiv = document.createElement('div');
-        typeDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: white; border: 1px solid #e5e7eb; border-radius: 0.375rem; margin-bottom: 0.5rem;';
-        typeDiv.innerHTML = `
-            <span>${type}</span>
-            <button class="btn btn--outline" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="removeEventType('${type}')">
-                🗑️ Supprimer
-            </button>
-        `;
-        container.appendChild(typeDiv);
-    });
+const t = byId("introTextArea").value.trim();
+if (!t) return;
+appConfig.introText = t;
+byId("introText").textContent = t;
+toast("Texte mis à jour");
 }
 
 function addEventType() {
-    const input = document.getElementById('newEventType');
-    const newType = input.value.trim();
-    
-    if (newType && !appConfig.eventTypes.includes(newType)) {
-        appConfig.eventTypes.push(newType);
-        input.value = '';
-        renderEventTypes();
-        saveStoredData();
-        showToast('Type d\'événement ajouté');
-    }
+const input = byId("newEventType");
+const val = (input.value || "").trim();
+if (!val) return;
+if (!appConfig.eventTypes.includes(val)) {
+appConfig.eventTypes.push(val);
+input.value = "";
+renderEventTypes();
+toast("Type d'événement ajouté");
+}
+}
+
+function renderEventTypes() {
+const c = byId("eventTypesList");
+if (!c) return;
+c.innerHTML = "";
+appConfig.eventTypes.forEach(type => {
+const row = document.createElement("div");
+row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:#fff;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:0.5rem;";
+const safe = type.replace(/'/g, "\'");
+row.innerHTML = <span>${type}</span><button class="btn btn--outline" style="font-size:0.75rem;padding:0.25rem 0.5rem;" onclick="removeEventType('${safe}')">🗑️ Supprimer</button>;
+c.appendChild(row);
+});
 }
 
 function removeEventType(type) {
-    if (confirm(`Supprimer le type "${type}" ?`)) {
-        appConfig.eventTypes = appConfig.eventTypes.filter(t => t !== type);
-        renderEventTypes();
-        saveStoredData();
-        showToast('Type d\'événement supprimé');
-    }
+if (!confirm(Supprimer le type "${type}" ?)) return;
+appConfig.eventTypes = appConfig.eventTypes.filter(t => t !== type);
+renderEventTypes();
+toast("Type d'événement supprimé");
 }
 
-// Utilitaires
 function updateCountdown() {
-    const now = new Date();
-    const nextEvent = eventsData.evenements
-        .filter(event => new Date(event.date) > now)
-        .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-    
-    if (nextEvent) {
-        const eventDate = new Date(nextEvent.date);
-        const diffTime = eventDate - now;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        let countdownText;
-        if (diffDays === 0) {
-            countdownText = "Aujourd'hui !";
-        } else if (diffDays === 1) {
-            countdownText = "Demain";
-        } else {
-            countdownText = `${diffDays} jours`;
-        }
-        
-        document.getElementById('countdownTimer').textContent = countdownText;
-    } else {
-        document.getElementById('countdownTimer').textContent = "Aucun événement";
-    }
+const now = new Date();
+const next = sortedEvents().find(e => new Date(e.date) > now);
+const el = byId("countdownTimer");
+if (!el) return;
+if (!next) return el.textContent = "Aucun événement";
+const d = Math.ceil((new Date(next.date) - now) / (1000 * 60 * 60 * 24));
+el.textContent = d === 0 ? "Aujourd'hui !" : d === 1 ? "Demain" : ${d} jours;
+}
+
+function sortedEvents() {
+return [...eventsData.evenements].sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 function closeAllModals() {
-    document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.classList.add('hidden');
-    });
-    document.getElementById('loginError').classList.add('hidden');
-    document.getElementById('adminPassword').value = '';
-    currentEvent = null;
+document.querySelectorAll(".modal-overlay").forEach(m => m.classList.add("hidden"));
+const err = byId("loginError"); if (err) err.classList.add("hidden");
+const pwd = byId("adminPassword"); if (pwd) pwd.value = "";
+currentEvent = null;
 }
 
-function showToast(message) {
-    document.getElementById('toastMessage').textContent = message;
-    const toast = document.getElementById('successToast');
-    toast.classList.remove('hidden');
-    toast.classList.add('show');
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-            toast.classList.add('hidden');
-        }, 250);
-    }, 3000);
+function toast(msg) {
+const tm = byId("toastMessage"); if (tm) tm.textContent = msg;
+const t = byId("successToast");
+t.classList.remove("hidden"); t.classList.add("show");
+setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.classList.add("hidden"), 250); }, 2500);
 }
 
-function saveStoredData() {
-    localStorage.setItem('ohlunjoie_events', JSON.stringify(eventsData));
-    localStorage.setItem('ohlunjoie_config', JSON.stringify(appConfig));
-}
-
-function loadStoredData() {
-    const savedEvents = localStorage.getItem('ohlunjoie_events');
-    const savedConfig = localStorage.getItem('ohlunjoie_config');
-    
-    if (savedEvents) {
-        eventsData = JSON.parse(savedEvents);
-    }
-    
-    if (savedConfig) {
-        appConfig = JSON.parse(savedConfig);
-    }
-    
-    // Appliquer la config au chargement
-    document.getElementById('introText').textContent = appConfig.introText;
-    updateLogoDisplay();
-}
-
-// Exposer les fonctions globales nécessaires
+// Expose
 window.toggleParticipantsList = toggleParticipantsList;
 window.openRegistrationModal = openRegistrationModal;
 window.removeEventType = removeEventType;
