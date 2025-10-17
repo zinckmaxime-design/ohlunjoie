@@ -1,4 +1,4 @@
-/* Ohlun'Joie - Application complète optimisée */
+/* Ohlun'Joie - Application complète CORRIGÉE */
 var eventsData = {
   "evenements": [
     {
@@ -89,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(updateCountdown, 60000);
 });
 
-/* === UTILITAIRES === */
 function $(id) {
   return document.getElementById(id);
 }
@@ -112,9 +111,7 @@ function getGaugeColor(rate) {
   return "#10B981";
 }
 
-/* === EVENT LISTENERS === */
 function setupEventListeners() {
-  // Navigation entre vues
   var viewButtons = document.querySelectorAll('[data-view]');
   for (var i = 0; i < viewButtons.length; i++) {
     viewButtons[i].addEventListener('click', function(e) {
@@ -122,7 +119,6 @@ function setupEventListeners() {
     });
   }
 
-  // Bouton Administration
   var adminBtn = $('adminBtn');
   if (adminBtn) {
     adminBtn.addEventListener('click', function() {
@@ -133,7 +129,6 @@ function setupEventListeners() {
     });
   }
 
-  // Fermeture modales
   document.addEventListener('click', function(e) {
     if (e.target && e.target.classList) {
       if (e.target.classList.contains('modal-overlay')) {
@@ -145,7 +140,6 @@ function setupEventListeners() {
     }
   });
 
-  // Formulaires
   var loginForm = $('loginForm');
   if (loginForm) {
     loginForm.addEventListener('submit', handleLogin);
@@ -156,7 +150,6 @@ function setupEventListeners() {
     regForm.addEventListener('submit', handleRegistration);
   }
 
-  // Configuration admin
   var logoUpload = $('logoUpload');
   if (logoUpload) {
     logoUpload.addEventListener('change', handleLogoUpload);
@@ -177,7 +170,6 @@ function setupEventListeners() {
     addType.addEventListener('click', addEventType);
   }
 
-  // Bouton déconnexion
   var logoutBtn = $('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function() {
@@ -189,7 +181,6 @@ function setupEventListeners() {
   }
 }
 
-/* === NAVIGATION === */
 function switchView(view) {
   var buttons = document.querySelectorAll('[data-view]');
   for (var i = 0; i < buttons.length; i++) {
@@ -223,12 +214,11 @@ function renderCurrentView() {
   }
 }
 
-/* === VUE TIMELINE === */
 function renderTimeline() {
   var wrapper = $('timelineView');
   var events = sortedEvents();
   wrapper.innerHTML = '<div class="timeline-rail"></div>';
-
+  
   for (var i = 0; i < events.length; i++) {
     wrapper.appendChild(createTimelineEvent(events[i]));
   }
@@ -294,17 +284,16 @@ function createTimelineEvent(event) {
   return element;
 }
 
-/* === VUE LISTE === */
 function renderList() {
   var listBody = document.querySelector('#listView .list-body');
   if (!listBody) {
     $('listView').innerHTML = '<div class="list-body"></div>';
     listBody = document.querySelector('#listView .list-body');
   }
-
+  
   listBody.innerHTML = '';
   var events = sortedEvents();
-
+  
   for (var i = 0; i < events.length; i++) {
     listBody.appendChild(createListEvent(events[i]));
   }
@@ -362,17 +351,16 @@ function createListEvent(event) {
   return element;
 }
 
-/* === VUE CARTES === */
 function renderCards() {
   var grid = document.querySelector('#cardsView .cards-grid');
   if (!grid) {
     $('cardsView').innerHTML = '<div class="cards-grid"></div>';
     grid = document.querySelector('#cardsView .cards-grid');
   }
-
+  
   grid.innerHTML = '';
   var events = sortedEvents();
-
+  
   for (var i = 0; i < events.length; i++) {
     grid.appendChild(createCardEvent(events[i]));
   }
@@ -442,32 +430,29 @@ function createCardEvent(event) {
   return element;
 }
 
-/* === INTERACTIONS === */
 function toggleParticipantsList(eventId, button) {
   var dropdown = $('participants-' + eventId);
   var arrow = button.querySelector('span:last-child');
-
-  // Fermer tous les autres dropdowns
+  
   var allDropdowns = document.querySelectorAll('.dropdown-content');
   for (var i = 0; i < allDropdowns.length; i++) {
     if (allDropdowns[i] !== dropdown) {
       allDropdowns[i].classList.add('hidden');
     }
   }
-
+  
   var allArrows = document.querySelectorAll('.dropdown-toggle span:last-child');
   for (var j = 0; j < allArrows.length; j++) {
     if (allArrows[j] !== arrow) {
       allArrows[j].textContent = '▼';
     }
   }
-
+  
   var isOpen = dropdown.classList.contains('hidden');
   dropdown.classList.toggle('hidden', !isOpen);
   arrow.textContent = isOpen ? '▲' : '▼';
 }
 
-/* === CONNEXION ADMIN === */
 function handleLogin(e) {
   e.preventDefault();
   var email = $('adminEmail').value;
@@ -487,7 +472,6 @@ function handleLogin(e) {
   }
 }
 
-/* === INSCRIPTION === */
 function openRegistrationModal(eventId) {
   currentEvent = null;
   for (var i = 0; i < eventsData.evenements.length; i++) {
@@ -496,9 +480,9 @@ function openRegistrationModal(eventId) {
       break;
     }
   }
-
+  
   if (!currentEvent) return;
-
+  
   $('registrationModal').classList.remove('hidden');
   $('participationError').classList.add('hidden');
 }
@@ -541,18 +525,17 @@ function handleRegistration(e) {
   $('registrationForm').reset();
 }
 
-/* === ADMINISTRATION === */
 function switchAdminSection(section) {
   var buttons = document.querySelectorAll('.admin-nav-btn');
   for (var i = 0; i < buttons.length; i++) {
     buttons[i].classList.toggle('active', buttons[i].dataset.section === section);
   }
-
+  
   var sections = document.querySelectorAll('.admin-section');
   for (var j = 0; j < sections.length; j++) {
     sections[j].classList.toggle('active', sections[j].id === section + 'Section');
   }
-
+  
   currentAdminSection = section;
   if (section === 'config') {
     loadConfigData();
@@ -568,7 +551,6 @@ function loadConfigData() {
   updateLogoDisplay();
 }
 
-/* === GESTION LOGO === */
 function handleLogoUpload(e) {
   var file = e.target.files && e.target.files[0];
   if (!file) return;
@@ -578,7 +560,8 @@ function handleLogoUpload(e) {
     return;
   }
 
-  if (!/^image\/(png|jpeg|jpg|svg\+xml)$/.test(file.type)) {
+  var imageTypePattern = /^image\/(png|jpeg|jpg|svg\+xml)$/;
+  if (!imageTypePattern.test(file.type)) {
     alert('Format non supporté (PNG, JPG, JPEG, SVG uniquement)');
     return;
   }
@@ -612,11 +595,10 @@ function updateLogoDisplay() {
   }
 }
 
-/* === GESTION TEXTE === */
 function saveIntroText() {
   var textArea = $('introTextArea');
   if (!textArea) return;
-
+  
   var newText = textArea.value;
   if (newText && newText.trim()) {
     appConfig.introText = newText;
@@ -629,23 +611,22 @@ function saveIntroText() {
   }
 }
 
-/* === GESTION TYPES EVENEMENTS === */
 function renderEventTypes() {
   var container = $('eventTypesList');
   if (!container) return;
-
+  
   container.innerHTML = '';
-
+  
   for (var i = 0; i < appConfig.eventTypes.length; i++) {
     var type = appConfig.eventTypes[i];
     var row = document.createElement('div');
     row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:#fff;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:0.5rem;';
-
-    var safeType = type.replace(/'/g, "\'");
+    
+    var safeType = type.replace(/'/g, "&#39;");
     row.innerHTML = '<span>' + type + '</span>' +
       '<button class="btn btn--outline" style="font-size:0.75rem;padding:0.25rem 0.5rem;" ' +
-      'onclick="removeEventType(\'+ safeType + '\')">🗑️ Supprimer</button>';
-
+      'onclick="removeEventType(\'' + safeType + '\')">🗑️ Supprimer</button>';
+    
     container.appendChild(row);
   }
 }
@@ -653,7 +634,7 @@ function renderEventTypes() {
 function addEventType() {
   var input = $('newEventType');
   if (!input) return;
-
+  
   var value = (input.value || '').trim();
   if (!value) return;
 
@@ -667,30 +648,30 @@ function addEventType() {
 }
 
 function removeEventType(type) {
-  if (!confirm('Supprimer le type "' + type + '" ?')) return;
+  var decodedType = type.replace(/&#39;/g, "'");
+  if (!confirm('Supprimer le type "' + decodedType + '" ?')) return;
 
   appConfig.eventTypes = appConfig.eventTypes.filter(function(t) {
-    return t !== type;
+    return t !== decodedType;
   });
-
+  
   renderEventTypes();
   saveStoredData();
   showToast('Type d\'événement supprimé');
 }
 
-/* === COMPTE À REBOURS === */
 function updateCountdown() {
   var now = new Date();
   var nextEvent = null;
   var events = sortedEvents();
-
+  
   for (var i = 0; i < events.length; i++) {
     if (new Date(events[i].date) > now) {
       nextEvent = events[i];
       break;
     }
   }
-
+  
   var countdownElement = $('countdownTimer');
   if (!countdownElement) return;
 
@@ -700,7 +681,7 @@ function updateCountdown() {
   }
 
   var diffDays = Math.ceil((new Date(nextEvent.date) - now) / (1000 * 60 * 60 * 24));
-
+  
   if (diffDays === 0) {
     countdownElement.textContent = "Aujourd'hui !";
   } else if (diffDays === 1) {
@@ -710,23 +691,22 @@ function updateCountdown() {
   }
 }
 
-/* === UTILITAIRES === */
 function closeAllModals() {
   var modals = document.querySelectorAll('.modal-overlay');
   for (var i = 0; i < modals.length; i++) {
     modals[i].classList.add('hidden');
   }
-
+  
   var loginError = $('loginError');
   if (loginError) {
     loginError.classList.add('hidden');
   }
-
+  
   var passwordField = $('adminPassword');
   if (passwordField) {
     passwordField.value = '';
   }
-
+  
   currentEvent = null;
 }
 
@@ -735,13 +715,13 @@ function showToast(message) {
   if (toastMessage) {
     toastMessage.textContent = message;
   }
-
+  
   var toast = $('successToast');
   if (!toast) return;
-
+  
   toast.classList.remove('hidden');
   toast.classList.add('show');
-
+  
   setTimeout(function() {
     toast.classList.remove('show');
     setTimeout(function() {
@@ -750,7 +730,6 @@ function showToast(message) {
   }, 3000);
 }
 
-/* === STOCKAGE === */
 function saveStoredData() {
   try {
     localStorage.setItem('ohlunjoie_events', JSON.stringify(eventsData));
@@ -764,27 +743,26 @@ function loadStoredData() {
   try {
     var storedEvents = localStorage.getItem('ohlunjoie_events');
     var storedConfig = localStorage.getItem('ohlunjoie_config');
-
+    
     if (storedEvents) {
       eventsData = JSON.parse(storedEvents);
     }
-
+    
     if (storedConfig) {
       appConfig = JSON.parse(storedConfig);
     }
   } catch (e) {
     console.error('Erreur chargement:', e);
   }
-
+  
   var introElement = $('introText');
   if (introElement) {
     introElement.textContent = appConfig.introText;
   }
-
+  
   updateLogoDisplay();
 }
 
-/* === FONCTIONS GLOBALES === */
 window.toggleParticipantsList = toggleParticipantsList;
 window.openRegistrationModal = openRegistrationModal;
 window.removeEventType = removeEventType;
