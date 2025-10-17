@@ -103,16 +103,16 @@
 
             <!-- Admin Navigation -->
             <div class="admin-nav">
-                <button class="admin-nav-btn active" data-section="events">
+                <button class="admin-nav-btn active" data-section="events" onclick="switchAdminSection('events')">
                     📅 Événements
                 </button>
-                <button class="admin-nav-btn" data-section="members">
+                <button class="admin-nav-btn" data-section="members" onclick="switchAdminSection('members')">
                     👥 Statistiques Membres
                 </button>
-                <button class="admin-nav-btn" data-section="users">
+                <button class="admin-nav-btn" data-section="users" onclick="switchAdminSection('users')">
                     👤 Utilisateurs
                 </button>
-                <button class="admin-nav-btn" data-section="config">
+                <button class="admin-nav-btn" data-section="config" onclick="switchAdminSection('config')">
                     ⚙️ Configuration
                 </button>
             </div>
@@ -121,7 +121,9 @@
             <div class="admin-section active" id="eventsSection">
                 <h3>Gestion des Événements</h3>
                 <div class="events-admin-list" id="eventsAdminList">
-                    <!-- Admin events list -->
+                    <p style="padding: 2rem; text-align: center; color: #6b7280;">
+                        Les événements sont affichés dans la vue publique. Utilisez la section Configuration pour personnaliser le contenu.
+                    </p>
                 </div>
             </div>
 
@@ -129,7 +131,9 @@
             <div class="admin-section" id="membersSection">
                 <h3>Statistiques des Membres</h3>
                 <div class="members-list" id="membersList">
-                    <!-- Members stats -->
+                    <p style="padding: 2rem; text-align: center; color: #6b7280;">
+                        Les statistiques des membres seront disponibles prochainement.
+                    </p>
                 </div>
             </div>
 
@@ -137,7 +141,9 @@
             <div class="admin-section" id="usersSection">
                 <h3>Gestion des Utilisateurs</h3>
                 <div class="users-list" id="usersList">
-                    <!-- Users management -->
+                    <p style="padding: 2rem; text-align: center; color: #6b7280;">
+                        La gestion des utilisateurs sera disponible prochainement.
+                    </p>
                 </div>
             </div>
 
@@ -149,24 +155,24 @@
                     <div class="config-group">
                         <h4>Logo de l'association</h4>
                         <input type="file" id="logoUpload" accept="image/*">
-                        <button class="btn btn--outline" id="removeLogo">Supprimer le logo</button>
+                        <button class="btn btn--outline" id="removeLogo" style="margin-top: 0.5rem;">Supprimer le logo</button>
                     </div>
                     
                     <!-- Intro Text -->
                     <div class="config-group">
                         <h4>Texte de présentation</h4>
                         <textarea id="introTextArea" rows="4"></textarea>
-                        <button class="btn btn--primary" id="saveIntroText">Sauvegarder</button>
+                        <button class="btn btn--primary" id="saveIntroText" style="margin-top: 0.5rem;">Sauvegarder</button>
                     </div>
                     
                     <!-- Event Types -->
                     <div class="config-group">
                         <h4>Types d'événements</h4>
-                        <div id="eventTypesList">
-                            <!-- Event types list -->
+                        <div id="eventTypesList"></div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <input type="text" id="newEventType" placeholder="Nouveau type" style="flex: 1;">
+                            <button class="btn btn--primary" id="addEventType">Ajouter</button>
                         </div>
-                        <input type="text" id="newEventType" placeholder="Nouveau type">
-                        <button class="btn btn--primary" id="addEventType">Ajouter</button>
                     </div>
                 </div>
             </div>
@@ -193,7 +199,7 @@
                     Email ou mot de passe incorrect !
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn--outline" id="cancelLoginBtn">
+                    <button type="button" class="btn btn--outline modal-close">
                         Annuler
                     </button>
                     <button type="submit" class="btn btn--primary">
@@ -208,7 +214,7 @@
     <div class="modal-overlay hidden" id="registrationModal">
         <div class="modal modal--large">
             <div class="modal-header">
-                <h3>Inscription à l'événement</h3>
+                <h3>✅ Inscription à l'événement</h3>
                 <button class="modal-close" id="closeRegModalBtn">×</button>
             </div>
             <form id="registrationForm">
@@ -238,34 +244,50 @@
 
                 <div class="form-section">
                     <h4>Votre participation <span class="required">(minimum 1 obligatoire)</span></h4>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="preparationSalle" name="participation">
-                            <label for="preparationSalle">Préparation salle jour J</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="partieEvenement" name="participation">
-                            <label for="partieEvenement">Une partie de la soirée</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="evenementEntier" name="participation">
-                            <label for="evenementEntier">La soirée entière</label>
-                        </div>
-                    </div>
                     <div class="error-message hidden" id="participationError">
-                        Veuillez sélectionner au moins une option de participation
+                        ⚠️ Veuillez sélectionner au moins une option de participation
+                    </div>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="preparationSalle" name="participation">
+                            <span class="checkbox-text">Préparation salle jour J</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="partieEvenement" name="participation">
+                            <span class="checkbox-text">Une partie de la soirée</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="evenementEntier" name="participation">
+                            <span class="checkbox-text">La soirée entière</span>
+                        </label>
                     </div>
                 </div>
 
                 <div class="form-section">
                     <div class="form-group">
                         <label for="regComment">Commentaires</label>
-                        <textarea id="regComment" rows="3"></textarea>
+                        <textarea id="regComment" rows="3" placeholder="Précisions, contraintes horaires, questions..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Clause RGPD -->
+                <div class="form-section">
+                    <div class="rgpd-notice">
+                        <div class="rgpd-icon">🔒</div>
+                        <div class="rgpd-text">
+                            <strong>Protection des données personnelles</strong><br>
+                            Les informations recueillies dans ce formulaire sont enregistrées dans un fichier 
+                            informatisé par l'association Ohlun'Joie pour la gestion des inscriptions aux événements. 
+                            Elles sont conservées pendant la durée nécessaire à la gestion de l'événement et ne sont 
+                            jamais transmises à des tiers. Conformément à la loi « informatique et libertés », 
+                            vous pouvez exercer votre droit d'accès aux données vous concernant et les faire 
+                            rectifier en contactant l'association.
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn--outline" id="cancelRegBtn">Annuler</button>
+                    <button type="button" class="btn btn--outline modal-close">Annuler</button>
                     <button type="submit" class="btn btn--primary">Confirmer l'inscription</button>
                 </div>
             </form>
