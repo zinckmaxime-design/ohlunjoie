@@ -5,6 +5,22 @@ const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// UI polish: transitions + hooks visuels (n'affecte pas la logique)
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.style.transition = 'background .25s ease, color .25s ease';
+});
+
+// Focus visible clair
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') document.documentElement.classList.add('kbd');
+});
+const focusCSS = document.createElement('style');
+focusCSS.textContent = `.kbd :focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:10px}`;
+document.head.appendChild(focusCSS);
+
+// Animation légère sur jauges au render
+const _progress = (pct) => `<div class="progress"><div style="width:${Math.min(100, Math.max(0, pct))}%"></div></div>`;
+
 /* === Patch compat app initiale (append only) === */
 
 // Adoucir transitions au chargement pour éviter flash
