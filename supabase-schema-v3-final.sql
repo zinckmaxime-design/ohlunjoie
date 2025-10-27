@@ -1,268 +1,213 @@
--- Ohlun'Joie V3.0 - Schéma complet Supabase PostgreSQL
--- Tables, index, triggers, RLS policies et données d'initialisation
+-- supabase-schema-v3-final.sql
+-- Schéma complet Ohlun'Joie V3.0
+-- DROP TABLES
+DROP TABLE IF EXISTS events CASCADE;
+DROP TABLE IF EXISTS inscriptions CASCADE;
+DROP TABLE IF EXISTS admins CASCADE;
+DROP TABLE IF EXISTS analytics CASCADE;
+DROP TABLE IF EXISTS volunteer_profiles CASCADE;
+DROP TABLE IF EXISTS activity_logs CASCADE;
+DROP TABLE IF EXISTS app_config CASCADE;
 
--- Extensions utiles
-create extension if not exists pgcrypto;
-create extension if not exists moddatetime;
-
--- Fonctions utilitaires
-create or replace function update_updated_at_column()
-returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
-
-create or replace function update_volunteer_profile()
-returns trigger as $$
-declare
-  v_exists boolean;
-  v_first date;
-  v_last date;
-  v_total integer;
-begin
-  select exists(select 1 from volunteer_profiles where email = new.email) into v_exists;
-  if v_exists then
-    select least(coalesce(first_participation, new.date_inscription::date)),
-           greatest(coalesce(last_participation, new.date_inscription::date)),
-           coalesce(total_participations,0) + 1
-      into v_first, v_last, v_total
-      from volunteer_profiles
-     where email = new.email
-     limit 1;
-
-    update volunteer_profiles
-       set prenom = coalesce(new.prenom, prenom),
-           nom = coalesce(new.nom, nom),
-           telephone = coalesce(new.telephone, telephone),
-           total_participations = v_total,
-           first_participation = coalesce(first_participation, new.date_inscription::date),
-           last_participation = greatest(coalesce(last_participation, new.date_inscription::date), new.date_inscription::date),
-           updated_at = now()
-     where email = new.email;
-  else
-    insert into volunteer_profiles (prenom, nom, email, telephone, total_participations, first_participation, last_participation)
-    values (new.prenom, new.nom, new.email, new.telephone, 1, new.date_inscription::date, new.date_inscription::date);
-  end if;
-  return new;
-end;
-$$ language plpgsql;
-
--- Tables
-drop table if exists events cascade;
-create table events (
-  id bigserial primary key,
-  titre text not null,
-  description text not null,
-  date date not null,
-  heure time not null,
-  lieu text not null,
-  type text not null,
-  image text default '📅',
-  max_participants integer not null default 20 check (max_participants > 0),
-  visible boolean not null default true,
-  archived boolean not null default false,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  created_by text,
-  updated_by text
-);
-create index idx_events_date on events(date);
-create index idx_events_visible on events(visible);
-create index idx_events_archived on events(archived);
-
-drop trigger if exists trg_events_set_updated_at on events;
-create trigger trg_events_set_updated_at
-before update on events
-for each row
-execute function update_updated_at_column();
-
-drop table if exists inscriptions cascade;
-create table inscriptions (
-  id bigserial primary key,
-  event_id bigint references events(id) on delete cascade,
-  prenom text not null,
-  nom text not null,
-  email text not null,
-  telephone text not null,
-  commentaire text,
-  preparation_salle boolean default false,
-  partie_evenement boolean default false,
-  evenement_entier boolean default false,
-  date_inscription timestamptz default now(),
-  unique(event_id, email)
-);
-create index idx_inscriptions_event_id on inscriptions(event_id);
-create index idx_inscriptions_email on inscriptions(email);
-
-drop table if exists admins cascade;
-create table admins (
-  id bigserial primary key,
-  email text unique not null,
-  nom text not null,
-  prenom text not null,
-  password_hash text not null,
-  role text default 'admin',
-  perm_view_events boolean default true,
-  perm_edit_events boolean default false,
-  perm_view_stats boolean default false,
-  perm_view_logs boolean default false,
-  perm_view_volunteers boolean default false,
-  perm_manage_admins boolean default false,
-  perm_config boolean default false,
-  created_at timestamptz default now(),
-  last_login timestamptz,
-  is_active boolean default true
+-- EVENTS
+CREATE TABLE events (
+  id SERIAL PRIMARY KEY,
+  titre VARCHAR(120) NOT NULL,
+  description TEXT,
+  date DATE NOT NULL,
+  heure TIME NOT NULL,
+  lieu VARCHAR(120) NOT NULL,
+  type VARCHAR(60) NOT NULL,
+  image VARCHAR(16) NOT NULL,
+  max_participants INTEGER CHECK (max_participants > 0),
+  visible BOOLEAN DEFAULT TRUE,
+  archived BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_by VARCHAR(120),
+  updated_by VARCHAR(120)
 );
 
-drop table if exists analytics cascade;
-create table analytics (
-  id bigserial primary key,
-  event_type text not null,
-  event_id bigint references events(id) on delete cascade,
-  page_name text,
-  timestamp timestamptz default now(),
-  user_agent text,
-  ip_address inet
-);
-create index idx_analytics_event_id on analytics(event_id);
-create index idx_analytics_timestamp on analytics(timestamp);
+CREATE INDEX idx_events_date ON events(date);
+CREATE INDEX idx_events_visible ON events(visible);
+CREATE INDEX idx_events_archived ON events(archived);
 
-drop table if exists volunteer_profiles cascade;
-create table volunteer_profiles (
-  id bigserial primary key,
-  prenom text not null,
-  nom text not null,
-  email text unique not null,
-  telephone text,
-  total_participations integer default 0,
-  first_participation date,
-  last_participation date,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-create index idx_volunteers_email on volunteer_profiles(email);
-
-drop trigger if exists trg_volunteers_set_updated_at on volunteer_profiles;
-create trigger trg_volunteers_set_updated_at
-before update on volunteer_profiles
-for each row
-execute function update_updated_at_column();
-
-drop trigger if exists trg_inscriptions_update_volunteer on inscriptions;
-create trigger trg_inscriptions_update_volunteer
-after insert on inscriptions
-for each row
-execute function update_volunteer_profile();
-
-drop table if exists activity_logs cascade;
-create table activity_logs (
-  id bigserial primary key,
-  admin_email text not null,
-  action text not null,
-  entity_type text not null,
-  entity_id bigint,
-  details jsonb,
-  timestamp timestamptz default now()
-);
-create index idx_activity_logs_timestamp on activity_logs(timestamp);
-
-drop table if exists app_config cascade;
-create table app_config (
-  id bigserial primary key,
-  key text unique not null,
-  value text,
-  updated_at timestamptz default now(),
-  updated_by text
+-- INSCRIPTIONS
+CREATE TABLE inscriptions (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  email VARCHAR(120) NOT NULL,
+  nom VARCHAR(80) NOT NULL,
+  prenom VARCHAR(80) NOT NULL,
+  telephone VARCHAR(20) NOT NULL,
+  participations JSONB NOT NULL,
+  inscription_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(event_id, email)
 );
 
--- RLS
-alter table events enable row level security;
-alter table inscriptions enable row level security;
-alter table admins enable row level security;
-alter table analytics enable row level security;
-alter table volunteer_profiles enable row level security;
-alter table activity_logs enable row level security;
-alter table app_config enable row level security;
+-- ADMINS
+CREATE TABLE admins (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(120) UNIQUE NOT NULL,
+  nom VARCHAR(80) NOT NULL,
+  prenom VARCHAR(80) NOT NULL,
+  password_hash VARCHAR(128) NOT NULL,
+  super_admin BOOLEAN DEFAULT FALSE,
+  perm_view_events BOOLEAN DEFAULT TRUE,
+  perm_edit_events BOOLEAN DEFAULT FALSE,
+  perm_view_stats BOOLEAN DEFAULT TRUE,
+  perm_view_logs BOOLEAN DEFAULT FALSE,
+  perm_view_volunteers BOOLEAN DEFAULT TRUE,
+  perm_manage_admins BOOLEAN DEFAULT FALSE,
+  perm_config BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-drop policy if exists public_select_events on events;
-create policy public_select_events on events for select to anon using (true);
+-- ANALYTICS
+CREATE TABLE analytics (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
+  action VARCHAR(24) NOT NULL, -- 'page_view' ou 'event_click'
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-drop policy if exists public_insert_inscriptions on inscriptions;
-create policy public_insert_inscriptions on inscriptions for insert to anon with check (true);
+-- VOLUNTEER_PROFILES
+CREATE TABLE volunteer_profiles (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(120) UNIQUE NOT NULL,
+  nom VARCHAR(80) NOT NULL,
+  prenom VARCHAR(80) NOT NULL,
+  telephone VARCHAR(20),
+  participations_count INTEGER DEFAULT 0
+);
 
-drop policy if exists public_select_inscriptions on inscriptions;
-create policy public_select_inscriptions on inscriptions for select to anon using (true);
+-- ACTIVITY_LOGS
+CREATE TABLE activity_logs (
+  id SERIAL PRIMARY KEY,
+  admin_email VARCHAR(120) NOT NULL,
+  action VARCHAR(128) NOT NULL,
+  entity_type VARCHAR(40) NOT NULL,
+  entity_id INTEGER,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-drop policy if exists public_insert_analytics on analytics;
-create policy public_insert_analytics on analytics for insert to anon with check (true);
+-- APP_CONFIG
+CREATE TABLE app_config (
+  id SERIAL PRIMARY KEY,
+  key VARCHAR(40) UNIQUE NOT NULL,
+  value TEXT NOT NULL
+);
 
-drop policy if exists public_select_app_config on app_config;
-create policy public_select_app_config on app_config for select to anon using (true);
+-- TRIGGERS
+-- updated_at trigger on events
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_update_updated_at
+BEFORE UPDATE ON events
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-drop policy if exists admin_all_events on events;
-create policy admin_all_events on events for all to anon using (true) with check (true);
+-- trigger: update volunteer_profiles after inscription
+CREATE OR REPLACE FUNCTION update_volunteer_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM volunteer_profiles WHERE email = NEW.email
+  ) THEN
+    INSERT INTO volunteer_profiles(email, nom, prenom, telephone, participations_count)
+    VALUES(NEW.email, NEW.nom, NEW.prenom, NEW.telephone, 1);
+  ELSE
+    UPDATE volunteer_profiles
+    SET
+      nom = NEW.nom,
+      prenom = NEW.prenom,
+      telephone = NEW.telephone,
+      participations_count = participations_count + 1
+    WHERE email = NEW.email;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-drop policy if exists admin_all_inscriptions on inscriptions;
-create policy admin_all_inscriptions on inscriptions for all to anon using (true) with check (true);
+CREATE TRIGGER trg_update_volunteer_profile
+AFTER INSERT ON inscriptions
+FOR EACH ROW EXECUTE FUNCTION update_volunteer_profile();
 
-drop policy if exists admin_all_admins on admins;
-create policy admin_all_admins on admins for all to anon using (true) with check (true);
+-- CONSTRAINTS & VALIDATIONS (côté base)
+-- Email validation
+ALTER TABLE inscriptions ADD CONSTRAINT valid_email CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$');
 
-drop policy if exists admin_all_analytics on analytics;
-create policy admin_all_analytics on analytics for all to anon using (true) with check (true);
+-- Téléphone FR validation (+33/06 compatible)
+ALTER TABLE inscriptions ADD CONSTRAINT valid_tel
+CHECK (
+  telephone ~* '^((\\+33 ?|0)[67])[ .-]?([0-9]{2}[ .-]?){4}$'
+);
 
-drop policy if exists admin_all_volunteers on volunteer_profiles;
-create policy admin_all_volunteers on volunteer_profiles for all to anon using (true) with check (true);
+-- POLICIES RLS
+-- EVENTS: SELECT visible/archived
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY public_select_events
+  ON events FOR SELECT
+  USING (visible IS TRUE AND archived IS FALSE);
 
-drop policy if exists admin_all_activity_logs on activity_logs;
-create policy admin_all_activity_logs on activity_logs for all to anon using (true) with check (true);
+-- INSCRIPTIONS: INSERT public
+ALTER TABLE inscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY public_insert_inscriptions
+  ON inscriptions FOR INSERT
+  USING (true);
 
-drop policy if exists admin_all_app_config on app_config;
-create policy admin_all_app_config on app_config for all to anon using (true) with check (true);
+-- ANALYTICS: INSERT/SELECT public
+ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
+CREATE POLICY public_insert_analytics ON analytics FOR INSERT USING (true);
+CREATE POLICY public_select_analytics ON analytics FOR SELECT USING (true);
 
--- Données d'initialisation
-insert into app_config (key, value, updated_by) values
-('intro_text', 'Notre association rassemble des bénévoles passionnés qui organisent des événements variés pour créer du lien social et enrichir la vie de notre commune.', 'seed')
-on conflict (key) do update set value = excluded.value;
+-- APP_CONFIG: SELECT public
+ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
+CREATE POLICY public_select_app_config ON app_config FOR SELECT USING (true);
 
-insert into app_config (key, value, updated_by) values
-('logo_url', '', 'seed')
-on conflict (key) do update set value = excluded.value;
+-- ADMINS: Select All for anon (pour admin demo, à restreindre prod)
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+CREATE POLICY admin_select_all ON admins FOR SELECT USING (true);
 
-insert into app_config (key, value, updated_by) values
-('event_types', '["assemblée","atelier","sport","fête","conférence","événement"]', 'seed')
-on conflict (key) do update set value = excluded.value;
+-- ADMIN POLICIES FULL ACCESS
+CREATE POLICY admin_full_events ON events FOR ALL TO anon USING (true);
+CREATE POLICY admin_full_insc ON inscriptions FOR ALL TO anon USING (true);
+CREATE POLICY admin_full_analytics ON analytics FOR ALL TO anon USING (true);
+CREATE POLICY admin_full_config ON app_config FOR ALL TO anon USING (true);
+CREATE POLICY admin_full_volunteers ON volunteer_profiles FOR ALL TO anon USING (true);
+CREATE POLICY admin_full_logs ON activity_logs FOR ALL TO anon USING (true);
 
-insert into admins (email, nom, prenom, password_hash, role,
-  perm_view_events, perm_edit_events, perm_view_stats, perm_view_logs, perm_view_volunteers, perm_manage_admins, perm_config)
-values
-('zinck.maxime@gmail.com','Zinck','Maxime', crypt('Zz/max789', gen_salt('bf')), 'super_admin',
- true, true, true, true, true, true, true)
-on conflict (email) do nothing;
+-- INITIAL DATA (événements, inscriptions, admin, config)
+-- Events (3 exemples)
+INSERT INTO events (titre, description, date, heure, lieu, type, image, max_participants, visible, archived, created_by)
+VALUES
+  ('Soirée d''ouverture', 'Première soirée Ohlun’Joie, festive et conviviale.', CURRENT_DATE + INTERVAL '7 days', '18:30', 'Salle Polyvalente', 'soirée', '🎉', 20, TRUE, FALSE, 'zinck.maxime@gmail.com'),
+  ('Atelier Cuisine Solidaire', 'Rejoignez-nous pour cuisiner pour la communauté.', CURRENT_DATE + INTERVAL '14 days', '10:00', 'Maison des Associations', 'atelier', '🍲', 15, TRUE, FALSE, 'zinck.maxime@gmail.com'),
+  ('Marche en Forêt', 'Sortie randonnée, tous niveaux.', CURRENT_DATE + INTERVAL '21 days', '09:00', 'Parking Forêt', 'sortie', '🌳', 30, TRUE, FALSE, 'zinck.maxime@gmail.com');
 
-insert into events (titre, description, date, heure, lieu, type, image, max_participants, visible, archived, created_by)
-values
-('Atelier cuisine conviviale','Soirée cuisine participative.', (now() + interval '15 days')::date, '19:00', 'Salle des fêtes', 'atelier', '🍲', 20, true, false, 'seed'),
-('Tournoi de badminton','Rencontre sportive amicale.', (now() + interval '30 days')::date, '14:00', 'Gymnase municipal', 'sport', '🏸', 24, true, false, 'seed'),
-('Conférence citoyenne','Débat et échanges avec intervenant local.', (now() + interval '45 days')::date, '18:30', 'Mairie - Salle du conseil', 'conférence', '🎤', 50, true, false, 'seed');
+-- Inscriptions (3 exemples)
+INSERT INTO inscriptions (event_id, email, nom, prenom, telephone, participations)
+VALUES
+  (1, 'dupont.laura@email.fr', 'Dupont', 'Laura', '06 12 23 34 45', '{"evenement_entier": true}'),
+  (2, 'martin.jean@email.fr', 'Martin', 'Jean', '0612432635', '{"preparation_salle": true}'),
+  (3, 'nom@example.com', 'Durand', 'Clara', '+33 6 98 76 54 32', '{"partie_evenement": true}');
 
-insert into inscriptions (event_id, prenom, nom, email, telephone, commentaire, preparation_salle, partie_evenement, evenement_entier)
-values
-((select id from events where titre='Atelier cuisine conviviale' limit 1), 'Alice', 'Martin', 'alice@example.org', '0611223344', 'Sans gluten', true, false, true),
-((select id from events where titre='Atelier cuisine conviviale' limit 1), 'Bruno', 'Dupont', 'bruno@example.org', '0622334455', null, false, true, false),
-((select id from events where titre='Tournoi de badminton' limit 1), 'Chloé', 'Bernard', 'chloe@example.org', '0633445566', 'Débutante', false, true, false);
+-- Admin (démo, hashé bcrypt)
+INSERT INTO admins (email, nom, prenom, password_hash, super_admin, perm_view_events, perm_edit_events, perm_view_stats, perm_view_logs, perm_view_volunteers, perm_manage_admins, perm_config)
+VALUES (
+  'zinck.maxime@gmail.com',
+  'Zinck',
+  'Maxime',
+  '$2b$10$IgjBfRSpPy0hDo0kG5/N3O5YJpUl7HTDCNp2AyZyOrWXNgtGLwUJ.', -- hashé pour 'Zz/max789'
+  TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE
+);
 
-insert into analytics (event_type, event_id, page_name, user_agent)
-values
-('page_view', null, 'home', 'seed-agent'),
-('event_click', (select id from events where titre='Atelier cuisine conviviale' limit 1), 'home', 'seed-agent');
-
-comment on table events is 'Événements publics et administrables';
-comment on table inscriptions is 'Inscriptions aux événements';
-comment on table admins is 'Comptes administrateurs avec permissions';
-comment on table analytics is 'Événements analytics: page_view, event_click';
-comment on table volunteer_profiles is 'Profils bénévoles agrégés via trigger';
-comment on table activity_logs is 'Journaux d''activité admin';
-comment on table app_config is 'Configuration application (logo, intro, types)';
+-- App config (intro, logo_url, event_types)
+INSERT INTO app_config (key, value) VALUES
+  ('intro_text', 'Bienvenue sur la plateforme événementielle Ohlun’Joie ! Participez, organisez, partagez.'),
+  ('logo_url', ''),
+  ('event_types', '["soirée", "atelier", "sortie", "conférence", "repas"]');
