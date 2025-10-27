@@ -21,8 +21,183 @@
   </header>
 
   <main class="app-main">
-    <!-- Section publique et admin ici : contenu complet fourni précédemment -->
-    <!-- ... tout le code HTML donné en V3 ... -->
+    <section id="publicSection" class="section">
+      <header class="section-header">
+        <h2>Événements</h2>
+        <p id="introText" class="intro"></p>
+        <div class="view-switch">
+          <button data-view="timeline" class="view-btn active">Timeline</button>
+          <button data-view="list" class="view-btn">Liste</button>
+          <button data-view="cards" class="view-btn">Cartes</button>
+        </div>
+        <div id="nextEventCountdown" class="countdown" aria-live="polite"></div>
+      </header>
+
+      <div id="eventsContainer" class="events-grid"></div>
+
+      <section id="inscriptionSection" class="card">
+        <h3>Inscription</h3>
+        <form id="inscriptionForm" novalidate>
+          <div class="grid">
+            <label>Prénom*
+              <input type="text" name="prenom" required />
+            </label>
+            <label>Nom*
+              <input type="text" name="nom" required />
+            </label>
+            <label>Email*
+              <input type="email" name="email" required />
+            </label>
+            <label>Téléphone*
+              <input type="tel" name="telephone" required />
+            </label>
+          </div>
+          <label>Commentaire
+            <textarea name="commentaire" rows="3"></textarea>
+          </label>
+          <fieldset>
+            <legend>Participations (min 1)</legend>
+            <label><input type="checkbox" name="preparation_salle" /> Préparation salle</label>
+            <label><input type="checkbox" name="partie_evenement" /> Partie soirée</label>
+            <label><input type="checkbox" name="evenement_entier" /> Soirée entière</label>
+          </fieldset>
+          <label>Événement
+            <select name="event_id" id="inscriptionEventSelect" required></select>
+          </label>
+          <p class="rgpd">Vos données sont utilisées uniquement pour la gestion des inscriptions et ne seront jamais transmises à des tiers.</p>
+          <button type="submit" class="primary">S'inscrire</button>
+        </form>
+      </section>
+    </section>
+
+    <section id="adminSection" class="section">
+      <header class="section-header">
+        <h2>Administration</h2>
+        <div class="admin-auth">
+          <input type="email" id="adminEmail" placeholder="Email admin" />
+          <input type="password" id="adminPassword" placeholder="Mot de passe" />
+          <button id="adminLoginBtn" class="primary">Connexion</button>
+          <span id="adminUserInfo"></span>
+        </div>
+        <div class="admin-tabs">
+          <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+          <button class="tab-btn" data-tab="events">Événements</button>
+          <button class="tab-btn" data-tab="stats">Statistiques</button>
+          <button class="tab-btn" data-tab="volunteers">Bénévoles</button>
+          <button class="tab-btn" data-tab="admins">Gestion Admins</button>
+          <button class="tab-btn" data-tab="config">Configuration</button>
+          <button class="tab-btn" data-tab="logs">Logs</button>
+        </div>
+      </header>
+
+      <div id="tab-dashboard" class="tab-panel active">
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-title">Total Inscrits</div><div id="kpiTotalInscrits" class="kpi-value">0</div></div>
+          <div class="kpi"><div class="kpi-title">Événements Actifs</div><div id="kpiEventsActifs" class="kpi-value">0</div></div>
+          <div class="kpi"><div class="kpi-title">Emails Uniques</div><div id="kpiEmailsUniques" class="kpi-value">0</div></div>
+          <div class="kpi"><div class="kpi-title">Taux Moyen</div><div id="kpiTauxMoyen" class="kpi-value">0%</div></div>
+        </div>
+      </div>
+
+      <div id="tab-events" class="tab-panel">
+        <div class="toolbar">
+          <div class="filters">
+            <button class="filter-btn active" data-filter="actifs">🟢 Actifs</button>
+            <button class="filter-btn" data-filter="masques">🟠 Masqués</button>
+            <button class="filter-btn" data-filter="archives">⚫ Archivés</button>
+            <button class="filter-btn" data-filter="tous">📋 Tous</button>
+          </div>
+          <button id="openCreateEvent" class="primary">Créer un événement</button>
+        </div>
+        <div id="adminEventsCards" class="cards-grid"></div>
+      </div>
+
+      <div id="tab-stats" class="tab-panel">
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-title">Vues de pages</div><div id="kpiPageViews" class="kpi-value">0</div></div>
+          <div class="kpi"><div class="kpi-title">Clics événements</div><div id="kpiEventClicks" class="kpi-value">0</div></div>
+        </div>
+        <div class="exports">
+          <button id="exportEmails" class="secondary">Exporter emails (TXT)</button>
+          <button id="exportStatsCsv" class="secondary">Exporter stats (CSV)</button>
+        </div>
+        <div id="statsTableWrap" class="table-wrap">
+          <table id="statsTable" aria-label="Statistiques des événements">
+            <thead>
+              <tr>
+                <th>Événement</th>
+                <th>Vues</th>
+                <th>Clics</th>
+                <th>Inscrits</th>
+                <th>Places</th>
+                <th>Taux</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-volunteers" class="tab-panel">
+        <div class="toolbar">
+          <input type="search" id="searchVolunteer" placeholder="Rechercher nom/prénom/email" />
+          <button id="exportVolunteersCsv" class="secondary">Exporter bénévoles (CSV)</button>
+        </div>
+        <div id="volunteersList" class="list"></div>
+      </div>
+
+      <div id="tab-admins" class="tab-panel">
+        <div class="toolbar">
+          <button id="openCreateAdmin" class="primary">Ajouter un admin</button>
+        </div>
+        <div class="table-wrap">
+          <table id="adminsTable">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Nom</th>
+                <th>Voir év.</th>
+                <th>Éditer év.</th>
+                <th>Stats</th>
+                <th>Logs</th>
+                <th>Bénév.</th>
+                <th>Gérer admins</th>
+                <th>Config</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-config" class="tab-panel">
+        <form id="configForm" class="card" novalidate>
+          <label>Logo (Base64, max 2MB)
+            <input type="file" id="logoInput" accept="image/*" />
+          </label>
+          <div class="preview" id="logoPreview"></div>
+          <div class="actions">
+            <button type="button" id="saveLogo" class="secondary">Uploader logo</button>
+            <button type="button" id="deleteLogo" class="danger">Supprimer logo</button>
+          </div>
+
+          <label>Texte d'introduction
+            <textarea id="introTextInput" rows="4"></textarea>
+          </label>
+
+          <label>Types d'événements (JSON array)
+            <textarea id="eventTypesInput" rows="3"></textarea>
+          </label>
+
+          <button type="button" id="saveConfig" class="primary">Enregistrer</button>
+        </form>
+      </div>
+
+      <div id="tab-logs" class="tab-panel">
+        <div id="logsList" class="list"></div>
+      </div>
+    </section>
   </main>
 
   <footer class="app-footer">
@@ -30,16 +205,39 @@
   </footer>
 
   <dialog id="eventModal" class="modal">
-    <!-- ... modale événement ... -->
+    <form id="eventForm" method="dialog">
+      <h3 id="eventModalTitle">Créer/Modifier événement</h3>
+      <div class="grid">
+        <label>Titre* <input name="titre" required /></label>
+        <label>Type* <select name="type" id="eventTypeSelect" required></select></label>
+        <label>Date* <input type="date" name="date" required /></label>
+        <label>Heure* <input type="time" name="heure" required /></label>
+        <label>Lieu* <input name="lieu" required /></label>
+        <label>Places max* <input type="number" name="max_participants" min="1" required /></label>
+        <label>Emoji <input name="image" placeholder="😊" /></label>
+      </div>
+      <label>Description* <textarea name="description" rows="4" required></textarea></label>
+      <menu>
+        <button value="cancel">Annuler</button>
+        <button value="submit" class="primary">Enregistrer</button>
+      </menu>
+    </form>
   </dialog>
+
   <dialog id="confirmModal" class="modal">
-    <!-- ... modale confirmation ... -->
+    <div>
+      <p id="confirmMessage">Confirmer l'action ?</p>
+      <menu>
+        <button id="confirmCancel">Annuler</button>
+        <button id="confirmOk" class="danger">Confirmer</button>
+      </menu>
+    </div>
   </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="spinner" class="spinner" aria-hidden="true"></div>
-  <!-- Supabase v2 CDN -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- App -->
   <script src="app-v3-final.js"></script>
 </body>
 </html>
