@@ -1,322 +1,519 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ohlun'Joie · Événements associatifs</title>
-  <meta name="description" content="Plateforme de gestion d'événements pour l'association Ohlun'Joie">
-  <meta name="color-scheme" content="light dark">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ohlun'Joie V3.0 - Gestion Événements Associatifs</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- Header -->
-  <header class="header">
-    <div class="header-brand">
-      <span class="header-logo" id="appLogo">🎈</span>
-      <h1 class="header-title">Ohlun'Joie</h1>
-    </div>
-    <div class="header-actions">
-      <button class="header-btn" id="themeToggle" aria-label="Basculer le thème">🌙</button>
-    </div>
-  </header>
-
-  <!-- Main -->
-  <main class="main">
-    <!-- Section Publique -->
-    <section class="section" id="publicSection">
-      <div class="section-header">
-        <h2 class="section-title">Événements</h2>
-        <p class="section-intro" id="introText"></p>
-      </div>
-
-      <div class="view-controls">
-        <button class="view-btn active" data-view="timeline">📍 Timeline</button>
-        <button class="view-btn" data-view="list">📋 Liste</button>
-        <button class="view-btn" data-view="cards">🎴 Cartes</button>
-      </div>
-
-      <div class="countdown" id="countdown"></div>
-
-      <div class="events-container" id="eventsContainer"></div>
-
-      <!-- Formulaire Inscription -->
-      <div class="form-card">
-        <h3 class="form-title">📝 Inscription à un événement</h3>
-        <form id="inscriptionForm" class="form" novalidate>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Prénom *</label>
-              <input type="text" name="prenom" class="form-input" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Nom *</label>
-              <input type="text" name="nom" class="form-input" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email *</label>
-              <input type="email" name="email" class="form-input" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Téléphone *</label>
-              <input type="tel" name="telephone" class="form-input" placeholder="06 12 34 56 78" required>
-            </div>
+  
+  <!-- PUBLIC VIEW -->
+  <div id="public-view">
+    
+    <!-- HEADER -->
+    <header class="header">
+      <div class="container">
+        <div class="header-content">
+          <div class="logo-section">
+            <img id="app-logo" src="" alt="Logo" class="logo-img" style="display:none;">
+            <h1 class="app-title">Ohlun'Joie V3.0</h1>
           </div>
-          <div class="form-group">
-            <label class="form-label">Commentaire</label>
-            <textarea name="commentaire" class="form-textarea" rows="3"></textarea>
-          </div>
-          <fieldset class="form-fieldset">
-            <legend class="form-legend">Type de participation (min 1) *</legend>
-            <label class="form-checkbox">
-              <input type="checkbox" name="preparation_salle">
-              <span>Préparation salle</span>
-            </label>
-            <label class="form-checkbox">
-              <input type="checkbox" name="partie_evenement">
-              <span>Partie soirée</span>
-            </label>
-            <label class="form-checkbox">
-              <input type="checkbox" name="evenement_entier">
-              <span>Soirée entière</span>
-            </label>
-          </fieldset>
-          <div class="form-group">
-            <label class="form-label">Événement *</label>
-            <select name="event_id" class="form-select" id="inscriptionEventSelect" required>
-              <option value="">-- Sélectionnez --</option>
-            </select>
-          </div>
-          <p class="form-notice">🔒 Vos données sont utilisées uniquement pour la gestion des inscriptions et ne seront jamais transmises à des tiers.</p>
-          <button type="submit" class="btn btn-primary">S'inscrire</button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Section Admin -->
-    <section class="section" id="adminSection">
-      <div class="section-header">
-        <h2 class="section-title">🔐 Administration</h2>
-      </div>
-
-      <div class="admin-auth">
-        <input type="email" id="adminEmail" class="form-input" placeholder="Email admin">
-        <input type="password" id="adminPassword" class="form-input" placeholder="Mot de passe">
-        <button id="adminLoginBtn" class="btn btn-primary">Connexion</button>
-        <span id="adminUserInfo" class="admin-user"></span>
-      </div>
-
-      <div class="admin-tabs">
-        <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
-        <button class="tab-btn" data-tab="events">📅 Événements</button>
-        <button class="tab-btn" data-tab="stats">📈 Statistiques</button>
-        <button class="tab-btn" data-tab="volunteers">👥 Bénévoles</button>
-        <button class="tab-btn" data-tab="admins">👤 Admins</button>
-        <button class="tab-btn" data-tab="config">⚙️ Config</button>
-        <button class="tab-btn" data-tab="logs">📋 Logs</button>
-      </div>
-
-      <!-- Dashboard -->
-      <div class="tab-panel active" id="tab-dashboard">
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-label">Total Inscrits</div>
-            <div class="kpi-value" id="kpiTotalInscrits">0</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Événements Actifs</div>
-            <div class="kpi-value" id="kpiEventsActifs">0</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Emails Uniques</div>
-            <div class="kpi-value" id="kpiEmailsUniques">0</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Taux Moyen</div>
-            <div class="kpi-value" id="kpiTauxMoyen">0%</div>
+          <div class="header-actions">
+            <button id="theme-toggle" class="btn-icon" aria-label="Changer de thème">
+              <span class="icon-sun">☀️</span>
+              <span class="icon-moon">🌙</span>
+            </button>
+            <button id="admin-login-btn" class="btn btn-primary">Administration</button>
           </div>
         </div>
       </div>
+    </header>
 
-      <!-- Événements -->
-      <div class="tab-panel" id="tab-events">
-        <div class="toolbar">
-          <div class="filter-group">
+    <!-- INTRO SECTION -->
+    <section class="intro-section">
+      <div class="container">
+        <p id="intro-text" class="intro-text">Bienvenue sur la plateforme événementielle Ohlun'Joie ! Participez, organisez, partagez.</p>
+      </div>
+    </section>
+
+    <!-- COUNTDOWN -->
+    <section class="countdown-section">
+      <div class="container">
+        <div class="countdown-card">
+          <p class="countdown-label">Prochain événement dans</p>
+          <p id="countdown-display" class="countdown-value">Chargement...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW SWITCHER -->
+    <section class="view-switcher-section">
+      <div class="container">
+        <div class="view-switcher">
+          <button class="view-btn active" data-view="timeline">📅 Timeline</button>
+          <button class="view-btn" data-view="list">📋 Liste</button>
+          <button class="view-btn" data-view="cards">🃏 Cartes</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVENTS DISPLAY -->
+    <section class="events-section">
+      <div class="container">
+        <div id="events-container" class="events-timeline"></div>
+        <div id="events-loading" class="loading-spinner">Chargement des événements...</div>
+        <div id="events-empty" class="empty-state" style="display:none;">
+          <p>Aucun événement disponible pour le moment</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RGPD NOTICE -->
+    <section class="rgpd-section">
+      <div class="container">
+        <div class="rgpd-notice">
+          <p><strong>Protection des données :</strong> Vos informations personnelles sont collectées uniquement pour la gestion des inscriptions et ne seront jamais partagées avec des tiers. Conformément au RGPD, vous disposez d'un droit d'accès, de modification et de suppression de vos données.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container">
+        <p>&copy; 2025 Ohlun'Joie - Tous droits réservés</p>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div id="admin-view" style="display:none;">
+    
+    <!-- ADMIN HEADER -->
+    <header class="admin-header">
+      <div class="container">
+        <div class="admin-header-content">
+          <h1 class="admin-title">📊 Administration Ohlun'Joie</h1>
+          <div class="admin-header-actions">
+            <span id="admin-user-display" class="admin-user-name"></span>
+            <button id="theme-toggle-admin" class="btn-icon" aria-label="Changer de thème">
+              <span class="icon-sun">☀️</span>
+              <span class="icon-moon">🌙</span>
+            </button>
+            <button id="admin-logout-btn" class="btn btn-secondary">Déconnexion</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ADMIN TABS -->
+    <nav class="admin-tabs">
+      <div class="container">
+        <div class="tabs-wrapper">
+          <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+          <button class="tab-btn" data-tab="events">🎉 Événements</button>
+          <button class="tab-btn" data-tab="stats">📈 Statistiques</button>
+          <button class="tab-btn" data-tab="volunteers">👥 Bénévoles</button>
+          <button class="tab-btn" data-tab="admins">🔐 Admins</button>
+          <button class="tab-btn" data-tab="config">⚙️ Configuration</button>
+          <button class="tab-btn" data-tab="logs">📜 Logs</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ADMIN CONTENT -->
+    <div class="admin-content">
+      <div class="container">
+        
+        <!-- DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-content active">
+          <h2 class="section-title">Tableau de bord</h2>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon">👤</div>
+              <div class="kpi-info">
+                <p class="kpi-label">Total Inscrits</p>
+                <p id="kpi-inscrits" class="kpi-value">0</p>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">🎉</div>
+              <div class="kpi-info">
+                <p class="kpi-label">Événements Actifs</p>
+                <p id="kpi-events-actifs" class="kpi-value">0</p>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">📧</div>
+              <div class="kpi-info">
+                <p class="kpi-label">Emails Uniques</p>
+                <p id="kpi-emails-uniques" class="kpi-value">0</p>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">📊</div>
+              <div class="kpi-info">
+                <p class="kpi-label">Taux Moyen</p>
+                <p id="kpi-taux-moyen" class="kpi-value">0%</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EVENTS TAB -->
+        <div id="tab-events" class="tab-content">
+          <div class="section-header">
+            <h2 class="section-title">Gestion des événements</h2>
+            <button id="btn-add-event" class="btn btn-primary">➕ Créer un événement</button>
+          </div>
+          
+          <div class="filters-bar">
             <button class="filter-btn active" data-filter="actifs">🟢 Actifs</button>
             <button class="filter-btn" data-filter="masques">🟠 Masqués</button>
             <button class="filter-btn" data-filter="archives">⚫ Archivés</button>
-            <button class="filter-btn" data-filter="tous">📋 Tous</button>
+            <button class="filter-btn" data-filter="tous">🔵 Tous</button>
           </div>
-          <button id="openCreateEvent" class="btn btn-primary">➕ Créer événement</button>
-        </div>
-        <div class="admin-events-grid" id="adminEventsCards"></div>
-      </div>
 
-      <!-- Stats -->
-      <div class="tab-panel" id="tab-stats">
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-label">Vues Pages</div>
-            <div class="kpi-value" id="kpiPageViews">0</div>
+          <div id="admin-events-container" class="admin-events-grid"></div>
+        </div>
+
+        <!-- STATS TAB -->
+        <div id="tab-stats" class="tab-content">
+          <div class="section-header">
+            <h2 class="section-title">Statistiques détaillées</h2>
+            <div class="stats-actions">
+              <button id="btn-export-emails" class="btn btn-secondary">📧 Export Emails (TXT)</button>
+              <button id="btn-export-stats-csv" class="btn btn-secondary">📊 Export Stats CSV</button>
+            </div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Clics Événements</div>
-            <div class="kpi-value" id="kpiEventClicks">0</div>
+
+          <div class="kpi-row">
+            <div class="kpi-card-small">
+              <p class="kpi-label">Vues Pages</p>
+              <p id="stats-page-views" class="kpi-value">0</p>
+            </div>
+            <div class="kpi-card-small">
+              <p class="kpi-label">Clics Événements</p>
+              <p id="stats-event-clicks" class="kpi-value">0</p>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Titre</th>
+                  <th>Vues</th>
+                  <th>Clics</th>
+                  <th>Inscrits</th>
+                  <th>Places</th>
+                  <th>Taux %</th>
+                </tr>
+              </thead>
+              <tbody id="stats-table-body">
+                <tr>
+                  <td colspan="6" class="table-empty">Aucune donnée disponible</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="export-group">
-          <button id="exportEmails" class="btn btn-secondary">📧 Export Emails (TXT)</button>
-          <button id="exportStatsCsv" class="btn btn-secondary">📊 Export Stats (CSV)</button>
-        </div>
-        <div class="table-wrap">
-          <table class="data-table" id="statsTable">
-            <thead>
-              <tr>
-                <th>Événement</th>
-                <th>Vues</th>
-                <th>Clics</th>
-                <th>Inscrits</th>
-                <th>Places</th>
-                <th>Taux</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
 
-      <!-- Bénévoles -->
-      <div class="tab-panel" id="tab-volunteers">
-        <div class="toolbar">
-          <input type="search" id="searchVolunteer" class="form-input" placeholder="🔍 Rechercher...">
-          <button id="exportVolunteersCsv" class="btn btn-secondary">📊 Export CSV</button>
-        </div>
-        <div id="volunteersList" class="list-container"></div>
-      </div>
-
-      <!-- Admins -->
-      <div class="tab-panel" id="tab-admins">
-        <div class="toolbar">
-          <button id="openCreateAdmin" class="btn btn-primary">➕ Ajouter admin</button>
-        </div>
-        <div class="table-wrap">
-          <table class="data-table" id="adminsTable">
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Nom</th>
-                <th>Voir év.</th>
-                <th>Édit. év.</th>
-                <th>Stats</th>
-                <th>Logs</th>
-                <th>Bénév.</th>
-                <th>Admins</th>
-                <th>Config</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Config -->
-      <div class="tab-panel" id="tab-config">
-        <div class="form-card">
-          <h3 class="form-title">Configuration Générale</h3>
-          <form id="configForm" class="form">
-            <div class="form-group">
-              <label class="form-label">Logo (Base64, max 2MB)</label>
-              <input type="file" id="logoInput" class="form-input" accept="image/*">
-              <div id="logoPreview" class="logo-preview"></div>
+        <!-- VOLUNTEERS TAB -->
+        <div id="tab-volunteers" class="tab-content">
+          <div class="section-header">
+            <h2 class="section-title">Gestion des bénévoles</h2>
+            <div class="volunteers-actions">
+              <input type="search" id="volunteers-search" class="search-input" placeholder="🔍 Rechercher (nom, prénom, email)...">
+              <button id="btn-export-volunteers-csv" class="btn btn-secondary">📊 Export CSV</button>
             </div>
-            <div class="form-actions">
-              <button type="button" id="saveLogo" class="btn btn-secondary">💾 Uploader</button>
-              <button type="button" id="deleteLogo" class="btn btn-danger">🗑️ Supprimer</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Prénom</th>
+                  <th>Nom</th>
+                  <th>Email</th>
+                  <th>Téléphone</th>
+                  <th>Participations</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="volunteers-table-body">
+                <tr>
+                  <td colspan="6" class="table-empty">Aucun bénévole enregistré</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ADMINS TAB -->
+        <div id="tab-admins" class="tab-content">
+          <div class="section-header">
+            <h2 class="section-title">Gestion des administrateurs</h2>
+            <button id="btn-add-admin" class="btn btn-primary">➕ Ajouter admin</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table admins-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Nom</th>
+                  <th>Voir Events</th>
+                  <th>Éditer Events</th>
+                  <th>Voir Stats</th>
+                  <th>Voir Logs</th>
+                  <th>Voir Bénévoles</th>
+                  <th>Gérer Admins</th>
+                  <th>Config</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admins-table-body">
+                <tr>
+                  <td colspan="10" class="table-empty">Aucun administrateur</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CONFIG TAB -->
+        <div id="tab-config" class="tab-content">
+          <h2 class="section-title">Configuration de l'application</h2>
+          
+          <div class="config-section">
+            <h3 class="config-title">Logo de l'application</h3>
+            <div class="config-logo">
+              <img id="config-logo-preview" src="" alt="Logo preview" style="display:none;" class="logo-preview">
+              <div class="config-logo-actions">
+                <label for="config-logo-upload" class="btn btn-secondary">📤 Upload Logo (max 2MB)</label>
+                <input type="file" id="config-logo-upload" accept="image/*" style="display:none;">
+                <button id="config-logo-delete" class="btn btn-danger" style="display:none;">🗑️ Supprimer</button>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Texte d'introduction</label>
-              <textarea id="introTextInput" class="form-textarea" rows="4"></textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Types d'événements (JSON array)</label>
-              <textarea id="eventTypesInput" class="form-textarea" rows="3"></textarea>
-            </div>
-            <button type="button" id="saveConfig" class="btn btn-primary">💾 Enregistrer</button>
-          </form>
-        </div>
-      </div>
+          </div>
 
-      <!-- Logs -->
-      <div class="tab-panel" id="tab-logs">
-        <div id="logsList" class="list-container"></div>
-      </div>
-    </section>
-  </main>
+          <div class="config-section">
+            <h3 class="config-title">Texte d'introduction</h3>
+            <textarea id="config-intro-text" class="config-textarea" rows="4" placeholder="Saisissez le texte d'introduction..."></textarea>
+            <button id="config-intro-save" class="btn btn-primary">💾 Enregistrer</button>
+          </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <p>Développé avec ❤️ par <a href="https://www.linkedin.com/in/zinck-maxime-88302b207" target="_blank" rel="noopener">Zinck Maxime</a></p>
-  </footer>
+          <div class="config-section">
+            <h3 class="config-title">Types d'événements</h3>
+            <textarea id="config-event-types" class="config-textarea" rows="3" placeholder='["soirée", "atelier", "sortie"]'></textarea>
+            <button id="config-types-save" class="btn btn-primary">💾 Enregistrer</button>
+            <p class="config-help">Format JSON array, ex: ["soirée", "atelier", "sortie", "conférence"]</p>
+          </div>
+        </div>
 
-  <!-- Modales -->
-  <dialog id="eventModal" class="modal">
-    <form id="eventForm" class="modal-form" method="dialog">
-      <h3 id="eventModalTitle" class="modal-title">Créer/Modifier événement</h3>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Titre *</label>
-          <input name="titre" class="form-input" required>
+        <!-- LOGS TAB -->
+        <div id="tab-logs" class="tab-content">
+          <h2 class="section-title">Journaux d'activité (100 derniers)</h2>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date/Heure</th>
+                  <th>Admin</th>
+                  <th>Action</th>
+                  <th>Type</th>
+                  <th>ID Entité</th>
+                </tr>
+              </thead>
+              <tbody id="logs-table-body">
+                <tr>
+                  <td colspan="5" class="table-empty">Aucun log disponible</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Type *</label>
-          <select name="type" id="eventTypeSelect" class="form-select" required></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Date *</label>
-          <input type="date" name="date" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Heure *</label>
-          <input type="time" name="heure" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Lieu *</label>
-          <input name="lieu" class="form-input" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Places max *</label>
-          <input type="number" name="max_participants" class="form-input" min="1" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Emoji</label>
-          <input name="image" class="form-input" placeholder="🎉">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Description *</label>
-        <textarea name="description" class="form-textarea" rows="4" required></textarea>
-      </div>
-      <div class="modal-actions">
-        <button value="cancel" class="btn btn-secondary">Annuler</button>
-        <button value="submit" class="btn btn-primary">Enregistrer</button>
-      </div>
-    </form>
-  </dialog>
 
-  <dialog id="confirmModal" class="modal">
-    <div class="modal-content">
-      <p id="confirmMessage" class="modal-message">Confirmer l'action ?</p>
-      <div class="modal-actions">
-        <button id="confirmCancel" class="btn btn-secondary">Annuler</button>
-        <button id="confirmOk" class="btn btn-danger">Confirmer</button>
       </div>
     </div>
-  </dialog>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <div id="spinner" class="spinner" aria-hidden="true"></div>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- EVENT DETAIL MODAL (PUBLIC) -->
+  <div id="modal-event-detail" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2 id="modal-event-title" class="modal-title"></h2>
+        <button class="modal-close" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-event-info"></div>
+        <form id="form-inscription" class="inscription-form">
+          <h3 class="form-section-title">Inscription à l'événement</h3>
+          
+          <div class="form-group">
+            <label for="inscr-prenom">Prénom *</label>
+            <input type="text" id="inscr-prenom" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="inscr-nom">Nom *</label>
+            <input type="text" id="inscr-nom" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="inscr-email">Email *</label>
+            <input type="email" id="inscr-email" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="inscr-telephone">Téléphone *</label>
+            <input type="tel" id="inscr-telephone" placeholder="06 12 34 56 78" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Type de participation * (au moins 1)</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" name="participation" value="preparation_salle">
+                <span>Préparation de la salle</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" name="participation" value="partie_evenement">
+                <span>Partie de l'événement</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" name="participation" value="evenement_entier">
+                <span>Événement entier</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">✅ S'inscrire</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div id="modal-admin-login" class="modal">
+    <div class="modal-content modal-small">
+      <div class="modal-header">
+        <h2 class="modal-title">🔐 Connexion Administration</h2>
+        <button class="modal-close" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-admin-login">
+          <div class="form-group">
+            <label for="admin-email">Email</label>
+            <input type="email" id="admin-email" required>
+          </div>
+          <div class="form-group">
+            <label for="admin-password">Mot de passe</label>
+            <input type="password" id="admin-password" required>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">Se connecter</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENT CREATE/EDIT MODAL (ADMIN) -->
+  <div id="modal-event-form" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2 id="modal-event-form-title" class="modal-title">Créer un événement</h2>
+        <button class="modal-close" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-event">
+          <input type="hidden" id="event-id">
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="event-titre">Titre *</label>
+              <input type="text" id="event-titre" maxlength="120" required>
+            </div>
+            <div class="form-group">
+              <label for="event-image">Emoji *</label>
+              <input type="text" id="event-image" maxlength="8" placeholder="🎉" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="event-description">Description</label>
+            <textarea id="event-description" rows="3"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="event-date">Date *</label>
+              <input type="date" id="event-date" required>
+            </div>
+            <div class="form-group">
+              <label for="event-heure">Heure *</label>
+              <input type="time" id="event-heure" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="event-lieu">Lieu *</label>
+              <input type="text" id="event-lieu" maxlength="120" required>
+            </div>
+            <div class="form-group">
+              <label for="event-type">Type *</label>
+              <select id="event-type" required>
+                <option value="">-- Sélectionner --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="event-max-participants">Nombre max de participants *</label>
+            <input type="number" id="event-max-participants" min="1" required>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="event-visible">
+              <span>Événement visible (public)</span>
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary modal-close">Annuler</button>
+            <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOLUNTEER HISTORY MODAL -->
+  <div id="modal-volunteer-history" class="modal">
+    <div class="modal-content modal-medium">
+      <div class="modal-header">
+        <h2 id="modal-volunteer-history-title" class="modal-title">Historique bénévole</h2>
+        <button class="modal-close" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="volunteer-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toast-container" class="toast-container"></div>
+
   <script src="app.js"></script>
+
 </body>
 </html>
