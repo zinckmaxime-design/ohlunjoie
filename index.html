@@ -18,14 +18,14 @@
         <div class="header-content">
           <div class="logo-section">
             <img id="app-logo" src="" alt="Logo" class="logo-img" style="display:none;">
-            <h1 class="app-title">Ohlun'Joie V3.0</h1>
+            <h1 class="app-title">❤️ Ohlun'Joie</h1>
           </div>
           <div class="header-actions">
             <button id="theme-toggle" class="btn-icon" aria-label="Changer de thème">
               <span class="icon-sun">☀️</span>
               <span class="icon-moon">🌙</span>
             </button>
-            <button id="admin-login-btn" class="btn btn-primary">Administration</button>
+            <button id="admin-login-btn" class="btn btn-admin">✏️ Administration</button>
           </div>
         </div>
       </div>
@@ -48,22 +48,11 @@
       </div>
     </section>
 
-    <!-- VIEW SWITCHER -->
-    <section class="view-switcher-section">
-      <div class="container">
-        <div class="view-switcher">
-          <button class="view-btn active" data-view="timeline">📅 Timeline</button>
-          <button class="view-btn" data-view="list">📋 Liste</button>
-          <button class="view-btn" data-view="cards">🃏 Cartes</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- EVENTS DISPLAY -->
+    <!-- EVENTS DISPLAY (TIMELINE ONLY) -->
     <section class="events-section">
       <div class="container">
         <div id="events-container" class="events-timeline"></div>
-        <div id="events-loading" class="loading-spinner">Chargement des événements...</div>
+        <div id="events-loading" class="loading-spinner">⏳ Chargement des événements...</div>
         <div id="events-empty" class="empty-state" style="display:none;">
           <p>Aucun événement disponible pour le moment</p>
         </div>
@@ -74,7 +63,7 @@
     <section class="rgpd-section">
       <div class="container">
         <div class="rgpd-notice">
-          <p><strong>Protection des données :</strong> Vos informations personnelles sont collectées uniquement pour la gestion des inscriptions et ne seront jamais partagées avec des tiers. Conformément au RGPD, vous disposez d'un droit d'accès, de modification et de suppression de vos données.</p>
+          <p><strong>🔒 Protection des données :</strong> Vos informations personnelles sont collectées uniquement pour la gestion des inscriptions et ne seront jamais partagées avec des tiers. Conformément au RGPD, vous disposez d'un droit d'accès, de modification et de suppression de vos données.</p>
         </div>
       </div>
     </section>
@@ -95,7 +84,7 @@
     <header class="admin-header">
       <div class="container">
         <div class="admin-header-content">
-          <h1 class="admin-title">📊 Administration Ohlun'Joie</h1>
+          <h1 class="admin-title">📊 Administration</h1>
           <div class="admin-header-actions">
             <span id="admin-user-display" class="admin-user-name"></span>
             <button id="theme-toggle-admin" class="btn-icon" aria-label="Changer de thème">
