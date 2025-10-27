@@ -1,4 +1,4 @@
-// app.js - Ohlun'Joie V3.0 - CORRIGÉ
+// app.js - Ohlun'Joie V3.0 FINAL - CONFORME AU MODÈLE S3
 
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
@@ -8,13 +8,12 @@ let currentUser = null;
 let currentView = 'timeline';
 let currentEventFilter = 'actifs';
 let allEvents = [];
+let allInscriptions = [];
 
-// ===== INIT =====
 window.addEventListener('DOMContentLoaded', async () => {
   initSupabase();
   setupTheme();
   setupEventListeners();
-  
   await loadAppConfig();
   await loadPublicEvents();
   await trackPageView();
@@ -27,12 +26,10 @@ function initSupabase() {
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// ===== THEME =====
 function setupTheme() {
   const savedTheme = localStorage.getItem('theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const theme = savedTheme || (prefersDark ? 'dark' : 'light');
-  
   document.documentElement.setAttribute('data-theme', theme);
   updateThemeIcons(theme);
 }
@@ -54,25 +51,17 @@ function toggleTheme() {
   updateThemeIcons(newTheme);
 }
 
-// ===== EVENT LISTENERS =====
 function setupEventListeners() {
-  // Theme
   document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
   document.getElementById('theme-toggle-admin')?.addEventListener('click', toggleTheme);
   
-  // Admin
-  const adminLoginBtn = document.getElementById('admin-login-btn');
-  if (adminLoginBtn) {
-    adminLoginBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      showModal('modal-admin-login');
-    });
-  }
+  document.getElementById('admin-login-btn')?.addEventListener('click', () => {
+    showModal('modal-admin-login');
+  });
   
   document.getElementById('form-admin-login')?.addEventListener('submit', handleAdminLogin);
   document.getElementById('admin-logout-btn')?.addEventListener('click', handleAdminLogout);
   
-  // Views
   document.querySelectorAll('.view-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
@@ -82,7 +71,6 @@ function setupEventListeners() {
     });
   });
   
-  // Filters
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -92,14 +80,12 @@ function setupEventListeners() {
     });
   });
   
-  // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       switchAdminTab(e.target.dataset.tab);
     });
   });
   
-  // Events
   document.getElementById('btn-add-event')?.addEventListener('click', () => {
     resetEventForm();
     document.getElementById('modal-event-form-title').textContent = 'Créer un événement';
@@ -107,25 +93,17 @@ function setupEventListeners() {
   });
   
   document.getElementById('form-event')?.addEventListener('submit', handleEventSubmit);
-  
-  // Admin management
   document.getElementById('btn-add-admin')?.addEventListener('click', handleAddAdmin);
-  
-  // Exports
   document.getElementById('btn-export-emails')?.addEventListener('click', exportEmails);
   document.getElementById('btn-export-stats-csv')?.addEventListener('click', exportStatsCsv);
   document.getElementById('btn-export-volunteers-csv')?.addEventListener('click', exportVolunteersCsv);
-  
-  // Volunteers
   document.getElementById('volunteers-search')?.addEventListener('input', debounce(filterVolunteers, 300));
   
-  // Config
   document.getElementById('config-logo-upload')?.addEventListener('change', handleLogoUpload);
   document.getElementById('config-logo-delete')?.addEventListener('click', deleteConfigLogo);
   document.getElementById('config-intro-save')?.addEventListener('click', saveIntroText);
   document.getElementById('config-types-save')?.addEventListener('click', saveEventTypes);
   
-  // Modals
   document.querySelectorAll('.modal-close').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const modal = e.target.closest('.modal');
@@ -135,21 +113,16 @@ function setupEventListeners() {
   
   document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.remove('active');
-      }
+      if (e.target === modal) modal.classList.remove('active');
     });
   });
   
-  // Inscription
   document.getElementById('form-inscription')?.addEventListener('submit', handleInscription);
 }
 
-// ===== CONFIG =====
 async function loadAppConfig() {
   try {
     const { data } = await supabase.from('app_config').select('*');
-    
     data?.forEach(config => {
       if (config.key === 'intro_text') {
         const el = document.getElementById('intro-text');
@@ -181,14 +154,13 @@ async function loadAppConfig() {
       }
     });
   } catch (err) {
-    console.error('Error loading config:', err);
+    console.error('Erreur config:', err);
   }
 }
 
 function populateEventTypeSelect(types) {
   const select = document.getElementById('event-type');
   if (!select) return;
-  
   select.innerHTML = '<option value="">-- Sélectionner --</option>';
   types.forEach(type => {
     const opt = document.createElement('option');
@@ -198,30 +170,32 @@ function populateEventTypeSelect(types) {
   });
 }
 
-// ===== PUBLIC EVENTS =====
 async function loadPublicEvents() {
   try {
-    const { data } = await supabase
+    document.getElementById('events-loading').style.display = 'block';
+    
+    const { data: events } = await supabase
       .from('events')
       .select('*')
       .eq('visible', true)
       .eq('archived', false)
       .order('date', { ascending: true });
     
-    allEvents = data || [];
+    const { data: inscriptions } = await supabase
+      .from('inscriptions')
+      .select('*');
+    
+    allEvents = events || [];
+    allInscriptions = inscriptions || [];
+    
     renderEvents(allEvents);
+    document.getElementById('events-loading').style.display = 'none';
     
-    const container = document.getElementById('events-container');
-    const loading = document.getElementById('events-loading');
-    const empty = document.getElementById('events-empty');
-    
-    if (loading) loading.style.display = 'none';
-    if (allEvents.length === 0 && empty) {
-      empty.style.display = 'block';
-      if (container) container.innerHTML = '';
+    if (allEvents.length === 0) {
+      document.getElementById('events-empty').style.display = 'block';
     }
   } catch (err) {
-    showToast('Erreur lors du chargement des événements', 'error');
+    showToast('Erreur chargement événements', 'error');
   }
 }
 
@@ -240,24 +214,60 @@ function renderEvents(events) {
 
 function renderTimelineView(events, container) {
   container.className = 'events-timeline';
-  container.innerHTML = events.map(event => `
-    <div class="event-card-timeline" onclick="openEventDetail(${event.id})">
-      <div class="event-emoji">${event.image}</div>
-      <div class="event-content">
-        <h3 class="event-title">${escapeHtml(event.titre)}</h3>
-        <div class="event-meta">
-          <div class="event-meta-item">📅 ${formatDate(event.date)}</div>
-          <div class="event-meta-item">🕐 ${event.heure}</div>
-          <div class="event-meta-item">📍 ${escapeHtml(event.lieu)}</div>
+  container.innerHTML = events.map(event => {
+    const eventInscrits = allInscriptions?.filter(i => i.event_id === event.id) || [];
+    const gaugeFill = (eventInscrits.length / event.max_participants) * 100;
+    const percentageText = Math.round(gaugeFill);
+    
+    return `
+      <div class="event-card-timeline">
+        <div class="event-date-container">
+          <div class="event-date-badge">
+            <div class="event-date-day">${new Date(event.date).getDate()}</div>
+            <div class="event-date-month-name">${new Date(event.date).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()}</div>
+          </div>
         </div>
-        <p class="event-description">${escapeHtml(event.description || 'Pas de description')}</p>
-        <div class="event-footer">
-          <span class="event-participants">👥 Places limitées</span>
-          <button class="event-cta">S'inscrire →</button>
+        <div class="event-content" onclick="openEventDetail(${event.id})">
+          <h3 class="event-title">${escapeHtml(event.titre)}</h3>
+          <div class="event-meta">
+            <div class="event-meta-item">⏰ ${event.heure}</div>
+            <div class="event-meta-item">📍 ${escapeHtml(event.lieu)}</div>
+            <div class="event-meta-item">${event.type}</div>
+          </div>
+          <p class="event-description">${escapeHtml(event.description || '')}</p>
+          
+          <div class="event-participants-section">
+            <div class="event-participants-label">👥 Participants</div>
+            <div class="event-gauge">
+              <div class="event-gauge-fill" style="width: ${gaugeFill}%"></div>
+            </div>
+            <div class="event-gauge-text">${eventInscrits.length}/${event.max_participants} - ${percentageText}%</div>
+          </div>
+
+          <div class="event-inscrits-wrapper">
+            <button class="event-inscrits-toggle" onclick="toggleInscrits(event)">
+              👤 Voir les inscrits (${eventInscrits.length})
+              <span>▼</span>
+            </button>
+            <div class="event-inscrits-list">
+              ${eventInscrits.map(i => `<div class="event-inscrit-item">${escapeHtml(i.prenom)} ${escapeHtml(i.nom)}</div>`).join('')}
+            </div>
+          </div>
+
+          <button class="event-cta" onclick="openEventDetail(${event.id})">S'inscrire →</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
+}
+
+function toggleInscrits(e) {
+  e.stopPropagation();
+  const btn = event.target.closest('.event-inscrits-toggle');
+  if (!btn) return;
+  const list = btn.nextElementSibling;
+  list.classList.toggle('open');
+  btn.classList.toggle('open');
 }
 
 function renderListView(events, container) {
@@ -278,43 +288,45 @@ function renderListView(events, container) {
 
 function renderCardsView(events, container) {
   container.className = 'events-cards';
-  container.innerHTML = events.map(event => `
-    <div class="event-card-grid" onclick="openEventDetail(${event.id})">
-      <div class="event-card-header">
-        <div class="event-card-emoji-large">${event.image}</div>
-        <h3 class="event-card-title">${escapeHtml(event.titre)}</h3>
-      </div>
-      <div class="event-card-body">
-        <div class="event-card-info">
-          <div class="event-card-info-item">📅 ${formatDate(event.date)}</div>
-          <div class="event-card-info-item">🕐 ${event.heure}</div>
-          <div class="event-card-info-item">📍 ${escapeHtml(event.lieu)}</div>
+  container.innerHTML = events.map(event => {
+    const description = (event.description || 'Pas de description').substring(0, 100);
+    return `
+      <div class="event-card-grid" onclick="openEventDetail(${event.id})">
+        <div class="event-card-header">
+          <div class="event-card-emoji-large">${event.image}</div>
+          <h3 class="event-card-title">${escapeHtml(event.titre)}</h3>
         </div>
-        <p class="event-card-desc">${escapeHtml((event.description || 'Pas de description').substring(0, 100))}</p>
-        <button class="event-card-action">S'inscrire</button>
+        <div class="event-card-body">
+          <div class="event-card-info">
+            <div class="event-card-info-item">📅 ${formatDate(event.date)}</div>
+            <div class="event-card-info-item">⏰ ${event.heure}</div>
+            <div class="event-card-info-item">📍 ${escapeHtml(event.lieu)}</div>
+          </div>
+          <p class="event-card-desc">${escapeHtml(description)}</p>
+          <button class="event-card-action">S'inscrire</button>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-// ===== INSCRIPTION =====
 async function openEventDetail(eventId) {
   const event = allEvents.find(e => e.id === eventId);
   if (!event) return;
   
   await trackEventClick(eventId);
   
-  const info = document.getElementById('modal-event-info');
-  if (info) {
-    info.innerHTML = `
+  const modalInfo = document.getElementById('modal-event-info');
+  if (modalInfo) {
+    modalInfo.innerHTML = `
       <div style="margin-bottom: 24px;">
-        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;"><strong>Description:</strong></p>
+        <p style="font-size: 0.9rem; color: #6c757d; margin-bottom: 8px;"><strong>Description:</strong></p>
         <p>${escapeHtml(event.description || 'Pas de description')}</p>
         <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div><p style="font-size: 0.9rem; color: var(--text-muted);"><strong>Date:</strong> ${formatDate(event.date)}</p></div>
-          <div><p style="font-size: 0.9rem; color: var(--text-muted);"><strong>Heure:</strong> ${event.heure}</p></div>
-          <div><p style="font-size: 0.9rem; color: var(--text-muted);"><strong>Lieu:</strong> ${escapeHtml(event.lieu)}</p></div>
-          <div><p style="font-size: 0.9rem; color: var(--text-muted);"><strong>Type:</strong> ${escapeHtml(event.type)}</p></div>
+          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Date:</strong> ${formatDate(event.date)}</p></div>
+          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Heure:</strong> ${event.heure}</p></div>
+          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Lieu:</strong> ${escapeHtml(event.lieu)}</p></div>
+          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Type:</strong> ${escapeHtml(event.type)}</p></div>
         </div>
       </div>
     `;
@@ -346,7 +358,7 @@ async function handleInscription(e) {
   const telephone = document.getElementById('inscr-telephone').value.trim();
   
   if (!prenom || !nom || !email || !telephone) {
-    showToast('Veuillez remplir tous les champs', 'error');
+    showToast('Remplissez tous les champs', 'error');
     return;
   }
   
@@ -390,13 +402,13 @@ async function handleInscription(e) {
     showToast('✅ Inscription confirmée !', 'success');
     document.getElementById('form-inscription').reset();
     document.getElementById('modal-event-detail').classList.remove('active');
+    await loadPublicEvents();
     
   } catch (err) {
-    showToast('Erreur lors de l\'inscription', 'error');
+    showToast('Erreur inscription', 'error');
   }
 }
 
-// ===== ADMIN LOGIN =====
 async function handleAdminLogin(e) {
   e.preventDefault();
   
@@ -404,7 +416,7 @@ async function handleAdminLogin(e) {
   const password = document.getElementById('admin-password').value;
   
   if (!email || !password) {
-    showToast('Remplissez email et mot de passe', 'error');
+    showToast('Remplissez tous les champs', 'error');
     return;
   }
   
@@ -420,7 +432,7 @@ async function handleAdminLogin(e) {
       return;
     }
     
-    if (data.password_hash !== password && data.password_hash !== 'Zz/max789') {
+    if (data.password_hash !== password) {
       showToast('Email ou mot de passe incorrect', 'error');
       return;
     }
@@ -432,7 +444,7 @@ async function handleAdminLogin(e) {
     showToast('✅ Connexion réussie', 'success');
     
   } catch (err) {
-    showToast('Erreur de connexion', 'error');
+    showToast('Erreur connexion', 'error');
   }
 }
 
@@ -464,7 +476,6 @@ function handleAdminLogout() {
   showToast('Déconnecté', 'success');
 }
 
-// ===== DASHBOARD =====
 async function loadAdminDashboard() {
   try {
     const { count: inscritCount } = await supabase
@@ -477,16 +488,16 @@ async function loadAdminDashboard() {
       .eq('visible', true)
       .eq('archived', false);
     
-    const { data: allInscriptions } = await supabase
+    const { data: allInsc } = await supabase
       .from('inscriptions')
       .select('email, event_id');
     
-    const uniqueEmails = new Set(allInscriptions?.map(i => i.email) || []).size;
+    const uniqueEmails = new Set(allInsc?.map(i => i.email) || []).size;
     
     let avgRate = 0;
     if (activeEvents?.length > 0) {
       const rates = activeEvents.map(e => {
-        const count = allInscriptions?.filter(i => i.event_id === e.id).length || 0;
+        const count = allInsc?.filter(i => i.event_id === e.id).length || 0;
         return (count / e.max_participants) * 100;
       });
       avgRate = Math.round(rates.reduce((a, b) => a + b, 0) / rates.length);
@@ -509,7 +520,6 @@ async function loadAdminDashboard() {
   }
 }
 
-// ===== EVENTS =====
 async function loadAdminEvents() {
   try {
     const { data } = await supabase
@@ -554,7 +564,7 @@ function renderAdminEvents() {
         <div class="admin-event-header">
           <div class="admin-event-emoji-badge">${event.image}</div>
           <div class="admin-event-status">
-            ${badges.map(b => `<div class="status-badge">${b}</div>`).join('')}
+            ${badges.map(b => `<div style="display:inline-block; font-size:0.8rem; background:rgba(255,255,255,.2); padding:4px 8px; border-radius:4px;">${b}</div>`).join('')}
           </div>
         </div>
         <div class="admin-event-body">
@@ -564,14 +574,6 @@ function renderAdminEvents() {
             <div>📍 ${escapeHtml(event.lieu)}</div>
             <div>🎯 ${event.type}</div>
           </div>
-          <div class="admin-event-gauge">
-            <div class="admin-event-gauge-fill" id="gauge-fill-${event.id}" style="width: 0%"></div>
-          </div>
-          <div class="admin-event-gauge-text" id="gauge-text-${event.id}">0/${event.max_participants}</div>
-          <details class="admin-event-inscrits">
-            <summary class="admin-event-inscrits-title">📋 Voir inscrits</summary>
-            <div id="inscrits-list-${event.id}">Chargement...</div>
-          </details>
           <div class="admin-event-actions">
             <button class="btn btn-secondary" onclick="editEvent(${event.id})">✏️</button>
             <button class="btn btn-danger" onclick="deleteEvent(${event.id})">🗑️</button>
@@ -582,37 +584,6 @@ function renderAdminEvents() {
       </div>
     `;
   }).join('');
-  
-  loadEventInscrits();
-}
-
-async function loadEventInscrits() {
-  try {
-    const { data } = await supabase.from('inscriptions').select('*');
-    
-    allEvents.forEach(event => {
-      const inscrits = data?.filter(i => i.event_id === event.id) || [];
-      
-      const gaugeFill = document.getElementById(`gauge-fill-${event.id}`);
-      if (gaugeFill) {
-        gaugeFill.style.width = Math.min((inscrits.length / event.max_participants) * 100, 100) + '%';
-      }
-      
-      const gaugeTxt = document.getElementById(`gauge-text-${event.id}`);
-      if (gaugeTxt) {
-        gaugeTxt.textContent = `${inscrits.length}/${event.max_participants}`;
-      }
-      
-      const list = document.getElementById(`inscrits-list-${event.id}`);
-      if (list) {
-        list.innerHTML = inscrits.map(i => 
-          `<div class="admin-event-inscrit-item">${escapeHtml(i.prenom)} ${escapeHtml(i.nom)}</div>`
-        ).join('');
-      }
-    });
-  } catch (err) {
-    console.error('Error loading inscrits:', err);
-  }
 }
 
 async function editEvent(eventId) {
@@ -720,7 +691,6 @@ async function restoreEvent(eventId) {
   }
 }
 
-// ===== STATS =====
 async function loadAdminStats() {
   try {
     const { data: analytics } = await supabase.from('analytics').select('*');
@@ -812,7 +782,6 @@ async function exportStatsCsv() {
   }
 }
 
-// ===== VOLUNTEERS =====
 async function loadAdminVolunteers() {
   try {
     const { data } = await supabase.from('volunteer_profiles').select('*').order('nom');
@@ -834,8 +803,8 @@ async function loadAdminVolunteers() {
         <td>${escapeHtml(vol.nom)}</td>
         <td>${escapeHtml(vol.email)}</td>
         <td>${vol.telephone || '-'}</td>
-        <td><span style="background: var(--primary-light); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${vol.participations_count} en 2025</span></td>
-        <td><button class="btn btn-secondary" onclick="showVolunteerHistory('${vol.email}')">📋 Historique</button></td>
+        <td>${vol.participations_count}</td>
+        <td><button class="btn btn-secondary" onclick="showVolunteerHistory('${vol.email}')">📋</button></td>
       `;
       tbody.appendChild(row);
     });
@@ -872,8 +841,8 @@ async function filterVolunteers(e) {
       <td>${escapeHtml(vol.nom)}</td>
       <td>${escapeHtml(vol.email)}</td>
       <td>${vol.telephone || '-'}</td>
-      <td><span style="background: var(--primary-light); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${vol.participations_count} en 2025</span></td>
-      <td><button class="btn btn-secondary" onclick="showVolunteerHistory('${vol.email}')">📋 Historique</button></td>
+      <td>${vol.participations_count}</td>
+      <td><button class="btn btn-secondary" onclick="showVolunteerHistory('${vol.email}')">📋</button></td>
     `;
     tbody.appendChild(row);
   });
@@ -888,8 +857,6 @@ async function showVolunteerHistory(email) {
       .order('inscription_date', { ascending: false });
     
     const historyList = document.getElementById('volunteer-history-list');
-    if (!historyList) return;
-    
     const title = document.getElementById('modal-volunteer-history-title');
     if (title) title.textContent = `Historique de ${email}`;
     
@@ -897,11 +864,9 @@ async function showVolunteerHistory(email) {
       historyList.innerHTML = '<p class="empty-state">Aucune participation</p>';
     } else {
       historyList.innerHTML = data.map(insc => `
-        <div style="padding: 12px; background: var(--surface); border-radius: 8px; margin-bottom: 8px;">
+        <div style="padding:12px; background:var(--bg); border-radius:8px; margin-bottom:8px;">
           <strong>${insc.events?.titre}</strong><br>
-          <small style="color: var(--text-muted);">
-            📅 ${formatDate(insc.events?.date)} à ${insc.events?.heure}
-          </small>
+          <small style="color:var(--text-muted);">📅 ${formatDate(insc.events?.date)} à ${insc.events?.heure}</small>
         </div>
       `).join('');
     }
@@ -935,7 +900,6 @@ async function exportVolunteersCsv() {
   }
 }
 
-// ===== ADMINS =====
 async function loadAdminAdmins() {
   try {
     const { data } = await supabase.from('admins').select('*').order('email');
@@ -955,13 +919,13 @@ async function loadAdminAdmins() {
       row.innerHTML = `
         <td>${escapeHtml(admin.email)}</td>
         <td>${escapeHtml(admin.nom)}</td>
-        <td><input type="checkbox" class="checkbox-table" ${admin.perm_view_events ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_events', this.checked)"></td>
-        <td><input type="checkbox" class="checkbox-table" ${admin.perm_edit_events ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_edit_events', this.checked)"></td>
-        <td><input type="checkbox" class="checkbox-table" ${admin.perm_view_stats ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_stats', this.checked)"></td>
-        <td><input type="checkbox" class="checkbox-table" ${admin.perm_view_logs ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_logs', this.checked)"></td>
-        <td><input type="checkbox" class="checkbox-table" ${admin.perm_view_volunteers ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_volunteers', this.checked)"></td>
-        <td><input type="checkbox" class="checkbox-table" ${admin.perm_manage_admins ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_manage_admins', this.checked)"></td>
-        <td><input type="checkbox" class="checkbox-table" ${admin.perm_config ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_config', this.checked)"></td>
+        <td><input type="checkbox" ${admin.perm_view_events ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_events', this.checked)"></td>
+        <td><input type="checkbox" ${admin.perm_edit_events ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_edit_events', this.checked)"></td>
+        <td><input type="checkbox" ${admin.perm_view_stats ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_stats', this.checked)"></td>
+        <td><input type="checkbox" ${admin.perm_view_logs ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_logs', this.checked)"></td>
+        <td><input type="checkbox" ${admin.perm_view_volunteers ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_volunteers', this.checked)"></td>
+        <td><input type="checkbox" ${admin.perm_manage_admins ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_manage_admins', this.checked)"></td>
+        <td><input type="checkbox" ${admin.perm_config ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_config', this.checked)"></td>
         <td><button class="btn btn-danger" onclick="deleteAdmin(${admin.id})">🗑️</button></td>
       `;
       tbody.appendChild(row);
@@ -1016,7 +980,6 @@ async function deleteAdmin(adminId) {
   }
 }
 
-// ===== CONFIG =====
 async function handleLogoUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -1129,7 +1092,6 @@ async function saveEventTypes() {
   }
 }
 
-// ===== LOGS =====
 async function loadAdminLogs() {
   try {
     const { data } = await supabase
@@ -1165,7 +1127,6 @@ async function loadAdminLogs() {
   }
 }
 
-// ===== ANALYTICS =====
 async function trackPageView() {
   try {
     await supabase.from('analytics').insert({ action: 'page_view' });
@@ -1181,7 +1142,6 @@ async function trackEventClick(eventId) {
   } catch (err) {}
 }
 
-// ===== COUNTDOWN =====
 function setupCountdown() {
   function update() {
     if (allEvents.length === 0) {
@@ -1212,7 +1172,6 @@ function setupCountdown() {
   setInterval(update, 60000);
 }
 
-// ===== AUTO ARCHIVE =====
 function setupAutoArchive() {
   async function check() {
     const now = new Date();
@@ -1241,7 +1200,6 @@ function setupAutoArchive() {
   setInterval(check, 60000);
 }
 
-// ===== TAB SWITCHING =====
 function switchAdminTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1258,7 +1216,6 @@ function switchAdminTab(tabName) {
   if (tabName === 'logs') loadAdminLogs();
 }
 
-// ===== UTILITIES =====
 function showModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) modal.classList.add('active');
@@ -1294,14 +1251,16 @@ function showToast(message, type = 'info') {
   const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
   
   toast.innerHTML = `
-    <div class="toast-icon">${icons[type]}</div>
-    <div class="toast-message">${escapeHtml(message)}</div>
+    <div style="font-size: 1.2rem; flex-shrink: 0;">${icons[type]}</div>
+    <div>${escapeHtml(message)}</div>
   `;
   
   container.appendChild(toast);
   
   setTimeout(() => {
-    toast.style.animation = 'slideOutRight 0.3s ease';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(400px)';
+    toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
