@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Ohlun'Joie V3.0</title>
-  <meta name="description" content="Gestion événements association Ohlun'Joie">
-  <link rel="stylesheet" href="style-v3-final.css">
+  <meta name="color-scheme" content="light dark" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="style-v3-final.css" />
 </head>
 <body>
   <header class="app-header">
@@ -23,7 +24,7 @@
     <!-- SECTION PUBLIQUE -->
     <section id="publicSection" class="section">
       <header class="section-header">
-        <h2>Événements</h2>
+        <h2 class="title-strong">Événements</h2>
         <p id="introText" class="intro"></p>
         <div class="view-switch">
           <button data-view="timeline" class="view-btn active">Timeline</button>
@@ -32,26 +33,40 @@
         </div>
         <div id="nextEventCountdown" class="countdown" aria-live="polite"></div>
       </header>
-      <div id="eventsContainer" class="events-grid"></div>
+
+      <!-- Compat: ajout de compat-events -->
+      <div id="eventsContainer" class="events-grid compat-events"></div>
 
       <!-- Formulaire inscription -->
       <section id="inscriptionSection" class="card">
         <h3>Inscription</h3>
         <form id="inscriptionForm" novalidate>
           <div class="grid">
-            <label>Prénom*<input type="text" name="prenom" required></label>
-            <label>Nom*<input type="text" name="nom" required></label>
-            <label>Email*<input type="email" name="email" required></label>
-            <label>Téléphone*<input type="tel" name="telephone" required></label>
+            <label>Prénom*
+              <input type="text" name="prenom" required />
+            </label>
+            <label>Nom*
+              <input type="text" name="nom" required />
+            </label>
+            <label>Email*
+              <input type="email" name="email" required />
+            </label>
+            <label>Téléphone*
+              <input type="tel" name="telephone" required />
+            </label>
           </div>
-          <label>Commentaire<textarea name="commentaire" rows="3"></textarea></label>
+          <label>Commentaire
+            <textarea name="commentaire" rows="3"></textarea>
+          </label>
           <fieldset>
             <legend>Participations (min 1)</legend>
-            <label><input type="checkbox" name="preparation_salle"> Préparation salle</label>
-            <label><input type="checkbox" name="partie_evenement"> Partie soirée</label>
-            <label><input type="checkbox" name="evenement_entier"> Soirée entière</label>
+            <label><input type="checkbox" name="preparation_salle" /> Préparation salle</label>
+            <label><input type="checkbox" name="partie_evenement" /> Partie soirée</label>
+            <label><input type="checkbox" name="evenement_entier" /> Soirée entière</label>
           </fieldset>
-          <label>Événement<select name="event_id" id="inscriptionEventSelect" required></select></label>
+          <label>Événement
+            <select name="event_id" id="inscriptionEventSelect" required></select>
+          </label>
           <p class="rgpd">Vos données sont utilisées uniquement pour la gestion des inscriptions et ne seront jamais transmises à des tiers.</p>
           <button type="submit" class="primary">S'inscrire</button>
         </form>
@@ -63,8 +78,8 @@
       <header class="section-header">
         <h2>Administration</h2>
         <div class="admin-auth">
-          <input type="email" id="adminEmail" placeholder="Email admin">
-          <input type="password" id="adminPassword" placeholder="Mot de passe">
+          <input type="email" id="adminEmail" placeholder="Email admin" />
+          <input type="password" id="adminPassword" placeholder="Mot de passe" />
           <button id="adminLoginBtn" class="primary">Connexion</button>
           <span id="adminUserInfo"></span>
         </div>
@@ -100,7 +115,8 @@
           </div>
           <button id="openCreateEvent" class="primary">Créer un événement</button>
         </div>
-        <div id="adminEventsCards" class="cards-grid"></div>
+        <!-- Compat: ajout de compat-admin-cards -->
+        <div id="adminEventsCards" class="cards-grid compat-admin-cards"></div>
       </div>
 
       <!-- TAB STATISTIQUES -->
@@ -114,8 +130,17 @@
           <button id="exportStatsCsv" class="secondary">Exporter stats (CSV)</button>
         </div>
         <div id="statsTableWrap" class="table-wrap">
-          <table id="statsTable">
-            <thead><tr><th>Événement</th><th>Vues</th><th>Clics</th><th>Inscrits</th><th>Places</th><th>Taux</th></tr></thead>
+          <table id="statsTable" aria-label="Statistiques des événements">
+            <thead>
+              <tr>
+                <th>Événement</th>
+                <th>Vues</th>
+                <th>Clics</th>
+                <th>Inscrits</th>
+                <th>Places</th>
+                <th>Taux</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
@@ -124,7 +149,7 @@
       <!-- TAB BÉNÉVOLES -->
       <div id="tab-volunteers" class="tab-panel">
         <div class="toolbar">
-          <input type="search" id="searchVolunteer" placeholder="Rechercher nom/prénom/email">
+          <input type="search" id="searchVolunteer" placeholder="Rechercher nom/prénom/email" />
           <button id="exportVolunteersCsv" class="secondary">Exporter bénévoles (CSV)</button>
         </div>
         <div id="volunteersList" class="list"></div>
@@ -137,7 +162,20 @@
         </div>
         <div class="table-wrap">
           <table id="adminsTable">
-            <thead><tr><th>Email</th><th>Nom</th><th>Voir év.</th><th>Éditer év.</th><th>Stats</th><th>Logs</th><th>Bénév.</th><th>Gérer admins</th><th>Config</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Nom</th>
+                <th>Voir év.</th>
+                <th>Éditer év.</th>
+                <th>Stats</th>
+                <th>Logs</th>
+                <th>Bénév.</th>
+                <th>Gérer admins</th>
+                <th>Config</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
@@ -146,14 +184,23 @@
       <!-- TAB CONFIGURATION -->
       <div id="tab-config" class="tab-panel">
         <form id="configForm" class="card" novalidate>
-          <label>Logo (Base64, max 2MB)<input type="file" id="logoInput" accept="image/*"></label>
+          <label>Logo (Base64, max 2MB)
+            <input type="file" id="logoInput" accept="image/*" />
+          </label>
           <div class="preview" id="logoPreview"></div>
           <div class="actions">
             <button type="button" id="saveLogo" class="secondary">Uploader logo</button>
             <button type="button" id="deleteLogo" class="danger">Supprimer logo</button>
           </div>
-          <label>Texte d'introduction<textarea id="introTextInput" rows="4"></textarea></label>
-          <label>Types d'événements (JSON array)<textarea id="eventTypesInput" rows="3"></textarea></label>
+
+          <label>Texte d'introduction
+            <textarea id="introTextInput" rows="4"></textarea>
+          </label>
+
+          <label>Types d'événements (JSON array)
+            <textarea id="eventTypesInput" rows="3"></textarea>
+          </label>
+
           <button type="button" id="saveConfig" class="primary">Enregistrer</button>
         </form>
       </div>
@@ -172,17 +219,17 @@
   <!-- MODALES -->
   <dialog id="eventModal" class="modal">
     <form id="eventForm" method="dialog">
-      <h3 id="eventModalTitle">Créer/Modifier événement</h3>
+      <h3 id="eventModalTitle" class="title-strong">Créer/Modifier événement</h3>
       <div class="grid">
-        <label>Titre*<input name="titre" required></label>
-        <label>Type*<select name="type" id="eventTypeSelect" required></select></label>
-        <label>Date*<input type="date" name="date" required></label>
-        <label>Heure*<input type="time" name="heure" required></label>
-        <label>Lieu*<input name="lieu" required></label>
-        <label>Places max*<input type="number" name="max_participants" min="1" required></label>
-        <label>Emoji<input name="image" placeholder="😊"></label>
+        <label>Titre* <input name="titre" required /></label>
+        <label>Type* <select name="type" id="eventTypeSelect" required></select></label>
+        <label>Date* <input type="date" name="date" required /></label>
+        <label>Heure* <input type="time" name="heure" required /></label>
+        <label>Lieu* <input name="lieu" required /></label>
+        <label>Places max* <input type="number" name="max_participants" min="1" required /></label>
+        <label>Emoji <input name="image" placeholder="😊" /></label>
       </div>
-      <label>Description*<textarea name="description" rows="4" required></textarea></label>
+      <label>Description* <textarea name="description" rows="4" required></textarea></label>
       <menu>
         <button value="cancel">Annuler</button>
         <button value="submit" class="primary">Enregistrer</button>
@@ -203,9 +250,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="spinner" class="spinner" aria-hidden="true"></div>
 
-  <!-- SUPABASE CDN V2 -->
+  <!-- Supabase v2 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- APP SCRIPT -->
+  <!-- App -->
   <script src="app-v3-final.js"></script>
 </body>
 </html>
