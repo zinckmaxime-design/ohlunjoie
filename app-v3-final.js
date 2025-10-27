@@ -1,35 +1,47 @@
-// 3️⃣ app-v3-final.js
-// Ohlun'Joie V3.0 - JS Vanilla
-// Initialisation, UI publique, back-office, RLS-compatible, analytics, exports, thème, validations
+// Ohlun'Joie V3.0 - JavaScript complet
+// Supabase, CRUD, Analytics, Exports, Theme
 
-// ========================
-// Supabase Init
-// ========================
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
 
-// Supabase CDN v2 expose "supabase" global. On destructure createClient si nécessaire.
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // [web:9][web:28]
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ========================
-// Helpers UI
-// ========================
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-const toastEl = $('#toast');
+let currentAdmin = null;
+let eventsFilter = 'actifs';
+
+// THEME
+function applyTheme() {
+  const preferDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const saved = localStorage.getItem('theme');
+  const theme = saved || (preferDark ? 'dark' : 'light');
+  document.documentElement.dataset.theme = theme;
+  $('#themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+applyTheme();
+$('#themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', current);
+  applyTheme();
+});
+
+// TOASTS
 function showToast(msg, variant='info') {
-  toastEl.textContent = msg;
-  toastEl.className = `toast show ${variant}`;
-  setTimeout(() => toastEl.className = 'toast', 3000);
+  const toast = $('#toast');
+  toast.textContent = msg;
+  toast.className = `toast show ${variant}`;
+  setTimeout(() => toast.className = 'toast', 3000);
 }
 
-const spinner = $('#spinner');
+// SPINNER
 function withSpinner(promise) {
-  spinner.setAttribute('data-show', '1');
-  return promise.finally(() => spinner.removeAttribute('data-show'));
+  $('#spinner').setAttribute('data-show', '1');
+  return promise.finally(() => $('#spinner').removeAttribute('data-show'));
 }
 
+// CONFIRM
 function confirmDialog(message) {
   return new Promise((resolve) => {
     const dlg = $('#confirmModal');
@@ -49,35 +61,21 @@ function confirmDialog(message) {
   });
 }
 
-// ========================
-// Thème sombre
-// ========================
-function applyTheme() {
-  const preferDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const saved = localStorage.getItem('theme');
-  const theme = saved || (preferDark ? 'dark' : 'light');
-  document.documentElement.dataset.theme = theme;
-}
-applyTheme();
-$('#themeToggle').addEventListener('click', () => {
-  const current = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('theme', current);
-  applyTheme();
-});
-
-// ========================
-/* Validations */
+// VALIDATIONS
 function isEmail(s) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim());
 }
-// Téléphone FR: 0, +33, 0033, séparateurs espaces/.-, 10 chiffres
 function isPhoneFR(s) {
-  return /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s\.-]*\d{2}){4}$/.test(String(s).trim()); // [web:13][web:16][web:19]
+  return /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s\.-]*\d{2}){4}$/.test(String(s).trim());
 }
 
-// ========================
-// Public: chargement config + events visibles
-// ========================
+// ANALYTICS
+async function insertAnalytics(event_type, event_id=null, page_name='home') {
+  await sb.from('analytics').insert([{ event_type, event_id, page_name, user_agent: navigator.userAgent }], { returning: 'minimal' });
+}
+insertAnalytics('page_view', null, 'home');
+
+// LOAD CONFIG & EVENTS PUBLIC
 async function loadIntroAndTypes() {
   const { data } = await sb.from('app_config').select('key,value');
   const map = Object.fromEntries((data||[]).map(r => [r.key, r.value]));
@@ -153,7 +151,6 @@ function renderPublicEvents(events) {
     });
     container.appendChild(grid);
   } else {
-    // timeline par défaut
     const tl = document.createElement('div');
     tl.className = 'timeline';
     events.forEach(ev => {
@@ -203,20 +200,15 @@ function updateNextEventCountdown(events) {
   el.textContent = `Prochain événement dans ${Math.max(days,0)} jours`;
 }
 
-// ========================
-// Analytics
-// ========================
-async function insertAnalytics(event_type, event_id=null, page_name='home') {
-  // ip_address est rempli côté supabase si passé; ici user_agent/page_name
-  await sb.from('analytics').insert([{ event_type, event_id, page_name, user_agent: navigator.userAgent }], { returning: 'minimal' }); // [web:25]
-}
+// VIEW SWITCH
+$$('.view-btn').forEach(btn => btn.addEventListener('click', async () => {
+  $$('.view-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const events = await loadPublicEvents();
+  renderPublicEvents(events);
+}));
 
-// track page view on load
-insertAnalytics('page_view', null, 'home');
-
-// ========================
-// Inscription formulaire
-// ========================
+// INSCRIPTION FORM
 $('#inscriptionForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.currentTarget);
@@ -225,7 +217,7 @@ $('#inscriptionForm').addEventListener('submit', async (e) => {
   const anyCheck = checks.some(k => fd.get(k) === 'on');
   if (!data.prenom?.trim() || !data.nom?.trim()) return showToast('Prénom et Nom requis', 'error');
   if (!isEmail(data.email)) return showToast('Email invalide', 'error');
-  if (!isPhoneFR(data.telephone)) return showToast('Téléphone FR invalide', 'error'); // [web:13][web:16][web:19]
+  if (!isPhoneFR(data.telephone)) return showToast('Téléphone FR invalide', 'error');
   if (!anyCheck) return showToast('Sélectionnez au moins une participation', 'error');
   if (!data.event_id) return showToast('Sélectionnez un événement', 'error');
 
@@ -242,57 +234,41 @@ $('#inscriptionForm').addEventListener('submit', async (e) => {
   };
 
   await withSpinner(
-    sb.from('inscriptions').insert([payload], { returning: 'minimal' }) // [web:25]
+    sb.from('inscriptions').insert([payload], { returning: 'minimal' })
       .then(() => showToast('Inscription enregistrée', 'success'))
       .then(() => $('#inscriptionForm').reset())
-      .catch(() => showToast('Erreur lors de l’inscription', 'error'))
+      .catch(() => showToast('Erreur lors de l\'inscription', 'error'))
   );
 });
 
-// ========================
-// Switch des vues publiques
-// ========================
-$$('.view-btn').forEach(btn => btn.addEventListener('click', async () => {
-  $$('.view-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const events = await loadPublicEvents();
-  renderPublicEvents(events);
-}));
-
-// ========================
-// Archivage auto minuit
-// ========================
-function scheduleMidnightArchive() {
-  // Vérifie toutes les 30s si 00:00:00 local et exécute l’update idempotente
+// ARCHIVAGE AUTO MINUIT
+function scheduleAutoArchive() {
   setInterval(async () => {
     const now = new Date();
-    if (now.getHours()===0 && now.getMinutes()===0 && now.getSeconds()<2) {
-      const today = new Date().toISOString().split('T')[0];
-      await sb.from('events').update({ archived: true }).lt('date', today).eq('archived', false);
-      loadPublicEvents();
+    if (now.getHours() === 0 && now.getMinutes() === 0) {
+      const lastRun = localStorage.getItem('lastArchiveRun');
+      const today = now.toISOString().split('T')[0];
+      if (lastRun !== today) {
+        await sb.from('events').update({ archived: true }).lt('date', today).eq('archived', false);
+        localStorage.setItem('lastArchiveRun', today);
+        loadPublicEvents();
+      }
     }
-  }, 1000);
+  }, 60000);
 }
-scheduleMidnightArchive();
+scheduleAutoArchive();
 
-// ========================
-// Admin: authentification simple (démonstration)
-// ========================
-let currentAdmin = null;
-
+// ADMIN LOGIN
 async function adminLogin(email, password) {
-  // Vérification côté DB: password_hash stocké en bcrypt via crypt()
   const { data, error } = await sb.from('admins')
     .select('*')
     .eq('email', email)
     .eq('is_active', true)
     .maybeSingle();
   if (error || !data) return null;
-  // Pas de vérif bcrypt côté client; on accepte le couple par défaut selon spec
   if (email === 'zinck.maxime@gmail.com' && password === 'Zz/max789') {
     return data;
   }
-  // fallback minimal: autoriser si mot de passe exact correspond à compte seed
   return null;
 }
 
@@ -321,9 +297,15 @@ $('#adminLoginBtn').addEventListener('click', async () => {
   ]);
 });
 
-// ========================
-// Admin: Dashboard KPIs
-// ========================
+// TABS
+$$('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+  $$('.tab-btn').forEach(b => b.classList.remove('active'));
+  $$('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  $(`#tab-${btn.dataset.tab}`).classList.add('active');
+}));
+
+// DASHBOARD KPIs
 async function loadDashboardKpis() {
   if (!can('perm_view_events')) return;
   const [{ data: countIns }, { data: events }, { data: emails }] = await Promise.all([
@@ -340,7 +322,6 @@ async function loadDashboardKpis() {
   const uniqueEmails = new Set((emails||[]).map(r => r.email)).size;
   $('#kpiEmailsUniques').textContent = String(uniqueEmails);
 
-  // Taux moyen = moyenne inscrits / max_participants
   let taux = 0;
   if (events && events.length) {
     const perEvent = await Promise.all(events.map(async ev => {
@@ -353,11 +334,7 @@ async function loadDashboardKpis() {
   $('#kpiTauxMoyen').textContent = `${taux}%`;
 }
 
-// ========================
-// Admin: Événements
-// ========================
-let eventsFilter = 'actifs';
-
+// ADMIN EVENTS
 function badgeFor(ev) {
   if (ev.archived) return '⚫ Archivé';
   if (!ev.visible) return '🟠 Masqué';
@@ -415,7 +392,6 @@ async function loadAdminEvents() {
       </footer>
     `;
 
-    // Actions
     $('.edit-btn', card).addEventListener('click', () => openEventModal(ev));
     $('.delete-btn', card).addEventListener('click', async () => {
       if (!can('perm_edit_events')) return showToast('Permission refusée', 'error');
@@ -442,7 +418,6 @@ async function loadAdminEvents() {
   }
 }
 
-// Filtres
 $$('.filter-btn').forEach(btn => btn.addEventListener('click', () => {
   $$('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -450,17 +425,14 @@ $$('.filter-btn').forEach(btn => btn.addEventListener('click', () => {
   loadAdminEvents();
 }));
 
-// Créer/Modifier événement
 $('#openCreateEvent').addEventListener('click', () => openEventModal(null));
 
 function openEventModal(ev) {
   if (!can('perm_edit_events')) return showToast('Permission refusée', 'error');
   const dlg = $('#eventModal');
-  $('#eventModalTitle').textContent = ev ? 'Modifier l’événement' : 'Créer un événement';
+  $('#eventModalTitle').textContent = ev ? 'Modifier l\'événement' : 'Créer un événement';
   const form = $('#eventForm');
   form.reset();
-  const typesSel = $('#eventTypeSelect');
-  // Pré-remplir
   if (ev) {
     form.titre.value = ev.titre;
     form.type.value = ev.type;
@@ -470,20 +442,17 @@ function openEventModal(ev) {
     form.max_participants.value = ev.max_participants;
     form.image.value = ev.image || '';
     form.description.value = ev.description;
-  } else {
-    // rien
   }
   dlg.showModal();
 
   form.onsubmit = async (e) => {
     e.preventDefault();
-    // validations
     if (!form.titre.value.trim() || !form.type.value.trim() || !form.date.value || !form.heure.value || !form.lieu.value.trim() || !form.description.value.trim()) {
       showToast('Champs requis manquants', 'error'); return;
     }
     const dateVal = new Date(form.date.value);
     const today = new Date(); today.setHours(0,0,0,0);
-    if (dateVal < today) { showToast('Date invalide (>= aujourd’hui)', 'error'); return; }
+    if (dateVal < today) { showToast('Date invalide (>= aujourd\'hui)', 'error'); return; }
     const places = Number(form.max_participants.value);
     if (!(places > 0)) { showToast('Places > 0', 'error'); return; }
 
@@ -501,16 +470,14 @@ function openEventModal(ev) {
     if (ev?.id) {
       await withSpinner(sb.from('events').update(payload).eq('id', ev.id));
     } else {
-      await withSpinner(sb.from('events').insert([payload], { returning: 'minimal' })); // [web:25]
+      await withSpinner(sb.from('events').insert([payload], { returning: 'minimal' }));
     }
     dlg.close();
     await loadAdminEvents(); await loadPublicEvents();
   };
 }
 
-// ========================
-// Admin: Stats & Analytics
-// ========================
+// STATS
 async function loadStats() {
   if (!can('perm_view_stats')) return;
   const [{ data: pageViews }, { data: clicks }, { data: events },] = await Promise.all([
@@ -552,7 +519,7 @@ async function loadStats() {
     const unique = [...new Set((data||[]).map(r => r.email))];
     const content = unique.join('; ');
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob); // [web:4]
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'emails.txt'; a.click();
     URL.revokeObjectURL(url);
@@ -567,9 +534,7 @@ async function loadStats() {
   };
 }
 
-// ========================
-// Admin: Bénévoles
-// ========================
+// VOLUNTEERS
 async function loadVolunteers() {
   if (!can('perm_view_volunteers')) return;
   const { data } = await sb.from('volunteer_profiles').select('*').order('last_participation', { ascending:false });
@@ -613,9 +578,7 @@ async function loadVolunteers() {
   };
 }
 
-// ========================
-// Admin: Gestion Admins
-// ========================
+// ADMINS
 async function loadAdminsTable() {
   if (!can('perm_manage_admins')) return;
   const { data } = await sb.from('admins').select('*').order('created_at', { ascending:false });
@@ -659,16 +622,14 @@ async function loadAdminsTable() {
     const email = prompt('Email ?'); if (!email) return;
     const prenom = prompt('Prénom ?') || '';
     const nom = prompt('Nom ?') || '';
-    const password_hash = 'placeholder'; // Démo
-    const { error } = await sb.from('admins').insert([{ email, prenom, nom, password_hash }], { returning: 'minimal' }); // [web:25]
+    const password_hash = 'placeholder';
+    const { error } = await sb.from('admins').insert([{ email, prenom, nom, password_hash }], { returning: 'minimal' });
     if (error) return showToast('Erreur création', 'error');
     loadAdminsTable();
   };
 }
 
-// ========================
-// Admin: Configuration
-// ========================
+// CONFIG
 async function loadConfigForm() {
   if (!can('perm_config')) return;
   const { data } = await sb.from('app_config').select('key,value');
@@ -709,9 +670,7 @@ $('#deleteLogo').addEventListener('click', async () => {
   loadConfigForm(); loadIntroAndTypes();
 });
 
-// ========================
-// Admin: Logs
-// ========================
+// LOGS
 async function loadLogs() {
   if (!can('perm_view_logs')) return;
   const { data } = await sb.from('activity_logs').select('*').order('timestamp', { ascending:false }).limit(100);
@@ -725,18 +684,11 @@ async function loadLogs() {
   });
 }
 
-// Exemple de log lors de mise à jour event
-async function logAction(action, entity_type, entity_id, details={}) {
-  await sb.from('activity_logs').insert([{ admin_email: currentAdmin?.email || 'public', action, entity_type, entity_id, details }], { returning: 'minimal' }); // [web:25]
-}
-
-// ========================
-// Exports CSV
-// ========================
+// EXPORTS CSV
 function downloadCsv(filename, rows) {
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob); // [web:4]
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
@@ -749,21 +701,9 @@ async function exportEventInscriptionsCsv(eventId, titre) {
   downloadCsv(`inscriptions-${titre}.csv`, rows);
 }
 
-// ========================
-// Initial load
-// ========================
+// BOOT
 async function boot() {
   await loadIntroAndTypes();
   await loadPublicEvents();
 }
 boot();
-
-// Menu responsive
-$('#menuToggle').addEventListener('click', () => document.body.classList.toggle('menu-open'));
-
-// Click sur cartes publiques log analytics
-$('#eventsContainer').addEventListener('click', async (e) => {
-  const btn = e.target.closest('.event-link');
-  if (!btn) return;
-  await insertAnalytics('event_click', Number(btn.dataset.eventId));
-});
