@@ -5,6 +5,38 @@ const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/* === Patch compat app initiale (append only) === */
+
+// Adoucir transitions au chargement pour éviter flash
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.style.transition = 'background-color 0.25s ease, color 0.25s ease';
+});
+
+// Mapper des classes “compat” si besoin d’accroches CSS
+(function ensureCompatHooks(){
+  const ec = document.getElementById('eventsContainer');
+  if (ec && !ec.classList.contains('compat-events')) ec.classList.add('compat-events');
+  const ac = document.getElementById('adminEventsCards');
+  if (ac && !ac.classList.contains('compat-admin-cards')) ac.classList.add('compat-admin-cards');
+})();
+
+// Uniformiser le focus des boutons
+['view-btn','filter-btn','primary','secondary','danger'].forEach(cls => {
+  document.querySelectorAll('.' + cls).forEach(b => b.setAttribute('tabindex','0'));
+});
+
+// Petite amélioration accessibilité pour toasts
+(function a11yToast(){
+  const t = document.getElementById('toast');
+  if (t) { t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); }
+})();
+
+// Raccourcis claviers (ex: g pour “aller à” onglet Events en admin)
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'g' && document.getElementById('tab-events')) {
+    document.querySelector('.tab-btn[data-tab="events"]')?.click();
+  }
+});
 
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
