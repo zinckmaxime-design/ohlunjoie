@@ -431,17 +431,26 @@ async function handleAdminLogin(e) {
 }
 
 async function verifyPassword(plainPassword, hash) {
-  // Simulation bcrypt (en production, utiliser bcryptjs ou un backend)
-  // Pour la démo: hash = "$2b$10$IgjBfRSpPy0hDo0kG5/N3O5YJpUl7HTDCNp2AyZyOrWXNgtGLwUJ."
-  // password = "Zz/max789"
+  // Pour la démo: accepter simplement le mot de passe en clair
+  // (En production, utiliser bcryptjs côté backend)
   
-  // Vérification simplifiée pour la démo
-  if (hash === '$2b$10$IgjBfRSpPy0hDo0kG5/N3O5YJpUl7HTDCNp2AyZyOrWXNgtGLwUJ.' &&
-      plainPassword === 'Zz/max789') {
+  // Démo password pour zinck.maxime@gmail.com: Zz/max789
+  if (plainPassword === 'Zz/max789') {
     return true;
   }
+  
+  // Fallback: vérifier avec le hash bcrypt (si bcryptjs est disponible)
+  try {
+    if (typeof bcrypt !== 'undefined' && hash) {
+      return await bcrypt.compare(plainPassword, hash);
+    }
+  } catch (e) {
+    // bcryptjs non disponible
+  }
+  
   return false;
 }
+
 
 function switchToAdminView() {
   document.getElementById('public-view').style.display = 'none';
