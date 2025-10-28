@@ -205,6 +205,7 @@
    * Récupère les événements publics et met à jour l'affichage
    */
   async function loadPublicEvents() {
+    // Récupère les événements publics et calcule le nombre d'inscrits pour afficher la jauge
     const { data, error } = await supabase
       .from('events')
       .select('*')
@@ -216,7 +217,27 @@
       showToast("Erreur lors du chargement des événements", 'danger');
       return;
     }
-    publicEvents = data || [];
+    // Si aucune donnée, nettoie et quitte
+    if (!data) {
+      publicEvents = [];
+      renderPublicEvents();
+      updateNextEventCountdown();
+      return;
+    }
+    // Pour chaque événement, calcule le nombre d'inscrits et le taux de remplissage
+    const enriched = await Promise.all(
+      data.map(async (ev) => {
+        // Récupère le nombre d'inscrits pour cet événement
+        const { count } = await supabase
+          .from('inscriptions')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', ev.id);
+        const inscrits = count || 0;
+        const rate = ev.max_participants > 0 ? Math.round((inscrits / ev.max_participants) * 100) : 0;
+        return { ...ev, inscritsCount: inscrits, rate };
+      })
+    );
+    publicEvents = enriched;
     renderPublicEvents();
     updateNextEventCountdown();
   }
@@ -268,50 +289,64 @@
    * Crée un élément DOM représentant un événement public
    */
   function createPublicEventElement(event) {
-    let wrapper;
-    if (currentView === 'timeline') {
-      wrapper = document.createElement('div');
-      wrapper.className = 'timeline-event';
-    } else if (currentView === 'list') {
-      wrapper = document.createElement('div');
-      wrapper.className = 'list-event';
-    } else {
-      wrapper = document.createElement('div');
-      wrapper.className = 'card-event';
-    }
+    // Création du conteneur selon la vue
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('public-event');
+    wrapper.classList.add(`${currentView}-event`);
+    // Date : jour et mois séparés
+    const dateObj = new Date(event.date);
+    const day = dateObj.toLocaleDateString('fr-FR', { day: '2-digit' });
+    const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
+    const dateEl = document.createElement('div');
+    dateEl.className = 'event-date';
+    dateEl.innerHTML = `<span class="day">${day}</span><span class="month">${month}</span>`;
+    wrapper.appendChild(dateEl);
     // Contenu principal
-    const header = document.createElement('div');
-    header.className = 'event-header';
-    header.innerHTML = `<span class="event-emoji">${event.image}</span> <strong>${event.titre}</strong>`;
-    wrapper.appendChild(header);
-    // Détails
-    const details = document.createElement('div');
-    details.className = 'event-details';
-    details.innerHTML = `<span>${formatDate(event.date)} à ${event.heure}</span><span>${event.lieu}</span>`;
-    wrapper.appendChild(details);
-    // Description
+    const content = document.createElement('div');
+    content.className = 'event-content';
+    // Titre avec emoji
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'event-title';
+    titleEl.innerHTML = `${event.image} <span>${event.titre}</span>`;
+    content.appendChild(titleEl);
+    // Meta (lieu et heure)
+    const meta = document.createElement('div');
+    meta.className = 'event-meta';
+    meta.innerHTML = `<span class="time">${event.heure}</span><span class="location">${event.lieu}</span>`;
+    content.appendChild(meta);
+    // Description (facultative)
     if (event.description) {
       const desc = document.createElement('p');
+      desc.className = 'event-description';
       desc.textContent = event.description;
-      wrapper.appendChild(desc);
+      content.appendChild(desc);
     }
-    // Bouton s'inscrire (formulaire repliable)
-    const summary = document.createElement('details');
-    const summaryTitle = document.createElement('summary');
-    summaryTitle.textContent = "S'inscrire";
-    summary.appendChild(summaryTitle);
+    // Barre de progression participants
+    const progressWrapper = document.createElement('div');
+    progressWrapper.className = 'progress-wrapper';
+    progressWrapper.innerHTML = `
+      <div class="progress-bar"><div class="progress" style="width:${event.rate}%"></div></div>
+      <span class="progress-label">${event.inscritsCount}/${event.max_participants} – ${event.rate}%</span>
+    `;
+    content.appendChild(progressWrapper);
+    // Bloc d'inscription (details/summary)
+    const signupDetails = document.createElement('details');
+    signupDetails.className = 'signup-details';
+    const summary = document.createElement('summary');
+    summary.textContent = "S'inscrire";
+    signupDetails.appendChild(summary);
     const form = document.createElement('form');
     form.className = 'signup-form';
     form.innerHTML = `
       <div class="form-group">
-        <label>Email</label>
-        <input type="email" name="email" required />
+        <label for="email-${event.id}">Email</label>
+        <input id="email-${event.id}" type="email" name="email" required />
       </div>
       <div class="form-group">
-        <label>Téléphone</label>
-        <input type="tel" name="phone" required />
+        <label for="phone-${event.id}">Téléphone</label>
+        <input id="phone-${event.id}" type="tel" name="phone" required />
       </div>
-      <div class="form-group">
+      <div class="form-group form-checkboxes">
         <span>Participation :</span>
         <label><input type="checkbox" name="preparation_salle" value="true"> Préparation de la salle</label>
         <label><input type="checkbox" name="partie_evenement" value="true"> Partie de l'événement</label>
@@ -323,10 +358,11 @@
       e.preventDefault();
       await handleSignup(event.id, form);
     });
-    summary.appendChild(form);
-    wrapper.appendChild(summary);
-    // Analytics : clic sur l'événement (en-tête)
-    header.addEventListener('click', () => {
+    signupDetails.appendChild(form);
+    content.appendChild(signupDetails);
+    wrapper.appendChild(content);
+    // Analytics : clic sur l'entête titre
+    titleEl.addEventListener('click', () => {
       recordAnalytics(event.id, 'event_click');
     });
     return wrapper;
