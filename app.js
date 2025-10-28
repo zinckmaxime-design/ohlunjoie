@@ -1,5 +1,3 @@
-// app.js - Ohlun'Joie V3.0 FINAL - CONFORME AU MODÈLE S3
-
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
 
@@ -19,6 +17,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await trackPageView();
   setupCountdown();
   setupAutoArchive();
+  checkAdminLogin();
 });
 
 function initSupabase() {
@@ -93,6 +92,7 @@ function setupEventListeners() {
   });
   
   document.getElementById('form-event')?.addEventListener('submit', handleEventSubmit);
+  document.getElementById('form-inscription')?.addEventListener('submit', handleInscription);
   document.getElementById('btn-add-admin')?.addEventListener('click', handleAddAdmin);
   document.getElementById('btn-export-emails')?.addEventListener('click', exportEmails);
   document.getElementById('btn-export-stats-csv')?.addEventListener('click', exportStatsCsv);
@@ -116,8 +116,16 @@ function setupEventListeners() {
       if (e.target === modal) modal.classList.remove('active');
     });
   });
-  
-  document.getElementById('form-inscription')?.addEventListener('submit', handleInscription);
+}
+
+function checkAdminLogin() {
+  const stored = localStorage.getItem('currentUser');
+  if (stored) {
+    try {
+      currentUser = JSON.parse(stored);
+      switchToAdminView();
+    } catch (e) {}
+  }
 }
 
 async function loadAppConfig() {
@@ -153,9 +161,7 @@ async function loadAppConfig() {
         } catch (e) {}
       }
     });
-  } catch (err) {
-    console.error('Erreur config:', err);
-  }
+  } catch (err) {}
 }
 
 function populateEventTypeSelect(types) {
@@ -195,7 +201,7 @@ async function loadPublicEvents() {
       document.getElementById('events-empty').style.display = 'block';
     }
   } catch (err) {
-    showToast('Erreur chargement événements', 'error');
+    showToast('Erreur chargement', 'error');
   }
 }
 
@@ -245,7 +251,7 @@ function renderTimelineView(events, container) {
           </div>
 
           <div class="event-inscrits-wrapper">
-            <button class="event-inscrits-toggle" onclick="toggleInscrits(event)">
+            <button class="event-inscrits-toggle" onclick="toggleInscrits(event)" type="button">
               👤 Voir les inscrits (${eventInscrits.length})
               <span>▼</span>
             </button>
@@ -254,7 +260,7 @@ function renderTimelineView(events, container) {
             </div>
           </div>
 
-          <button class="event-cta" onclick="openEventDetail(${event.id})">S'inscrire →</button>
+          <button class="event-cta" onclick="openEventDetail(${event.id})" type="button">S'inscrire →</button>
         </div>
       </div>
     `;
@@ -272,24 +278,28 @@ function toggleInscrits(e) {
 
 function renderListView(events, container) {
   container.className = 'events-list';
-  container.innerHTML = events.map(event => `
-    <div class="event-card-list" onclick="openEventDetail(${event.id})">
-      <div class="event-list-left">
-        <div class="event-list-emoji">${event.image}</div>
-        <div class="event-list-info">
-          <h3>${escapeHtml(event.titre)}</h3>
-          <div class="event-list-date">${formatDate(event.date)} à ${event.heure} • ${escapeHtml(event.lieu)}</div>
+  container.innerHTML = events.map(event => {
+    const eventInscrits = allInscriptions?.filter(i => i.event_id === event.id) || [];
+    return `
+      <div class="event-card-list" onclick="openEventDetail(${event.id})">
+        <div class="event-list-left">
+          <div class="event-list-emoji">${event.image}</div>
+          <div class="event-list-info">
+            <h3>${escapeHtml(event.titre)}</h3>
+            <div class="event-list-date">${formatDate(event.date)} à ${event.heure} • ${escapeHtml(event.lieu)}</div>
+          </div>
         </div>
+        <div class="event-list-badge">${eventInscrits.length}/${event.max_participants}</div>
       </div>
-      <div class="event-list-badge">S'inscrire</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderCardsView(events, container) {
   container.className = 'events-cards';
   container.innerHTML = events.map(event => {
     const description = (event.description || 'Pas de description').substring(0, 100);
+    const eventInscrits = allInscriptions?.filter(i => i.event_id === event.id) || [];
     return `
       <div class="event-card-grid" onclick="openEventDetail(${event.id})">
         <div class="event-card-header">
@@ -303,7 +313,7 @@ function renderCardsView(events, container) {
             <div class="event-card-info-item">📍 ${escapeHtml(event.lieu)}</div>
           </div>
           <p class="event-card-desc">${escapeHtml(description)}</p>
-          <button class="event-card-action">S'inscrire</button>
+          <button class="event-card-action" type="button">S'inscrire</button>
         </div>
       </div>
     `;
@@ -367,11 +377,6 @@ async function handleInscription(e) {
     return;
   }
   
-  if (!isValidPhoneFR(telephone)) {
-    showToast('Téléphone invalide', 'error');
-    return;
-  }
-  
   const participations = Array.from(document.querySelectorAll('input[name="participation"]:checked'))
     .map(cb => cb.value);
   
@@ -380,14 +385,11 @@ async function handleInscription(e) {
     return;
   }
   
-  const participationObj = {};
-  participations.forEach(p => { participationObj[p] = true; });
-  
   try {
     const { error } = await supabase.from('inscriptions').insert({
       event_id: eventId,
       email, nom, prenom, telephone,
-      participations: participationObj
+      participations: participations.join(',')
     });
     
     if (error) {
@@ -427,12 +429,7 @@ async function handleAdminLogin(e) {
       .eq('email', email)
       .single();
     
-    if (!data) {
-      showToast('Email ou mot de passe incorrect', 'error');
-      return;
-    }
-    
-    if (data.password_hash !== password) {
+    if (!data || data.password_hash !== password) {
       showToast('Email ou mot de passe incorrect', 'error');
       return;
     }
@@ -444,7 +441,7 @@ async function handleAdminLogin(e) {
     showToast('✅ Connexion réussie', 'success');
     
   } catch (err) {
-    showToast('Erreur connexion', 'error');
+    showToast('Email ou mot de passe incorrect', 'error');
   }
 }
 
@@ -462,10 +459,6 @@ function switchToAdminView() {
   
   loadAdminDashboard();
   loadAdminEvents();
-  loadAdminStats();
-  loadAdminVolunteers();
-  loadAdminAdmins();
-  loadAdminLogs();
 }
 
 function handleAdminLogout() {
@@ -515,9 +508,7 @@ async function loadAdminDashboard() {
     const el4 = document.getElementById('kpi-taux-moyen');
     if (el4) el4.textContent = avgRate + '%';
     
-  } catch (err) {
-    console.error('Dashboard error:', err);
-  }
+  } catch (err) {}
 }
 
 async function loadAdminEvents() {
@@ -529,9 +520,7 @@ async function loadAdminEvents() {
     
     allEvents = data || [];
     renderAdminEvents();
-  } catch (err) {
-    showToast('Erreur événements', 'error');
-  }
+  } catch (err) {}
 }
 
 function renderAdminEvents() {
@@ -548,7 +537,7 @@ function renderAdminEvents() {
   }
   
   if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state">Aucun événement</div>';
+    container.innerHTML = '<div style="text-align:center; padding:40px;">Aucun événement</div>';
     return;
   }
   
@@ -563,22 +552,16 @@ function renderAdminEvents() {
       <div class="admin-event-card">
         <div class="admin-event-header">
           <div class="admin-event-emoji-badge">${event.image}</div>
-          <div class="admin-event-status">
-            ${badges.map(b => `<div style="display:inline-block; font-size:0.8rem; background:rgba(255,255,255,.2); padding:4px 8px; border-radius:4px;">${b}</div>`).join('')}
-          </div>
         </div>
         <div class="admin-event-body">
           <h3 class="admin-event-title">${escapeHtml(event.titre)}</h3>
           <div class="admin-event-details">
             <div>📅 ${formatDate(event.date)} à ${event.heure}</div>
             <div>📍 ${escapeHtml(event.lieu)}</div>
-            <div>🎯 ${event.type}</div>
           </div>
           <div class="admin-event-actions">
-            <button class="btn btn-secondary" onclick="editEvent(${event.id})">✏️</button>
-            <button class="btn btn-danger" onclick="deleteEvent(${event.id})">🗑️</button>
-            <button class="btn btn-secondary" onclick="toggleEventVisibility(${event.id}, ${event.visible})">👁️</button>
-            ${event.archived ? `<button class="btn btn-secondary" onclick="restoreEvent(${event.id})">🔄</button>` : ''}
+            <button class="btn btn-secondary" onclick="editEvent(${event.id})" type="button">✏️</button>
+            <button class="btn btn-danger" onclick="deleteEvent(${event.id})" type="button">🗑️</button>
           </div>
         </div>
       </div>
@@ -671,66 +654,16 @@ async function deleteEvent(eventId) {
   }
 }
 
-async function toggleEventVisibility(eventId, visible) {
+async function handleAddAdmin() {
+  const email = prompt('Email de l\'admin:');
+  if (!email) return;
   try {
-    await supabase.from('events').update({ visible: !visible }).eq('id', eventId);
-    showToast('✅ Visibilité modifiée', 'success');
-    loadAdminEvents();
-  } catch (err) {
-    showToast('Erreur', 'error');
-  }
-}
-
-async function restoreEvent(eventId) {
-  try {
-    await supabase.from('events').update({ archived: false }).eq('id', eventId);
-    showToast('✅ Événement restauré', 'success');
-    loadAdminEvents();
-  } catch (err) {
-    showToast('Erreur', 'error');
-  }
-}
-
-async function loadAdminStats() {
-  try {
-    const { data: analytics } = await supabase.from('analytics').select('*');
-    
-    const pageViews = analytics?.filter(a => a.action === 'page_view').length || 0;
-    const eventClicks = analytics?.filter(a => a.action === 'event_click').length || 0;
-    
-    const pv = document.getElementById('stats-page-views');
-    if (pv) pv.textContent = pageViews;
-    
-    const ec = document.getElementById('stats-event-clicks');
-    if (ec) ec.textContent = eventClicks;
-    
-    const { data: inscriptions } = await supabase.from('inscriptions').select('*');
-    
-    const tbody = document.getElementById('stats-table-body');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    allEvents.forEach(event => {
-      const eventInscrits = inscriptions?.filter(i => i.event_id === event.id) || [];
-      const eventAnalytics = analytics?.filter(a => a.event_id === event.id) || [];
-      const clicks = eventAnalytics.filter(a => a.action === 'event_click').length;
-      const rate = Math.round((eventInscrits.length / event.max_participants) * 100);
-      
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${escapeHtml(event.titre)}</td>
-        <td>${eventAnalytics.filter(a => a.action === 'page_view').length}</td>
-        <td>${clicks}</td>
-        <td>${eventInscrits.length}</td>
-        <td>${event.max_participants}</td>
-        <td>${rate}%</td>
-      `;
-      tbody.appendChild(row);
+    await supabase.from('admins').insert({
+      email, prenom: 'Admin', nom: 'Nouveau', password_hash: 'temp'
     });
-    
+    showToast('✅ Admin ajouté', 'success');
   } catch (err) {
-    console.error('Stats error:', err);
+    showToast('Erreur', 'error');
   }
 }
 
@@ -754,19 +687,10 @@ async function exportEmails() {
 
 async function exportStatsCsv() {
   try {
-    const { data: inscriptions } = await supabase.from('inscriptions').select('*');
-    const { data: analytics } = await supabase.from('analytics').select('*');
-    
-    let csv = 'Titre,Vues,Clics,Inscrits,Places,Taux %\n';
-    
+    let csv = 'Titre,Inscrits,Places\n';
     allEvents.forEach(event => {
-      const eventInscrits = inscriptions?.filter(i => i.event_id === event.id) || [];
-      const eventAnalytics = analytics?.filter(a => a.event_id === event.id) || [];
-      const clicks = eventAnalytics.filter(a => a.action === 'event_click').length;
-      const views = eventAnalytics.filter(a => a.action === 'page_view').length;
-      const rate = Math.round((eventInscrits.length / event.max_participants) * 100);
-      
-      csv += `"${event.titre}",${views},${clicks},${eventInscrits.length},${event.max_participants},${rate}%\n`;
+      const inscCount = allInscriptions?.filter(i => i.event_id === event.id).length || 0;
+      csv += `"${event.titre}",${inscCount},${event.max_participants}\n`;
     });
     
     const el = document.createElement('a');
@@ -782,109 +706,24 @@ async function exportStatsCsv() {
   }
 }
 
-async function loadAdminVolunteers() {
-  try {
-    const { data } = await supabase.from('volunteer_profiles').select('*').order('nom');
-    
-    const tbody = document.getElementById('volunteers-table-body');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Aucun bénévole</td></tr>';
-      return;
-    }
-    
-    data.forEach(vol => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${escapeHtml(vol.prenom)}</td>
-        <td>${escapeHtml(vol.nom)}</td>
-        <td>${escapeHtml(vol.email)}</td>
-        <td>${vol.telephone || '-'}</td>
-        <td>${vol.participations_count}</td>
-        <td><button class="btn btn-secondary" onclick="showVolunteerHistory('${vol.email}')">📋</button></td>
-      `;
-      tbody.appendChild(row);
-    });
-    
-  } catch (err) {
-    console.error('Volunteers error:', err);
-  }
-}
-
 async function filterVolunteers(e) {
   const query = e.target.value.toLowerCase();
-  const { data } = await supabase.from('volunteer_profiles').select('*');
+  const { data } = await supabase.from('inscriptions').select('*');
   
   const filtered = data?.filter(v => 
     v.nom.toLowerCase().includes(query) || 
     v.prenom.toLowerCase().includes(query) || 
     v.email.toLowerCase().includes(query)
   ) || [];
-  
-  const tbody = document.getElementById('volunteers-table-body');
-  if (!tbody) return;
-  
-  tbody.innerHTML = '';
-  
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Aucun résultat</td></tr>';
-    return;
-  }
-  
-  filtered.forEach(vol => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${escapeHtml(vol.prenom)}</td>
-      <td>${escapeHtml(vol.nom)}</td>
-      <td>${escapeHtml(vol.email)}</td>
-      <td>${vol.telephone || '-'}</td>
-      <td>${vol.participations_count}</td>
-      <td><button class="btn btn-secondary" onclick="showVolunteerHistory('${vol.email}')">📋</button></td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-async function showVolunteerHistory(email) {
-  try {
-    const { data } = await supabase
-      .from('inscriptions')
-      .select('*, events(titre, date, heure)')
-      .eq('email', email)
-      .order('inscription_date', { ascending: false });
-    
-    const historyList = document.getElementById('volunteer-history-list');
-    const title = document.getElementById('modal-volunteer-history-title');
-    if (title) title.textContent = `Historique de ${email}`;
-    
-    if (!data || data.length === 0) {
-      historyList.innerHTML = '<p class="empty-state">Aucune participation</p>';
-    } else {
-      historyList.innerHTML = data.map(insc => `
-        <div style="padding:12px; background:var(--bg); border-radius:8px; margin-bottom:8px;">
-          <strong>${insc.events?.titre}</strong><br>
-          <small style="color:var(--text-muted);">📅 ${formatDate(insc.events?.date)} à ${insc.events?.heure}</small>
-        </div>
-      `).join('');
-    }
-    
-    showModal('modal-volunteer-history');
-    
-  } catch (err) {
-    showToast('Erreur', 'error');
-  }
 }
 
 async function exportVolunteersCsv() {
   try {
-    const { data } = await supabase.from('volunteer_profiles').select('*');
+    const { data } = await supabase.from('inscriptions').select('*');
     
-    let csv = 'Prénom,Nom,Email,Téléphone,Participations\n';
+    let csv = 'Prénom,Nom,Email\n';
     data?.forEach(v => {
-      csv += `"${v.prenom}","${v.nom}","${v.email}","${v.telephone || ''}",${v.participations_count}\n`;
+      csv += `"${v.prenom}","${v.nom}","${v.email}"\n`;
     });
     
     const el = document.createElement('a');
@@ -900,92 +739,12 @@ async function exportVolunteersCsv() {
   }
 }
 
-async function loadAdminAdmins() {
-  try {
-    const { data } = await supabase.from('admins').select('*').order('email');
-    
-    const tbody = document.getElementById('admins-table-body');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="table-empty">Aucun admin</td></tr>';
-      return;
-    }
-    
-    data.forEach(admin => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${escapeHtml(admin.email)}</td>
-        <td>${escapeHtml(admin.nom)}</td>
-        <td><input type="checkbox" ${admin.perm_view_events ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_events', this.checked)"></td>
-        <td><input type="checkbox" ${admin.perm_edit_events ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_edit_events', this.checked)"></td>
-        <td><input type="checkbox" ${admin.perm_view_stats ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_stats', this.checked)"></td>
-        <td><input type="checkbox" ${admin.perm_view_logs ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_logs', this.checked)"></td>
-        <td><input type="checkbox" ${admin.perm_view_volunteers ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_view_volunteers', this.checked)"></td>
-        <td><input type="checkbox" ${admin.perm_manage_admins ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_manage_admins', this.checked)"></td>
-        <td><input type="checkbox" ${admin.perm_config ? 'checked' : ''} onchange="updateAdminPerm(${admin.id}, 'perm_config', this.checked)"></td>
-        <td><button class="btn btn-danger" onclick="deleteAdmin(${admin.id})">🗑️</button></td>
-      `;
-      tbody.appendChild(row);
-    });
-    
-  } catch (err) {
-    console.error('Admins error:', err);
-  }
-}
-
-async function handleAddAdmin() {
-  const email = prompt('Email de l\'admin:');
-  if (!email) return;
-  
-  const prenom = prompt('Prénom:');
-  if (!prenom) return;
-  
-  const nom = prompt('Nom:');
-  if (!nom) return;
-  
-  try {
-    await supabase.from('admins').insert({
-      email, prenom, nom, password_hash: 'temp', super_admin: false
-    });
-    showToast('✅ Admin ajouté', 'success');
-    loadAdminAdmins();
-  } catch (err) {
-    showToast('Erreur', 'error');
-  }
-}
-
-async function updateAdminPerm(adminId, perm, value) {
-  try {
-    const obj = {};
-    obj[perm] = value;
-    await supabase.from('admins').update(obj).eq('id', adminId);
-    showToast('✅ Permission mise à jour', 'success');
-  } catch (err) {
-    showToast('Erreur', 'error');
-  }
-}
-
-async function deleteAdmin(adminId) {
-  if (!confirm('Supprimer cet admin ?')) return;
-  
-  try {
-    await supabase.from('admins').delete().eq('id', adminId);
-    showToast('✅ Admin supprimé', 'success');
-    loadAdminAdmins();
-  } catch (err) {
-    showToast('Erreur', 'error');
-  }
-}
-
 async function handleLogoUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
   
   if (file.size > 2 * 1024 * 1024) {
-    showToast('Fichier trop volumineux (max 2MB)', 'error');
+    showToast('Fichier trop volumineux', 'error');
     return;
   }
   
@@ -1004,16 +763,6 @@ async function handleLogoUpload(e) {
         img.src = base64;
         img.style.display = 'block';
       }
-      
-      const preview = document.getElementById('config-logo-preview');
-      if (preview) {
-        preview.src = base64;
-        preview.style.display = 'block';
-      }
-      
-      const deleteBtn = document.getElementById('config-logo-delete');
-      if (deleteBtn) deleteBtn.style.display = 'block';
-      
       showToast('✅ Logo enregistré', 'success');
     } catch (err) {
       showToast('Erreur', 'error');
@@ -1031,12 +780,6 @@ async function deleteConfigLogo() {
     
     const img = document.getElementById('app-logo');
     if (img) img.style.display = 'none';
-    
-    const preview = document.getElementById('config-logo-preview');
-    if (preview) preview.style.display = 'none';
-    
-    const deleteBtn = document.getElementById('config-logo-delete');
-    if (deleteBtn) deleteBtn.style.display = 'none';
     
     showToast('✅ Logo supprimé', 'success');
   } catch (err) {
@@ -1092,54 +835,66 @@ async function saveEventTypes() {
   }
 }
 
-async function loadAdminLogs() {
-  try {
-    const { data } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(100);
-    
-    const tbody = document.getElementById('logs-table-body');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Aucun log</td></tr>';
-      return;
-    }
-    
-    data.forEach(log => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${new Date(log.timestamp).toLocaleString('fr-FR')}</td>
-        <td>${escapeHtml(log.admin_email)}</td>
-        <td>${escapeHtml(log.action)}</td>
-        <td>${log.entity_type}</td>
-        <td>${log.entity_id || '-'}</td>
-      `;
-      tbody.appendChild(row);
-    });
-    
-  } catch (err) {
-    console.error('Logs error:', err);
-  }
+function switchAdminTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  
+  const tab = document.getElementById(`tab-${tabName}`);
+  if (tab) tab.classList.add('active');
+  
+  const btn = document.querySelector(`[data-tab="${tabName}"]`);
+  if (btn) btn.classList.add('active');
 }
 
-async function trackPageView() {
-  try {
-    await supabase.from('analytics').insert({ action: 'page_view' });
-  } catch (err) {}
+function showModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.add('active');
 }
 
-async function trackEventClick(eventId) {
-  try {
-    await supabase.from('analytics').insert({
-      event_id: eventId,
-      action: 'event_click'
-    });
-  } catch (err) {}
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function formatDate(dateStr) {
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('fr-FR', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  
+  toast.innerHTML = `
+    <div style="font-size: 1.2rem; flex-shrink: 0;">${icons[type]}</div>
+    <div>${escapeHtml(message)}</div>
+  `;
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function debounce(func, delay) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), delay);
+  };
 }
 
 function setupCountdown() {
@@ -1200,75 +955,17 @@ function setupAutoArchive() {
   setInterval(check, 60000);
 }
 
-function switchAdminTab(tabName) {
-  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  
-  const tab = document.getElementById(`tab-${tabName}`);
-  if (tab) tab.classList.add('active');
-  
-  const btn = document.querySelector(`[data-tab="${tabName}"]`);
-  if (btn) btn.classList.add('active');
-  
-  if (tabName === 'stats') loadAdminStats();
-  if (tabName === 'volunteers') loadAdminVolunteers();
-  if (tabName === 'admins') loadAdminAdmins();
-  if (tabName === 'logs') loadAdminLogs();
+async function trackPageView() {
+  try {
+    await supabase.from('analytics').insert({ action: 'page_view' });
+  } catch (err) {}
 }
 
-function showModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) modal.classList.add('active');
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function formatDate(dateStr) {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('fr-FR', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function isValidPhoneFR(phone) {
-  return /^[0-9\s\-+().]{9,20}$/.test(phone);
-}
-
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  
-  toast.innerHTML = `
-    <div style="font-size: 1.2rem; flex-shrink: 0;">${icons[type]}</div>
-    <div>${escapeHtml(message)}</div>
-  `;
-  
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(400px)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
-
-function debounce(func, delay) {
-  let timeout;
-  return function(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), delay);
-  };
+async function trackEventClick(eventId) {
+  try {
+    await supabase.from('analytics').insert({
+      event_id: eventId,
+      action: 'event_click'
+    });
+  } catch (err) {}
 }
