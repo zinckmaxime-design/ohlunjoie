@@ -20,7 +20,8 @@
   --shadow: rgba(0, 0, 0, 0.05);
 
   /* Version claire du primaire pour les entêtes de cartes */
-  --primary-light: #f4f9ff;
+  /* Couleur d'arrière-plan claire pour les entêtes de carte (ton pastel pour plus de gaieté) */
+  --primary-light: #e9f4fe;
 }
 
 /* Thème sombre (préférences utilisateur ou toggle) */
