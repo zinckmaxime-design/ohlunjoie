@@ -20,7 +20,7 @@
   --shadow: rgba(0, 0, 0, 0.05);
 
   /* Version claire du primaire pour les entêtes de cartes */
-  --primary-light: #eaf5ff;
+  --primary-light: #f4f9ff;
 }
 
 /* Thème sombre (préférences utilisateur ou toggle) */
@@ -169,7 +169,7 @@ a:hover {
 /* Carte événement publique */
 .public-event {
   display: flex;
-  background-color: var(--surface);
+  background-color: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
@@ -225,7 +225,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 4px;
-  background-color: var(--surface);
+  background-color: var(--primary-light);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 2px 8px;
@@ -346,7 +346,7 @@ a:hover {
 .progress-bar {
   flex: 1;
   height: 8px;
-  background-color: var(--border);
+  background-color: var(--primary-light);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -474,6 +474,11 @@ a:hover {
 /* Modales */
 .modal.hidden {
   display: none;
+}
+
+/* Classe utilitaire pour masquer n'importe quel élément */
+.hidden {
+  display: none !important;
 }
 .modal .modal-overlay {
   position: fixed;
