@@ -1,23 +1,10 @@
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
 
-let supabase;
-let currentUser = null;
-let currentView = 'timeline';
-let currentEventFilter = 'actifs';
-let allEvents = [];
-let allInscriptions = [];
+let supabase, currentUser = null, currentView = 'timeline', currentEventFilter = 'actifs', allEvents = [], allInscriptions = [];
 
 window.addEventListener('DOMContentLoaded', async () => {
-  initSupabase();
-  setupTheme();
-  setupEventListeners();
-  await loadAppConfig();
-  await loadPublicEvents();
-  await trackPageView();
-  setupCountdown();
-  setupAutoArchive();
-  checkAdminLogin();
+  initSupabase(); setupTheme(); setupEventListeners(); await loadAppConfig(); await loadPublicEvents(); await trackPageView(); setupCountdown(); setupAutoArchive(); checkAdminLogin();
 });
 
 function initSupabase() {
@@ -34,12 +21,8 @@ function setupTheme() {
 }
 
 function updateThemeIcons(theme) {
-  document.querySelectorAll('.icon-sun').forEach(el => {
-    el.style.display = theme === 'light' ? 'block' : 'none';
-  });
-  document.querySelectorAll('.icon-moon').forEach(el => {
-    el.style.display = theme === 'dark' ? 'block' : 'none';
-  });
+  document.querySelectorAll('.icon-sun').forEach(el => el.style.display = theme === 'light' ? 'block' : 'none');
+  document.querySelectorAll('.icon-moon').forEach(el => el.style.display = theme === 'dark' ? 'block' : 'none');
 }
 
 function toggleTheme() {
@@ -53,11 +36,7 @@ function toggleTheme() {
 function setupEventListeners() {
   document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
   document.getElementById('theme-toggle-admin')?.addEventListener('click', toggleTheme);
-  
-  document.getElementById('admin-login-btn')?.addEventListener('click', () => {
-    showModal('modal-admin-login');
-  });
-  
+  document.getElementById('admin-login-btn')?.addEventListener('click', () => showModal('modal-admin-login'));
   document.getElementById('form-admin-login')?.addEventListener('submit', handleAdminLogin);
   document.getElementById('admin-logout-btn')?.addEventListener('click', handleAdminLogout);
   
@@ -80,9 +59,7 @@ function setupEventListeners() {
   });
   
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      switchAdminTab(e.target.dataset.tab);
-    });
+    btn.addEventListener('click', (e) => switchAdminTab(e.target.dataset.tab));
   });
   
   document.getElementById('btn-add-event')?.addEventListener('click', () => {
@@ -98,7 +75,6 @@ function setupEventListeners() {
   document.getElementById('btn-export-stats-csv')?.addEventListener('click', exportStatsCsv);
   document.getElementById('btn-export-volunteers-csv')?.addEventListener('click', exportVolunteersCsv);
   document.getElementById('volunteers-search')?.addEventListener('input', debounce(filterVolunteers, 300));
-  
   document.getElementById('config-logo-upload')?.addEventListener('change', handleLogoUpload);
   document.getElementById('config-logo-delete')?.addEventListener('click', deleteConfigLogo);
   document.getElementById('config-intro-save')?.addEventListener('click', saveIntroText);
@@ -140,17 +116,9 @@ async function loadAppConfig() {
       }
       if (config.key === 'logo_url' && config.value) {
         const img = document.getElementById('app-logo');
-        if (img) {
-          img.src = config.value;
-          img.style.display = 'block';
-        }
+        if (img) { img.src = config.value; img.style.display = 'block'; }
         const preview = document.getElementById('config-logo-preview');
-        if (preview) {
-          preview.src = config.value;
-          preview.style.display = 'block';
-        }
-        const deleteBtn = document.getElementById('config-logo-delete');
-        if (deleteBtn) deleteBtn.style.display = 'block';
+        if (preview) { preview.src = config.value; preview.style.display = 'block'; }
       }
       if (config.key === 'event_types') {
         try {
@@ -170,8 +138,7 @@ function populateEventTypeSelect(types) {
   select.innerHTML = '<option value="">-- Sélectionner --</option>';
   types.forEach(type => {
     const opt = document.createElement('option');
-    opt.value = type;
-    opt.textContent = type;
+    opt.value = type; opt.textContent = type;
     select.appendChild(opt);
   });
 }
@@ -179,27 +146,13 @@ function populateEventTypeSelect(types) {
 async function loadPublicEvents() {
   try {
     document.getElementById('events-loading').style.display = 'block';
-    
-    const { data: events } = await supabase
-      .from('events')
-      .select('*')
-      .eq('visible', true)
-      .eq('archived', false)
-      .order('date', { ascending: true });
-    
-    const { data: inscriptions } = await supabase
-      .from('inscriptions')
-      .select('*');
-    
+    const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
+    const { data: inscriptions } = await supabase.from('inscriptions').select('*');
     allEvents = events || [];
     allInscriptions = inscriptions || [];
-    
     renderEvents(allEvents);
     document.getElementById('events-loading').style.display = 'none';
-    
-    if (allEvents.length === 0) {
-      document.getElementById('events-empty').style.display = 'block';
-    }
+    if (allEvents.length === 0) document.getElementById('events-empty').style.display = 'block';
   } catch (err) {
     showToast('Erreur chargement', 'error');
   }
@@ -208,14 +161,9 @@ async function loadPublicEvents() {
 function renderEvents(events) {
   const container = document.getElementById('events-container');
   if (!container) return;
-  
-  if (currentView === 'timeline') {
-    renderTimelineView(events, container);
-  } else if (currentView === 'list') {
-    renderListView(events, container);
-  } else if (currentView === 'cards') {
-    renderCardsView(events, container);
-  }
+  if (currentView === 'timeline') renderTimelineView(events, container);
+  else if (currentView === 'list') renderListView(events, container);
+  else if (currentView === 'cards') renderCardsView(events, container);
 }
 
 function renderTimelineView(events, container) {
@@ -224,7 +172,6 @@ function renderTimelineView(events, container) {
     const eventInscrits = allInscriptions?.filter(i => i.event_id === event.id) || [];
     const gaugeFill = (eventInscrits.length / event.max_participants) * 100;
     const percentageText = Math.round(gaugeFill);
-    
     return `
       <div class="event-card-timeline">
         <div class="event-date-container">
@@ -241,25 +188,19 @@ function renderTimelineView(events, container) {
             <div class="event-meta-item">${event.type}</div>
           </div>
           <p class="event-description">${escapeHtml(event.description || '')}</p>
-          
           <div class="event-participants-section">
             <div class="event-participants-label">👥 Participants</div>
-            <div class="event-gauge">
-              <div class="event-gauge-fill" style="width: ${gaugeFill}%"></div>
-            </div>
+            <div class="event-gauge"><div class="event-gauge-fill" style="width:${gaugeFill}%"></div></div>
             <div class="event-gauge-text">${eventInscrits.length}/${event.max_participants} - ${percentageText}%</div>
           </div>
-
           <div class="event-inscrits-wrapper">
             <button class="event-inscrits-toggle" onclick="toggleInscrits(event)" type="button">
-              👤 Voir les inscrits (${eventInscrits.length})
-              <span>▼</span>
+              👤 Voir les inscrits (${eventInscrits.length})<span>▼</span>
             </button>
             <div class="event-inscrits-list">
               ${eventInscrits.map(i => `<div class="event-inscrit-item">${escapeHtml(i.prenom)} ${escapeHtml(i.nom)}</div>`).join('')}
             </div>
           </div>
-
           <button class="event-cta" onclick="openEventDetail(${event.id})" type="button">S'inscrire →</button>
         </div>
       </div>
@@ -299,7 +240,6 @@ function renderCardsView(events, container) {
   container.className = 'events-cards';
   container.innerHTML = events.map(event => {
     const description = (event.description || 'Pas de description').substring(0, 100);
-    const eventInscrits = allInscriptions?.filter(i => i.event_id === event.id) || [];
     return `
       <div class="event-card-grid" onclick="openEventDetail(${event.id})">
         <div class="event-card-header">
@@ -323,28 +263,24 @@ function renderCardsView(events, container) {
 async function openEventDetail(eventId) {
   const event = allEvents.find(e => e.id === eventId);
   if (!event) return;
-  
   await trackEventClick(eventId);
-  
   const modalInfo = document.getElementById('modal-event-info');
   if (modalInfo) {
     modalInfo.innerHTML = `
-      <div style="margin-bottom: 24px;">
-        <p style="font-size: 0.9rem; color: #6c757d; margin-bottom: 8px;"><strong>Description:</strong></p>
+      <div style="margin-bottom:24px;">
+        <p style="font-size:0.9rem;color:#6c757d;margin-bottom:8px;"><strong>Description:</strong></p>
         <p>${escapeHtml(event.description || 'Pas de description')}</p>
-        <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Date:</strong> ${formatDate(event.date)}</p></div>
-          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Heure:</strong> ${event.heure}</p></div>
-          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Lieu:</strong> ${escapeHtml(event.lieu)}</p></div>
-          <div><p style="font-size: 0.9rem; color: #6c757d;"><strong>Type:</strong> ${escapeHtml(event.type)}</p></div>
+        <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div><p style="font-size:0.9rem;color:#6c757d;"><strong>Date:</strong> ${formatDate(event.date)}</p></div>
+          <div><p style="font-size:0.9rem;color:#6c757d;"><strong>Heure:</strong> ${event.heure}</p></div>
+          <div><p style="font-size:0.9rem;color:#6c757d;"><strong>Lieu:</strong> ${escapeHtml(event.lieu)}</p></div>
+          <div><p style="font-size:0.9rem;color:#6c757d;"><strong>Type:</strong> ${escapeHtml(event.type)}</p></div>
         </div>
       </div>
     `;
   }
-  
   const title = document.getElementById('modal-event-title');
   if (title) title.textContent = event.titre;
-  
   const form = document.getElementById('form-inscription');
   if (form) {
     document.getElementById('inscr-prenom').value = '';
@@ -354,109 +290,56 @@ async function openEventDetail(eventId) {
     document.querySelectorAll('input[name="participation"]').forEach(cb => cb.checked = false);
     form.dataset.eventId = eventId;
   }
-  
   showModal('modal-event-detail');
 }
 
 async function handleInscription(e) {
   e.preventDefault();
-  
   const eventId = parseInt(document.getElementById('form-inscription').dataset.eventId);
   const prenom = document.getElementById('inscr-prenom').value.trim();
   const nom = document.getElementById('inscr-nom').value.trim();
   const email = document.getElementById('inscr-email').value.trim();
   const telephone = document.getElementById('inscr-telephone').value.trim();
-  
-  if (!prenom || !nom || !email || !telephone) {
-    showToast('Remplissez tous les champs', 'error');
-    return;
-  }
-  
-  if (!isValidEmail(email)) {
-    showToast('Email invalide', 'error');
-    return;
-  }
-  
-  const participations = Array.from(document.querySelectorAll('input[name="participation"]:checked'))
-    .map(cb => cb.value);
-  
-  if (participations.length === 0) {
-    showToast('Sélectionnez au moins 1 type de participation', 'error');
-    return;
-  }
-  
+  if (!prenom || !nom || !email || !telephone) { showToast('Remplissez tous les champs', 'error'); return; }
+  if (!isValidEmail(email)) { showToast('Email invalide', 'error'); return; }
+  const participations = Array.from(document.querySelectorAll('input[name="participation"]:checked')).map(cb => cb.value);
+  if (participations.length === 0) { showToast('Sélectionnez au moins 1 type', 'error'); return; }
   try {
-    const { error } = await supabase.from('inscriptions').insert({
-      event_id: eventId,
-      email, nom, prenom, telephone,
-      participations: participations.join(',')
-    });
-    
-    if (error) {
-      if (error.message.includes('unique')) {
-        showToast('Vous êtes déjà inscrit à cet événement', 'error');
-      } else {
-        throw error;
-      }
-      return;
-    }
-    
+    const { error } = await supabase.from('inscriptions').insert({ event_id: eventId, email, nom, prenom, telephone, participations: participations.join(',') });
+    if (error) { showToast(error.message.includes('unique') ? 'Déjà inscrit' : 'Erreur', 'error'); return; }
     showToast('✅ Inscription confirmée !', 'success');
     document.getElementById('form-inscription').reset();
     document.getElementById('modal-event-detail').classList.remove('active');
     await loadPublicEvents();
-    
   } catch (err) {
-    showToast('Erreur inscription', 'error');
+    showToast('Erreur', 'error');
   }
 }
 
 async function handleAdminLogin(e) {
   e.preventDefault();
-  
   const email = document.getElementById('admin-email').value.trim();
   const password = document.getElementById('admin-password').value;
-  
-  if (!email || !password) {
-    showToast('Remplissez tous les champs', 'error');
-    return;
-  }
-  
+  if (!email || !password) { showToast('Remplissez les champs', 'error'); return; }
   try {
-    const { data } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .single();
-    
-    if (!data || data.password_hash !== password) {
-      showToast('Email ou mot de passe incorrect', 'error');
-      return;
-    }
-    
+    const { data } = await supabase.from('admins').select('*').eq('email', email).single();
+    if (!data || data.password_hash !== password) { showToast('Incorrect', 'error'); return; }
     currentUser = data;
     localStorage.setItem('currentUser', JSON.stringify(data));
-    
     switchToAdminView();
-    showToast('✅ Connexion réussie', 'success');
-    
+    showToast('✅ Connecté', 'success');
   } catch (err) {
-    showToast('Email ou mot de passe incorrect', 'error');
+    showToast('Erreur', 'error');
   }
 }
 
 function switchToAdminView() {
   document.getElementById('public-view').style.display = 'none';
   document.getElementById('admin-view').style.display = 'block';
-  
   const userDisplay = document.getElementById('admin-user-display');
-  if (userDisplay) {
-    userDisplay.textContent = `👤 ${currentUser.prenom} ${currentUser.nom}`;
-  }
-  
+  if (userDisplay) userDisplay.textContent = `👤 ${currentUser.prenom} ${currentUser.nom}`;
   const modal = document.getElementById('modal-admin-login');
   if (modal) modal.classList.remove('active');
-  
   loadAdminDashboard();
   loadAdminEvents();
 }
@@ -471,22 +354,10 @@ function handleAdminLogout() {
 
 async function loadAdminDashboard() {
   try {
-    const { count: inscritCount } = await supabase
-      .from('inscriptions')
-      .select('*', { count: 'exact', head: true });
-    
-    const { data: activeEvents } = await supabase
-      .from('events')
-      .select('*')
-      .eq('visible', true)
-      .eq('archived', false);
-    
-    const { data: allInsc } = await supabase
-      .from('inscriptions')
-      .select('email, event_id');
-    
+    const { count: inscritCount } = await supabase.from('inscriptions').select('*', { count: 'exact', head: true });
+    const { data: activeEvents } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false);
+    const { data: allInsc } = await supabase.from('inscriptions').select('email, event_id');
     const uniqueEmails = new Set(allInsc?.map(i => i.email) || []).size;
-    
     let avgRate = 0;
     if (activeEvents?.length > 0) {
       const rates = activeEvents.map(e => {
@@ -495,29 +366,16 @@ async function loadAdminDashboard() {
       });
       avgRate = Math.round(rates.reduce((a, b) => a + b, 0) / rates.length);
     }
-    
-    const el1 = document.getElementById('kpi-inscrits');
-    if (el1) el1.textContent = inscritCount || 0;
-    
-    const el2 = document.getElementById('kpi-events-actifs');
-    if (el2) el2.textContent = activeEvents?.length || 0;
-    
-    const el3 = document.getElementById('kpi-emails-uniques');
-    if (el3) el3.textContent = uniqueEmails;
-    
-    const el4 = document.getElementById('kpi-taux-moyen');
-    if (el4) el4.textContent = avgRate + '%';
-    
+    document.getElementById('kpi-inscrits').textContent = inscritCount || 0;
+    document.getElementById('kpi-events-actifs').textContent = activeEvents?.length || 0;
+    document.getElementById('kpi-emails-uniques').textContent = uniqueEmails;
+    document.getElementById('kpi-taux-moyen').textContent = avgRate + '%';
   } catch (err) {}
 }
 
 async function loadAdminEvents() {
   try {
-    const { data } = await supabase
-      .from('events')
-      .select('*')
-      .order('date', { ascending: true });
-    
+    const { data } = await supabase.from('events').select('*').order('date', { ascending: true });
     allEvents = data || [];
     renderAdminEvents();
   } catch (err) {}
@@ -526,53 +384,33 @@ async function loadAdminEvents() {
 function renderAdminEvents() {
   const container = document.getElementById('admin-events-container');
   if (!container) return;
-  
   let filtered = allEvents;
-  if (currentEventFilter === 'actifs') {
-    filtered = allEvents.filter(e => e.visible && !e.archived);
-  } else if (currentEventFilter === 'masques') {
-    filtered = allEvents.filter(e => !e.visible && !e.archived);
-  } else if (currentEventFilter === 'archives') {
-    filtered = allEvents.filter(e => e.archived);
-  }
-  
-  if (filtered.length === 0) {
-    container.innerHTML = '<div style="text-align:center; padding:40px;">Aucun événement</div>';
-    return;
-  }
-  
+  if (currentEventFilter === 'actifs') filtered = allEvents.filter(e => e.visible && !e.archived);
+  else if (currentEventFilter === 'masques') filtered = allEvents.filter(e => !e.visible && !e.archived);
+  else if (currentEventFilter === 'archives') filtered = allEvents.filter(e => e.archived);
+  if (filtered.length === 0) { container.innerHTML = '<div style="text-align:center;padding:40px;">Aucun</div>'; return; }
   container.className = 'admin-events-grid';
-  container.innerHTML = filtered.map(event => {
-    const badges = [];
-    if (event.visible && !event.archived) badges.push('🟢 Actif');
-    if (!event.visible && !event.archived) badges.push('🟠 Masqué');
-    if (event.archived) badges.push('⚫ Archivé');
-    
-    return `
-      <div class="admin-event-card">
-        <div class="admin-event-header">
-          <div class="admin-event-emoji-badge">${event.image}</div>
+  container.innerHTML = filtered.map(event => `
+    <div class="admin-event-card">
+      <div class="admin-event-header"><div class="admin-event-emoji-badge">${event.image}</div></div>
+      <div class="admin-event-body">
+        <h3 class="admin-event-title">${escapeHtml(event.titre)}</h3>
+        <div class="admin-event-details">
+          <div>📅 ${formatDate(event.date)} à ${event.heure}</div>
+          <div>📍 ${escapeHtml(event.lieu)}</div>
         </div>
-        <div class="admin-event-body">
-          <h3 class="admin-event-title">${escapeHtml(event.titre)}</h3>
-          <div class="admin-event-details">
-            <div>📅 ${formatDate(event.date)} à ${event.heure}</div>
-            <div>📍 ${escapeHtml(event.lieu)}</div>
-          </div>
-          <div class="admin-event-actions">
-            <button class="btn btn-secondary" onclick="editEvent(${event.id})" type="button">✏️</button>
-            <button class="btn btn-danger" onclick="deleteEvent(${event.id})" type="button">🗑️</button>
-          </div>
+        <div class="admin-event-actions">
+          <button class="btn btn-secondary" onclick="editEvent(${event.id})" type="button">✏️</button>
+          <button class="btn btn-danger" onclick="deleteEvent(${event.id})" type="button">🗑️</button>
         </div>
       </div>
-    `;
-  }).join('');
+    </div>
+  `).join('');
 }
 
 async function editEvent(eventId) {
   const event = allEvents.find(e => e.id === eventId);
   if (!event) return;
-  
   document.getElementById('event-id').value = event.id;
   document.getElementById('event-titre').value = event.titre;
   document.getElementById('event-description').value = event.description || '';
@@ -583,14 +421,12 @@ async function editEvent(eventId) {
   document.getElementById('event-image').value = event.image;
   document.getElementById('event-max-participants').value = event.max_participants;
   document.getElementById('event-visible').checked = event.visible;
-  document.getElementById('modal-event-form-title').textContent = 'Modifier un événement';
-  
+  document.getElementById('modal-event-form-title').textContent = 'Modifier';
   showModal('modal-event-form');
 }
 
 async function handleEventSubmit(e) {
   e.preventDefault();
-  
   const eventId = document.getElementById('event-id').value;
   const titre = document.getElementById('event-titre').value.trim();
   const description = document.getElementById('event-description').value.trim();
@@ -601,29 +437,18 @@ async function handleEventSubmit(e) {
   const image = document.getElementById('event-image').value;
   const maxParticipants = parseInt(document.getElementById('event-max-participants').value);
   const visible = document.getElementById('event-visible').checked;
-  
-  if (!titre || !date || !heure || !lieu || !type || !image || maxParticipants < 1) {
-    showToast('Remplissez tous les champs obligatoires', 'error');
-    return;
-  }
-  
+  if (!titre || !date || !heure || !lieu || !type || !image || maxParticipants < 1) { showToast('Remplissez les champs', 'error'); return; }
   try {
     if (eventId) {
-      await supabase.from('events').update({
-        titre, description, date, heure, lieu, type, image, max_participants: maxParticipants, visible, updated_at: new Date()
-      }).eq('id', eventId);
-      showToast('✅ Événement modifié', 'success');
+      await supabase.from('events').update({ titre, description, date, heure, lieu, type, image, max_participants: maxParticipants, visible, updated_at: new Date() }).eq('id', eventId);
+      showToast('✅ Modifié', 'success');
     } else {
-      await supabase.from('events').insert({
-        titre, description, date, heure, lieu, type, image, max_participants: maxParticipants, visible, created_by: currentUser.email
-      });
-      showToast('✅ Événement créé', 'success');
+      await supabase.from('events').insert({ titre, description, date, heure, lieu, type, image, max_participants: maxParticipants, visible, created_by: currentUser.email });
+      showToast('✅ Créé', 'success');
     }
-    
     document.getElementById('modal-event-form').classList.remove('active');
     loadAdminEvents();
     loadAdminDashboard();
-    
   } catch (err) {
     showToast('Erreur', 'error');
   }
@@ -643,10 +468,10 @@ function resetEventForm() {
 }
 
 async function deleteEvent(eventId) {
-  if (!confirm('Êtes-vous sûr ?')) return;
+  if (!confirm('Supprimer?')) return;
   try {
     await supabase.from('events').delete().eq('id', eventId);
-    showToast('✅ Événement supprimé', 'success');
+    showToast('✅ Supprimé', 'success');
     loadAdminEvents();
     loadAdminDashboard();
   } catch (err) {
@@ -655,13 +480,11 @@ async function deleteEvent(eventId) {
 }
 
 async function handleAddAdmin() {
-  const email = prompt('Email de l\'admin:');
+  const email = prompt('Email:');
   if (!email) return;
   try {
-    await supabase.from('admins').insert({
-      email, prenom: 'Admin', nom: 'Nouveau', password_hash: 'temp'
-    });
-    showToast('✅ Admin ajouté', 'success');
+    await supabase.from('admins').insert({ email, prenom: 'Admin', nom: 'New', password_hash: 'temp' });
+    showToast('✅ Ajouté', 'success');
   } catch (err) {
     showToast('Erreur', 'error');
   }
@@ -671,7 +494,6 @@ async function exportEmails() {
   try {
     const { data } = await supabase.from('inscriptions').select('email').order('email');
     const emails = [...new Set(data?.map(i => i.email) || [])].join('; ');
-    
     const el = document.createElement('a');
     el.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(emails));
     el.setAttribute('download', 'emails_' + new Date().toISOString().split('T')[0] + '.txt');
@@ -679,7 +501,7 @@ async function exportEmails() {
     document.body.appendChild(el);
     el.click();
     document.body.removeChild(el);
-    showToast('✅ Emails exportés', 'success');
+    showToast('✅ Exporté', 'success');
   } catch (err) {
     showToast('Erreur', 'error');
   }
@@ -692,7 +514,6 @@ async function exportStatsCsv() {
       const inscCount = allInscriptions?.filter(i => i.event_id === event.id).length || 0;
       csv += `"${event.titre}",${inscCount},${event.max_participants}\n`;
     });
-    
     const el = document.createElement('a');
     el.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
     el.setAttribute('download', 'stats_' + new Date().toISOString().split('T')[0] + '.csv');
@@ -700,32 +521,19 @@ async function exportStatsCsv() {
     document.body.appendChild(el);
     el.click();
     document.body.removeChild(el);
-    showToast('✅ Stats exportées', 'success');
+    showToast('✅ Exporté', 'success');
   } catch (err) {
     showToast('Erreur', 'error');
   }
 }
 
-async function filterVolunteers(e) {
-  const query = e.target.value.toLowerCase();
-  const { data } = await supabase.from('inscriptions').select('*');
-  
-  const filtered = data?.filter(v => 
-    v.nom.toLowerCase().includes(query) || 
-    v.prenom.toLowerCase().includes(query) || 
-    v.email.toLowerCase().includes(query)
-  ) || [];
-}
+async function filterVolunteers(e) {}
 
 async function exportVolunteersCsv() {
   try {
     const { data } = await supabase.from('inscriptions').select('*');
-    
     let csv = 'Prénom,Nom,Email\n';
-    data?.forEach(v => {
-      csv += `"${v.prenom}","${v.nom}","${v.email}"\n`;
-    });
-    
+    data?.forEach(v => { csv += `"${v.prenom}","${v.nom}","${v.email}"\n`; });
     const el = document.createElement('a');
     el.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
     el.setAttribute('download', 'volunteers_' + new Date().toISOString().split('T')[0] + '.csv');
@@ -733,7 +541,7 @@ async function exportVolunteersCsv() {
     document.body.appendChild(el);
     el.click();
     document.body.removeChild(el);
-    showToast('✅ Bénévoles exportés', 'success');
+    showToast('✅ Exporté', 'success');
   } catch (err) {
     showToast('Erreur', 'error');
   }
@@ -742,28 +550,15 @@ async function exportVolunteersCsv() {
 async function handleLogoUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
-  
-  if (file.size > 2 * 1024 * 1024) {
-    showToast('Fichier trop volumineux', 'error');
-    return;
-  }
-  
+  if (file.size > 2 * 1024 * 1024) { showToast('Trop gros', 'error'); return; }
   const reader = new FileReader();
   reader.onload = async (evt) => {
     const base64 = evt.target.result;
-    
     try {
-      await supabase.from('app_config').upsert({
-        key: 'logo_url',
-        value: base64
-      }, { onConflict: 'key' });
-      
+      await supabase.from('app_config').upsert({ key: 'logo_url', value: base64 }, { onConflict: 'key' });
       const img = document.getElementById('app-logo');
-      if (img) {
-        img.src = base64;
-        img.style.display = 'block';
-      }
-      showToast('✅ Logo enregistré', 'success');
+      if (img) { img.src = base64; img.style.display = 'block'; }
+      showToast('✅ Logo OK', 'success');
     } catch (err) {
       showToast('Erreur', 'error');
     }
@@ -773,15 +568,10 @@ async function handleLogoUpload(e) {
 
 async function deleteConfigLogo() {
   try {
-    await supabase.from('app_config').upsert({
-      key: 'logo_url',
-      value: ''
-    }, { onConflict: 'key' });
-    
+    await supabase.from('app_config').upsert({ key: 'logo_url', value: '' }, { onConflict: 'key' });
     const img = document.getElementById('app-logo');
     if (img) img.style.display = 'none';
-    
-    showToast('✅ Logo supprimé', 'success');
+    showToast('✅ Supprimé', 'success');
   } catch (err) {
     showToast('Erreur', 'error');
   }
@@ -790,19 +580,12 @@ async function deleteConfigLogo() {
 async function saveIntroText() {
   const el = document.getElementById('config-intro-text');
   if (!el) return;
-  
   const text = el.value;
-  
   try {
-    await supabase.from('app_config').upsert({
-      key: 'intro_text',
-      value: text
-    }, { onConflict: 'key' });
-    
+    await supabase.from('app_config').upsert({ key: 'intro_text', value: text }, { onConflict: 'key' });
     const introEl = document.getElementById('intro-text');
     if (introEl) introEl.textContent = text;
-    
-    showToast('✅ Texte enregistré', 'success');
+    showToast('✅ Enregistré', 'success');
   } catch (err) {
     showToast('Erreur', 'error');
   }
@@ -811,25 +594,18 @@ async function saveIntroText() {
 async function saveEventTypes() {
   const el = document.getElementById('config-event-types');
   if (!el) return;
-  
   const text = el.value;
-  
   try {
     JSON.parse(text);
   } catch (e) {
-    showToast('Format JSON invalide', 'error');
+    showToast('JSON invalide', 'error');
     return;
   }
-  
   try {
-    await supabase.from('app_config').upsert({
-      key: 'event_types',
-      value: text
-    }, { onConflict: 'key' });
-    
+    await supabase.from('app_config').upsert({ key: 'event_types', value: text }, { onConflict: 'key' });
     const types = JSON.parse(text);
     populateEventTypeSelect(types);
-    showToast('✅ Types enregistrés', 'success');
+    showToast('✅ Enregistré', 'success');
   } catch (err) {
     showToast('Erreur', 'error');
   }
@@ -838,10 +614,8 @@ async function saveEventTypes() {
 function switchAdminTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) tab.classList.add('active');
-  
   const btn = document.querySelector(`[data-tab="${tabName}"]`);
   if (btn) btn.classList.add('active');
 }
@@ -870,19 +644,11 @@ function isValidEmail(email) {
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   if (!container) return;
-  
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  
   const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  
-  toast.innerHTML = `
-    <div style="font-size: 1.2rem; flex-shrink: 0;">${icons[type]}</div>
-    <div>${escapeHtml(message)}</div>
-  `;
-  
+  toast.innerHTML = `<div style="font-size:1.2rem;flex-shrink:0;">${icons[type]}</div><div>${escapeHtml(message)}</div>`;
   container.appendChild(toast);
-  
   setTimeout(() => {
     toast.style.opacity = '0';
     setTimeout(() => toast.remove(), 300);
@@ -901,28 +667,22 @@ function setupCountdown() {
   function update() {
     if (allEvents.length === 0) {
       const el = document.getElementById('countdown-display');
-      if (el) el.textContent = 'Aucun événement';
+      if (el) el.textContent = 'Aucun';
       return;
     }
-    
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    
     const nextEvent = allEvents.find(e => new Date(e.date) >= now);
-    
     if (!nextEvent) {
       const el = document.getElementById('countdown-display');
-      if (el) el.textContent = 'Aucun événement à venir';
+      if (el) el.textContent = 'Aucun à venir';
       return;
     }
-    
     const eventDate = new Date(nextEvent.date);
     const daysLeft = Math.floor((eventDate - now) / (1000 * 60 * 60 * 24));
-    
     const el = document.getElementById('countdown-display');
     if (el) el.textContent = `${daysLeft} jour${daysLeft > 1 ? 's' : ''}`;
   }
-  
   update();
   setInterval(update, 60000);
 }
@@ -931,26 +691,15 @@ function setupAutoArchive() {
   async function check() {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
     const lastRun = localStorage.getItem('lastArchiveRun');
     const lastRunDate = lastRun ? new Date(lastRun) : null;
-    
-    if (lastRunDate && lastRunDate.toDateString() === today.toDateString()) {
-      return;
-    }
-    
+    if (lastRunDate && lastRunDate.toDateString() === today.toDateString()) return;
     try {
       const todayStr = today.toISOString().split('T')[0];
-      await supabase
-        .from('events')
-        .update({ archived: true })
-        .lt('date', todayStr)
-        .eq('archived', false);
-      
+      await supabase.from('events').update({ archived: true }).lt('date', todayStr).eq('archived', false);
       localStorage.setItem('lastArchiveRun', today.toISOString());
     } catch (err) {}
   }
-  
   check();
   setInterval(check, 60000);
 }
@@ -963,9 +712,6 @@ async function trackPageView() {
 
 async function trackEventClick(eventId) {
   try {
-    await supabase.from('analytics').insert({
-      event_id: eventId,
-      action: 'event_click'
-    });
+    await supabase.from('analytics').insert({ event_id: eventId, action: 'event_click' });
   } catch (err) {}
 }
