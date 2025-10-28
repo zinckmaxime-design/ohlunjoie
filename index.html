@@ -8,11 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  
-  <!-- PUBLIC VIEW -->
   <div id="public-view">
-    
-    <!-- HEADER -->
     <header class="header">
       <div class="container">
         <div class="header-content">
@@ -21,24 +17,19 @@
             <h1 class="app-title">❤️ Ohlun'Joie</h1>
           </div>
           <div class="header-actions">
-            <button id="theme-toggle" class="btn-icon">
-              <span class="icon-sun">☀️</span>
-              <span class="icon-moon">🌙</span>
-            </button>
+            <button id="theme-toggle" class="btn-icon"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
             <button id="admin-login-btn" class="btn btn-admin">✏️ Administration</button>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- INTRO SECTION -->
     <section class="intro-section">
       <div class="container">
         <p id="intro-text" class="intro-text">Bienvenue sur la plateforme événementielle Ohlun'Joie ! Participez, organisez, partagez.</p>
       </div>
     </section>
 
-    <!-- VIEW SWITCHER -->
     <section class="view-switcher-section">
       <div class="container">
         <div class="view-switcher">
@@ -49,7 +40,6 @@
       </div>
     </section>
 
-    <!-- COUNTDOWN -->
     <section class="countdown-section">
       <div class="container">
         <div class="countdown-card">
@@ -59,7 +49,6 @@
       </div>
     </section>
 
-    <!-- EVENTS DISPLAY -->
     <section class="events-section">
       <div class="container">
         <div id="events-container" class="events-timeline"></div>
@@ -68,7 +57,6 @@
       </div>
     </section>
 
-    <!-- RGPD SECTION -->
     <section class="rgpd-section">
       <div class="container">
         <div class="rgpd-notice">
@@ -77,13 +65,11 @@
       </div>
     </section>
 
-    <!-- FOOTER -->
     <footer class="footer">
       <p>&copy; 2025 Ohlun'Joie - Tous droits réservés</p>
     </footer>
   </div>
 
-  <!-- ADMIN VIEW -->
   <div id="admin-view" style="display:none;">
     <header class="admin-header">
       <div class="container">
@@ -114,7 +100,6 @@
 
     <div class="admin-content">
       <div class="container">
-        
         <div id="tab-dashboard" class="tab-content active">
           <h2 class="section-title">Dashboard</h2>
           <div class="kpi-grid">
@@ -124,7 +109,6 @@
             <div class="kpi-card"><div class="kpi-icon">📊</div><div><p class="kpi-label">Taux</p><p id="kpi-taux-moyen" class="kpi-value">0%</p></div></div>
           </div>
         </div>
-
         <div id="tab-events" class="tab-content">
           <div class="section-header">
             <h2 class="section-title">Événements</h2>
@@ -138,7 +122,6 @@
           </div>
           <div id="admin-events-container" class="admin-events-grid"></div>
         </div>
-
         <div id="tab-stats" class="tab-content">
           <h2 class="section-title">Statistiques</h2>
           <div class="kpi-row">
@@ -151,15 +134,14 @@
               <tbody id="stats-table-body"><tr><td colspan="6">Aucune donnée</td></tr></tbody>
             </table>
           </div>
-          <div style="margin-top: 20px; gap: 12px; display: flex;">
+          <div style="margin-top:20px;gap:12px;display:flex;">
             <button id="btn-export-emails" class="btn btn-secondary">📧 Emails</button>
             <button id="btn-export-stats-csv" class="btn btn-secondary">📊 CSV</button>
           </div>
         </div>
-
         <div id="tab-volunteers" class="tab-content">
           <h2 class="section-title">Bénévoles</h2>
-          <div style="margin-bottom: 20px; gap: 12px; display: flex;">
+          <div style="margin-bottom:20px;gap:12px;display:flex;">
             <input type="search" id="volunteers-search" class="search-input" placeholder="🔍 Rechercher...">
             <button id="btn-export-volunteers-csv" class="btn btn-secondary">📊 CSV</button>
           </div>
@@ -170,7 +152,6 @@
             </table>
           </div>
         </div>
-
         <div id="tab-admins" class="tab-content">
           <div class="section-header">
             <h2 class="section-title">Admins</h2>
@@ -183,13 +164,12 @@
             </table>
           </div>
         </div>
-
         <div id="tab-config" class="tab-content">
           <h2 class="section-title">Configuration</h2>
           <div class="config-section">
             <h3>Logo</h3>
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <img id="config-logo-preview" style="display:none; max-width: 100px; border-radius: 8px;">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <img id="config-logo-preview" style="display:none;max-width:100px;border-radius:8px;">
               <label for="config-logo-upload" class="btn btn-secondary">📤 Upload</label>
               <input type="file" id="config-logo-upload" accept="image/*" style="display:none;">
               <button id="config-logo-delete" class="btn btn-danger" style="display:none;">🗑️ Supprimer</button>
@@ -197,16 +177,15 @@
           </div>
           <div class="config-section">
             <h3>Intro</h3>
-            <textarea id="config-intro-text" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit;" rows="4"></textarea>
-            <button id="config-intro-save" class="btn btn-primary" style="margin-top: 12px;">💾 Enregistrer</button>
+            <textarea id="config-intro-text" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-family:inherit;" rows="4"></textarea>
+            <button id="config-intro-save" class="btn btn-primary" style="margin-top:12px;">💾 Enregistrer</button>
           </div>
           <div class="config-section">
             <h3>Types</h3>
-            <textarea id="config-event-types" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace;" rows="3"></textarea>
-            <button id="config-types-save" class="btn btn-primary" style="margin-top: 12px;">💾 Enregistrer</button>
+            <textarea id="config-event-types" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-family:monospace;" rows="3"></textarea>
+            <button id="config-types-save" class="btn btn-primary" style="margin-top:12px;">💾 Enregistrer</button>
           </div>
         </div>
-
         <div id="tab-logs" class="tab-content">
           <h2 class="section-title">Logs</h2>
           <div class="table-wrapper">
@@ -216,12 +195,10 @@
             </table>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 
-  <!-- MODALS -->
   <div id="modal-event-detail" class="modal">
     <div class="modal-content modal-large">
       <div class="modal-header">
@@ -230,37 +207,36 @@
       </div>
       <div class="modal-body">
         <div id="modal-event-info"></div>
-        <form id="form-inscription" style="margin-top: 24px;">
-          <h3 style="margin-bottom: 16px; font-weight: 600;">Inscription</h3>
-          <div style="margin-bottom: 16px;"><label>Prénom *</label><input type="text" id="inscr-prenom" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-          <div style="margin-bottom: 16px;"><label>Nom *</label><input type="text" id="inscr-nom" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-          <div style="margin-bottom: 16px;"><label>Email *</label><input type="email" id="inscr-email" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-          <div style="margin-bottom: 16px;"><label>Téléphone *</label><input type="tel" id="inscr-telephone" placeholder="06 12 34 56 78" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-          <div style="margin-bottom: 16px;">
-            <label>Participation * (min 1)</label>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" name="participation" value="preparation_salle"><span>Préparation salle</span></label>
-              <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" name="participation" value="partie_evenement"><span>Partie événement</span></label>
-              <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" name="participation" value="evenement_entier"><span>Événement entier</span></label>
+        <form id="form-inscription" style="margin-top:24px;">
+          <h3 style="margin-bottom:16px;font-weight:600;">Inscription</h3>
+          <div style="margin-bottom:16px;"><label>Prénom *</label><input type="text" id="inscr-prenom" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+          <div style="margin-bottom:16px;"><label>Nom *</label><input type="text" id="inscr-nom" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+          <div style="margin-bottom:16px;"><label>Email *</label><input type="email" id="inscr-email" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+          <div style="margin-bottom:16px;"><label>Téléphone *</label><input type="tel" id="inscr-telephone" placeholder="06 12 34 56 78" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+          <div style="margin-bottom:16px;"><label>Participation * (min 1)</label>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="participation" value="preparation_salle"><span>Préparation salle</span></label>
+              <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="participation" value="partie_evenement"><span>Partie événement</span></label>
+              <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="participation" value="evenement_entier"><span>Événement entier</span></label>
             </div>
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px; padding: 12px;">✅ S'inscrire</button>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:16px;padding:12px;">✅ S'inscrire</button>
         </form>
       </div>
     </div>
   </div>
 
   <div id="modal-admin-login" class="modal">
-    <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-content" style="max-width:400px;">
       <div class="modal-header">
         <h2>🔐 Connexion Admin</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <form id="form-admin-login">
-          <div style="margin-bottom: 16px;"><label>Email</label><input type="email" id="admin-email" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-          <div style="margin-bottom: 16px;"><label>Mot de passe</label><input type="password" id="admin-password" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">Connexion</button>
+          <div style="margin-bottom:16px;"><label>Email</label><input type="email" id="admin-email" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+          <div style="margin-bottom:16px;"><label>Mot de passe</label><input type="password" id="admin-password" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">Connexion</button>
         </form>
       </div>
     </div>
@@ -275,22 +251,22 @@
       <div class="modal-body">
         <form id="form-event">
           <input type="hidden" id="event-id">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-            <div><label>Titre *</label><input type="text" id="event-titre" maxlength="120" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-            <div><label>Emoji *</label><input type="text" id="event-image" maxlength="8" placeholder="🎉" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div><label>Titre *</label><input type="text" id="event-titre" maxlength="120" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+            <div><label>Emoji *</label><input type="text" id="event-image" maxlength="8" placeholder="🎉" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
           </div>
-          <div style="margin-bottom: 16px;"><label>Description</label><textarea id="event-description" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;" rows="3"></textarea></div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-            <div><label>Date *</label><input type="date" id="event-date" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-            <div><label>Heure *</label><input type="time" id="event-heure" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
+          <div style="margin-bottom:16px;"><label>Description</label><textarea id="event-description" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;" rows="3"></textarea></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div><label>Date *</label><input type="date" id="event-date" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+            <div><label>Heure *</label><input type="time" id="event-heure" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-            <div><label>Lieu *</label><input type="text" id="event-lieu" maxlength="120" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-            <div><label>Type *</label><select id="event-type" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"><option>-- Sélectionner --</option></select></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div><label>Lieu *</label><input type="text" id="event-lieu" maxlength="120" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+            <div><label>Type *</label><select id="event-type" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"><option>-- Sélectionner --</option></select></div>
           </div>
-          <div style="margin-bottom: 16px;"><label>Max participants *</label><input type="number" id="event-max-participants" min="1" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;"></div>
-          <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;"><input type="checkbox" id="event-visible"><span>Visible (public)</span></label>
-          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <div style="margin-bottom:16px;"><label>Max participants *</label><input type="number" id="event-max-participants" min="1" required style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;"></div>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;"><input type="checkbox" id="event-visible"><span>Visible (public)</span></label>
+          <div style="display:flex;gap:12px;justify-content:flex-end;">
             <button type="button" class="btn btn-secondary modal-close">Annuler</button>
             <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
           </div>
@@ -300,7 +276,7 @@
   </div>
 
   <div id="modal-volunteer-history" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-content" style="max-width:500px;">
       <div class="modal-header">
         <h2 id="modal-volunteer-history-title"></h2>
         <button class="modal-close">&times;</button>
@@ -311,9 +287,8 @@
     </div>
   </div>
 
-  <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 12px;"></div>
+  <div id="toast-container" style="position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:12px;"></div>
 
   <script src="app.js"></script>
-
 </body>
 </html>
