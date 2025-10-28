@@ -18,6 +18,9 @@
   --muted: #6c757d;
   --border: #e0e0e0;
   --shadow: rgba(0, 0, 0, 0.05);
+
+  /* Version claire du primaire pour les entêtes de cartes */
+  --primary-light: #eaf5ff;
 }
 
 /* Thème sombre (préférences utilisateur ou toggle) */
@@ -171,6 +174,120 @@ a:hover {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 4px var(--shadow);
+  flex-direction: column;
+}
+
+/* Nouveau design pour l'entête de la carte */
+.card-header {
+  display: flex;
+  align-items: center;
+  background-color: var(--primary-light);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.date-badge {
+  background-color: var(--primary);
+  color: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  min-width: 60px;
+  margin-right: 16px;
+}
+.date-badge .day {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+.date-badge .month {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.header-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.header-main .title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+.meta-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+.chip .icon {
+  font-size: 0.9rem;
+}
+
+/* Corps et pied de carte */
+.card-body {
+  padding: 16px;
+}
+.card-footer {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.participants-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.participants-count {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.participant-list {
+  margin: 0;
+  padding-left: 16px;
+  list-style: none;
+}
+.participant-list li {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.signup-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.available-places {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Footer */
+.site-footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.site-footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+.site-footer a:hover {
+  text-decoration: underline;
 }
 .event-date {
   background-color: var(--primary);
@@ -181,6 +298,7 @@ a:hover {
   justify-content: center;
   padding: 12px;
   min-width: 70px;
+  border-radius: 8px;
 }
 .event-date .day {
   font-size: 1.5rem;
@@ -250,6 +368,18 @@ a:hover {
   font-weight: 600;
   color: var(--primary);
   outline: none;
+}
+
+/* Détails des participants dans le pied de carte */
+.card-footer details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary);
+  margin: 4px 0;
+  list-style: none;
+}
+.card-footer details summary::-webkit-details-marker {
+  display: none;
 }
 .signup-details[open] summary {
   margin-bottom: 8px;
