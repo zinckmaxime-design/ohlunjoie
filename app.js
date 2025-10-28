@@ -9,6 +9,8 @@
 
 (() => {
   // Configuration Supabase
+  // Supabase configuration
+  // NOTE: These values must be on a single line for the script to parse correctly.
   const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
   const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
