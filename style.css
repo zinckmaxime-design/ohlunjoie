@@ -44,6 +44,8 @@ body {
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 40px;
+  /* Couleur de bordure par défaut pour les champs et éléments */
+  --border-color: #ced4da;
 }
 
 /* Mode sombre automatique selon la préférence système */
@@ -166,55 +168,184 @@ body.dark-theme {
   gap: var(--spacing-md);
 }
 
-/* Timeline view : chaque événement est aligné verticalement avec ligne */
+/* --- Événements publics --- */
+/* Conteneur général (grid adaptatif selon la vue) */
+.events-container {
+  display: grid;
+  gap: var(--spacing-md);
+}
+/* Timeline : une colonne avec une ligne verticale à gauche */
 .events-container.timeline-view {
   grid-template-columns: 1fr;
-  border-left: 2px solid var(--primary);
-  padding-left: var(--spacing-md);
+  position: relative;
+  margin-left: var(--spacing-lg);
 }
+.events-container.timeline-view::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--spacing-lg));
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--primary);
+}
+/* Base pour chaque événement */
+.public-event {
+  display: flex;
+  align-items: flex-start;
+  background-color: var(--surface);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  gap: var(--spacing-md);
+}
+/* Timeline : ajoute un point sur la ligne */
 .timeline-event {
   position: relative;
-  margin-bottom: var(--spacing-lg);
-  padding-left: var(--spacing-md);
 }
 .timeline-event::before {
   content: '';
   position: absolute;
-  left: -var(--spacing-md);
-  top: 0.5rem;
+  left: calc(-1 * var(--spacing-lg) - 6px);
+  top: 1.25rem;
   width: 12px;
   height: 12px;
   background-color: var(--primary);
   border-radius: 50%;
 }
-
-/* List view */
+/* List view : pleine largeur sans ligne verticale */
 .events-container.list-view {
   grid-template-columns: 1fr;
 }
 .list-event {
-  background-color: var(--surface);
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  /* hérite de .public-event */
 }
-
-/* Cards view */
+/* Cards view : grille responsive */
 .events-container.cards-view {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
-.card-event {
-  background-color: var(--surface);
-  padding: var(--spacing-md);
+.cards-event {
+  flex-direction: column;
+}
+/* Date bloc */
+.event-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 4px;
   border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
+  background-color: var(--primary);
+  color: #fff;
+  text-transform: uppercase;
+}
+.event-date .day {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.event-date .month {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+/* Contenu */
+.event-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
+.event-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0;
+  font-size: 1.1rem;
+}
+.event-meta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: var(--spacing-sm);
+}
+.event-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+/* Progression des participants */
+.progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.8rem;
+}
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.dark-theme .progress-bar {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.progress-bar .progress {
+  height: 100%;
+  background-color: var(--primary);
+  border-radius: 3px;
+}
+.progress-label {
+  white-space: nowrap;
+}
+/* Formulaire d'inscription */
+.signup-details summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 500;
+  margin-top: var(--spacing-sm);
+  outline: none;
+}
+.signup-details[open] summary {
+  margin-bottom: var(--spacing-sm);
+}
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+.signup-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.signup-form .form-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.signup-form label {
+  font-size: 0.85rem;
+}
+.signup-form input[type="email"],
+.signup-form input[type="tel"] {
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: var(--surface);
+  color: var(--text);
+}
+.dark-theme .signup-form input[type="email"],
+.dark-theme .signup-form input[type="tel"] {
+  border-color: var(--border-color);
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+/* Les styles spécifiques aux listes et cartes sont gérés plus haut via .list-event et .cards-event */
 
 /* Notice RGPD */
 .notice-rgpd {
