@@ -1,380 +1,281 @@
-<!--
-  Ohlun'Joie V3.0
-  Fichier HTML principal pour la gestion d'événements associatifs.
-  Cette page contient à la fois l'interface publique (visiteurs) et
-  l'interface d'administration (back‑office complet). La logique
-  d'interaction et de mise à jour des données est implémentée dans
-  app.js ; ce fichier définit uniquement la structure et les
-  éléments nécessaires pour accrocher les comportements JavaScript.
-  Le style est défini dans style.css. Conçu pour être entièrement
-  responsive et accessible, avec un thème clair et sombre.
--->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ohlun'Joie V3.0</title>
-  <!-- Icône favicon (optionnel) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎉</text></svg>">
-  <!-- Feuille de style principale -->
+  <title>Ohlun'Joie V3.0</title>
+  <!-- Feuille de styles principale -->
   <link rel="stylesheet" href="style.css">
-  <!-- Script Supabase CDN v2 -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Script application -->
-  <script defer src="app.js"></script>
+  <!-- Bibliothèque Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- En-tête général avec titre et boutons de navigation -->
-  <header class="app-header">
-    <div class="container">
-      <h1 class="app-title">Ohlun'Joie</h1>
-      <nav class="main-nav" aria-label="Navigation principale">
-        <button id="theme-toggle" class="theme-toggle" aria-label="Basculer le thème">🌙</button>
-        <button id="admin-toggle" class="admin-toggle" aria-label="Accéder à l'administration">Espace Admin</button>
-      </nav>
+  <!-- En‑tête principal -->
+  <header class="site-header">
+    <div class="logo-container">
+      <h1 class="site-title">Ohlun'Joie</h1>
+    </div>
+    <div class="header-actions">
+      <!-- Bouton de bascule du thème clair/sombre -->
+      <button id="theme-toggle" class="icon-btn" aria-label="Changer de thème">🌙</button>
+      <!-- Lien vers l'espace administrateur -->
+      <button id="admin-toggle" class="text-btn">Espace Admin</button>
     </div>
   </header>
 
-  <main>
-    <!-- Section publique visible par défaut -->
-    <section id="public-section" class="section">
-      <div class="container">
-        <!-- Introduction configurable via app_config.intro_text -->
-        <p id="intro-text" class="intro-text"></p>
-
-        <!-- Compteur du prochain événement -->
-        <div id="next-event-countdown" class="countdown" aria-live="polite"></div>
-
-        <!-- Contrôles de vue : timeline, liste ou cartes -->
-        <div class="view-switch" role="tablist" aria-label="Modes d'affichage des événements">
-          <button class="view-btn" data-view="timeline" role="tab" aria-selected="true">Timeline</button>
-          <button class="view-btn" data-view="list" role="tab" aria-selected="false">Liste</button>
-          <button class="view-btn" data-view="cards" role="tab" aria-selected="false">Cartes</button>
-        </div>
-
-        <!-- Conteneur pour l'affichage des événements publics -->
-        <div id="events-container" class="events-container timeline-view" aria-live="polite"></div>
-
-        <!-- Notice RGPD -->
-        <div id="rgpd-notice" class="notice-rgpd">
-          <p>
-            En vous inscrivant, vous acceptez que vos données soient utilisées pour gérer votre participation.
-            Conformément au RGPD, vous pouvez à tout moment demander la suppression de vos informations.
-          </p>
-        </div>
-      </div>
+  <!-- Contenu public (visiteurs) -->
+  <main id="public-section">
+    <section class="intro-section">
+      <p id="intro-text">Bienvenue sur Ohlun'Joie ! Cette plateforme vous permet de découvrir les prochains événements et de vous inscrire facilement.</p>
     </section>
-
-    <!-- Section administrateur (cachée jusqu'à authentification) -->
-    <section id="admin-section" class="section hidden">
-      <div class="container">
-        <!-- Formulaire de connexion admin -->
-        <div id="admin-login" class="admin-login">
-          <h2>Connexion administrateur</h2>
-          <form id="admin-login-form">
-            <div class="form-group">
-              <label for="admin-email">Email</label>
-              <input type="email" id="admin-email" name="email" required autocomplete="username" aria-required="true">
-            </div>
-            <div class="form-group">
-              <label for="admin-password">Mot de passe</label>
-              <input type="password" id="admin-password" name="password" required autocomplete="current-password" aria-required="true">
-            </div>
-            <button type="submit" class="btn primary">Se connecter</button>
-            <div id="admin-login-error" class="error-message" role="alert"></div>
-          </form>
-        </div>
-
-        <!-- Tableau de bord et onglets (affichés une fois connecté) -->
-        <div id="admin-dashboard" class="admin-dashboard hidden">
-          <!-- Menu onglets -->
-          <nav class="admin-tabs" role="tablist" aria-label="Navigation du back‑office">
-            <button class="tab-btn active" data-tab="dashboard" role="tab" aria-selected="true">Tableau de bord</button>
-            <button class="tab-btn" data-tab="events" role="tab" aria-selected="false">Événements</button>
-            <button class="tab-btn" data-tab="stats" role="tab" aria-selected="false">Statistiques</button>
-            <button class="tab-btn" data-tab="volunteers" role="tab" aria-selected="false">Bénévoles</button>
-            <button class="tab-btn" data-tab="admins" role="tab" aria-selected="false">Admins</button>
-            <button class="tab-btn" data-tab="config" role="tab" aria-selected="false">Configuration</button>
-            <button class="tab-btn" data-tab="logs" role="tab" aria-selected="false">Logs</button>
-          </nav>
-
-          <!-- Contenu des onglets -->
-          <div id="tab-dashboard" class="tab-content" role="tabpanel">
-            <h2>Tableau de bord</h2>
-            <div class="kpi-grid">
-              <div class="kpi-card">
-                <h3>Total inscrits</h3>
-                <p id="kpi-total-inscrits" class="kpi-value">0</p>
-              </div>
-              <div class="kpi-card">
-                <h3>Événements actifs</h3>
-                <p id="kpi-events-actifs" class="kpi-value">0</p>
-              </div>
-              <div class="kpi-card">
-                <h3>Emails uniques</h3>
-                <p id="kpi-emails-uniques" class="kpi-value">0</p>
-              </div>
-              <div class="kpi-card">
-                <h3>Taux moyen</h3>
-                <p id="kpi-taux-moyen" class="kpi-value">0%</p>
-              </div>
-            </div>
-          </div>
-
-          <div id="tab-events" class="tab-content hidden" role="tabpanel">
-            <h2>Gestion des événements</h2>
-            <!-- Filtres des événements -->
-            <div class="filter-bar">
-              <label>Filtres:
-                <select id="events-filter-select">
-                  <option value="actifs">Actifs</option>
-                  <option value="masques">Masqués</option>
-                  <option value="archives">Archivés</option>
-                  <option value="tous">Tous</option>
-                </select>
-              </label>
-            </div>
-            <!-- Conteneur des cartes événements (admin) -->
-            <div id="admin-events-container" class="admin-events-container"></div>
-            <!-- Bouton pour créer un événement -->
-            <button id="create-event-btn" class="btn primary">➕ Créer un événement</button>
-          </div>
-
-          <div id="tab-stats" class="tab-content hidden" role="tabpanel">
-            <h2>Statistiques</h2>
-            <!-- KPI statistiques -->
-            <div class="kpi-grid">
-              <div class="kpi-card">
-                <h3>Pages vues</h3>
-                <p id="kpi-pages-vues" class="kpi-value">0</p>
-              </div>
-              <div class="kpi-card">
-                <h3>Clics événements</h3>
-                <p id="kpi-clics-events" class="kpi-value">0</p>
-              </div>
-            </div>
-            <!-- Tableau détaillé des statistiques -->
-            <div class="table-responsive">
-              <table id="stats-table" class="data-table">
-                <thead>
-                  <tr>
-                    <th>Titre</th>
-                    <th>Vues</th>
-                    <th>Clics</th>
-                    <th>Inscrits</th>
-                    <th>Places</th>
-                    <th>Taux</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-            <!-- Actions d'export -->
-            <div class="export-actions">
-              <button id="export-emails-btn" class="btn secondary">📧 Export Emails (TXT)</button>
-              <button id="export-stats-btn" class="btn secondary">📄 Export Stats (CSV)</button>
-            </div>
-          </div>
-
-          <div id="tab-volunteers" class="tab-content hidden" role="tabpanel">
-            <h2>Bénévoles</h2>
-            <div class="search-bar">
-              <label for="volunteer-search">Recherche :</label>
-              <input type="text" id="volunteer-search" placeholder="Nom, prénom ou email">
-            </div>
-            <div class="table-responsive">
-              <table id="volunteers-table" class="data-table">
-                <thead>
-                  <tr>
-                    <th>Prénom</th>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>Téléphone</th>
-                    <th>Participation</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-            <div class="export-actions">
-              <button id="export-volunteers-btn" class="btn secondary">📄 Export CSV</button>
-            </div>
-          </div>
-
-          <div id="tab-admins" class="tab-content hidden" role="tabpanel">
-            <h2>Gestion des administrateurs</h2>
-            <button id="add-admin-btn" class="btn primary">➕ Ajouter admin</button>
-            <div class="table-responsive">
-              <table id="admins-table" class="data-table">
-                <thead>
-                  <tr>
-                    <th>Email</th>
-                    <th>Nom</th>
-                    <th>Voir Événements</th>
-                    <th>Modifier Événements</th>
-                    <th>Voir Stats</th>
-                    <th>Voir Logs</th>
-                    <th>Voir Bénévoles</th>
-                    <th>Gérer Admins</th>
-                    <th>Config</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="tab-config" class="tab-content hidden" role="tabpanel">
-            <h2>Configuration</h2>
-            <form id="config-form" class="config-form">
-              <!-- Logo upload -->
-              <div class="form-group">
-                <label for="logo-input">Logo (PNG/JPEG/SVG ≤ 2 Mo)</label>
-                <input type="file" id="logo-input" accept="image/*">
-                <div id="logo-preview" class="logo-preview"></div>
-                <button type="button" id="remove-logo-btn" class="btn danger small">Supprimer le logo</button>
-              </div>
-              <!-- Texte d'introduction -->
-              <div class="form-group">
-                <label for="intro-textarea">Texte d'introduction</label>
-                <textarea id="intro-textarea" rows="4"></textarea>
-              </div>
-              <!-- Types d'événements -->
-              <div class="form-group">
-                <label for="event-types-textarea">Types d'événements (JSON array)</label>
-                <textarea id="event-types-textarea" rows="4"></textarea>
-              </div>
-              <button type="submit" class="btn primary">Enregistrer la configuration</button>
-            </form>
-          </div>
-
-          <div id="tab-logs" class="tab-content hidden" role="tabpanel">
-            <h2>Logs d'activité</h2>
-            <div class="table-responsive">
-              <table id="logs-table" class="data-table">
-                <thead>
-                  <tr>
-                    <th>Admin</th>
-                    <th>Action</th>
-                    <th>Entité</th>
-                    <th>ID</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-        </div> <!-- fin admin-dashboard -->
-      </div> <!-- fin container -->
+    <section id="countdown-section" class="countdown-section">
+      <span>Prochain événement dans&nbsp;</span><span id="countdown-value">0 jours</span>
     </section>
+    <!-- Boutons de changement de vue -->
+    <nav class="view-selector">
+      <button class="view-btn active" data-view="timeline">Timeline</button>
+      <button class="view-btn" data-view="list">Liste</button>
+      <button class="view-btn" data-view="cards">Cartes</button>
+    </nav>
+    <!-- Conteneur des événements publics -->
+    <section id="events-container" class="events-container"></section>
+    <!-- Notice RGPD -->
+    <div id="rgpd-notice" class="rgpd-notice">
+      <p>En vous inscrivant, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.</p>
+    </div>
   </main>
 
-  <!-- Modale création/édition événement -->
-  <div id="event-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-content">
-      <h2 id="modal-title">Nouvel événement</h2>
-      <form id="event-form">
+  <!-- Modale d'inscription (visiteurs) -->
+  <div id="signup-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="signup-title">
+    <div class="modal-overlay"></div>
+    <div class="modal-dialog">
+      <h2 id="signup-title">Inscription à l’événement</h2>
+      <form id="signup-form" class="modal-form">
+        <input type="hidden" id="signup-event-id">
         <div class="form-group">
-          <label for="event-emoji">Emoji</label>
-          <input type="text" id="event-emoji" maxlength="2" placeholder="🎉" required aria-required="true">
+          <label for="signup-first-name">Prénom :</label>
+          <input type="text" id="signup-first-name" required>
         </div>
         <div class="form-group">
-          <label for="event-title">Titre</label>
-          <input type="text" id="event-title" required aria-required="true">
+          <label for="signup-last-name">Nom :</label>
+          <input type="text" id="signup-last-name" required>
         </div>
         <div class="form-group">
-          <label for="event-description">Description</label>
-          <textarea id="event-description" rows="3"></textarea>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="event-date">Date</label>
-            <input type="date" id="event-date" required aria-required="true">
-          </div>
-          <div class="form-group">
-            <label for="event-time">Heure</label>
-            <input type="time" id="event-time" required aria-required="true">
-          </div>
+          <label for="signup-email">Email :</label>
+          <input type="email" id="signup-email" required>
         </div>
         <div class="form-group">
-          <label for="event-location">Lieu</label>
-          <input type="text" id="event-location" required aria-required="true">
+          <label for="signup-phone">Téléphone :</label>
+          <input type="tel" id="signup-phone" required>
         </div>
+        <fieldset class="form-group">
+          <legend>Participation :</legend>
+          <label><input type="checkbox" id="signup-preparation"> Préparation de la salle</label>
+          <label><input type="checkbox" id="signup-partie"> Partie de l’événement</label>
+          <label><input type="checkbox" id="signup-entier"> Événement entier</label>
+        </fieldset>
         <div class="form-group">
-          <label for="event-type">Type d'événement</label>
-          <select id="event-type" required aria-required="true"></select>
-        </div>
-        <div class="form-group">
-          <label for="event-max-participants">Places disponibles</label>
-          <input type="number" id="event-max-participants" min="1" required aria-required="true">
-        </div>
-        <div class="form-group">
-          <label for="event-visible">
-            <input type="checkbox" id="event-visible" checked>
-            Visible au public
-          </label>
+          <label for="signup-comment">Commentaire (optionnel) :</label>
+          <textarea id="signup-comment"></textarea>
         </div>
         <div class="modal-actions">
-          <button type="submit" class="btn primary">Enregistrer</button>
-          <button type="button" id="event-modal-cancel" class="btn secondary">Annuler</button>
+          <button type="button" id="signup-cancel" class="btn secondary">Annuler</button>
+          <button type="submit" class="btn primary">Confirmer l’inscription</button>
         </div>
+        <p id="signup-error" class="error-message"></p>
       </form>
     </div>
   </div>
 
-  <!-- Modale ajout d'un administrateur -->
-  <div id="add-admin-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="add-admin-title">
-    <div class="modal-content">
-      <h2 id="add-admin-title">Ajouter un administrateur</h2>
-      <form id="add-admin-form">
+  <!-- Conteneur pour les notifications toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Section administration (cachée par défaut) -->
+  <div id="admin-section" class="hidden">
+    <!-- Formulaire de connexion pour les administrateurs -->
+    <div id="admin-login" class="admin-login">
+      <h2>Connexion administrateur</h2>
+      <form id="admin-login-form" class="admin-login-form">
         <div class="form-group">
-          <label for="new-admin-email">Email</label>
-          <input type="email" id="new-admin-email" required aria-required="true">
+          <label for="admin-email">Email :</label>
+          <input type="email" id="admin-email" required>
         </div>
         <div class="form-group">
-          <label for="new-admin-first-name">Prénom</label>
-          <input type="text" id="new-admin-first-name" required aria-required="true">
-        </div>
-        <div class="form-group">
-          <label for="new-admin-last-name">Nom</label>
-          <input type="text" id="new-admin-last-name" required aria-required="true">
+          <label for="admin-password">Mot de passe :</label>
+          <input type="password" id="admin-password" required>
         </div>
         <div class="modal-actions">
-          <button type="submit" class="btn primary">Ajouter</button>
-          <button type="button" id="add-admin-cancel" class="btn secondary">Annuler</button>
+          <button type="submit" class="btn primary">Connexion</button>
         </div>
+        <p id="admin-login-error" class="error-message"></p>
       </form>
     </div>
-  </div>
-
-  <!-- Modale pour afficher l'historique d'un bénévole -->
-  <div id="volunteer-history-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="volunteer-history-title">
-    <div class="modal-content">
-      <h2 id="volunteer-history-title">Historique des participations</h2>
-      <div class="table-responsive">
-        <table id="volunteer-history-table" class="data-table">
+    <!-- Tableau de bord administrateur -->
+    <div id="admin-dashboard" class="hidden">
+      <!-- Onglets admin -->
+      <nav class="admin-tabs">
+        <button class="tab-btn active" data-tab="dashboard-tab">Tableau de bord</button>
+        <button class="tab-btn" data-tab="events-tab">Événements</button>
+        <button class="tab-btn" data-tab="stats-tab">Statistiques</button>
+        <button class="tab-btn" data-tab="volunteers-tab">Bénévoles</button>
+        <button class="tab-btn" data-tab="admins-tab">Admins</button>
+        <button class="tab-btn" data-tab="config-tab">Configuration</button>
+        <button class="tab-btn" data-tab="logs-tab">Logs</button>
+      </nav>
+      <!-- Contenus des onglets -->
+      <section id="dashboard-tab" class="tab-content active">
+        <h2>Indicateurs clés</h2>
+        <div class="kpi-grid">
+          <div class="kpi-item"><span id="kpi-total-inscrits">0</span><small>Total inscrits</small></div>
+          <div class="kpi-item"><span id="kpi-events-actifs">0</span><small>Événements actifs</small></div>
+          <div class="kpi-item"><span id="kpi-emails-uniques">0</span><small>Emails uniques</small></div>
+          <div class="kpi-item"><span id="kpi-taux-moyen">0%</span><small>Taux moyen</small></div>
+        </div>
+      </section>
+      <section id="events-tab" class="tab-content">
+        <h2>Événements</h2>
+        <div class="admin-events-actions">
+          <select id="events-filter-select">
+            <option value="active">Actifs</option>
+            <option value="hidden">Masqués</option>
+            <option value="archived">Archivés</option>
+            <option value="all">Tous</option>
+          </select>
+          <button id="create-event-btn" class="btn primary">➕ Nouvel événement</button>
+        </div>
+        <div id="admin-events-container" class="admin-events-container"></div>
+      </section>
+      <section id="stats-tab" class="tab-content">
+        <h2>Statistiques</h2>
+        <div class="kpi-grid">
+          <div class="kpi-item"><span id="kpi-pages-vues">0</span><small>Vues Pages</small></div>
+          <div class="kpi-item"><span id="kpi-clics-events">0</span><small>Clics Événements</small></div>
+        </div>
+        <table class="data-table" id="stats-table">
           <thead>
-            <tr>
-              <th>Événement</th>
-              <th>Date</th>
-            </tr>
+            <tr><th>Titre</th><th>Vues</th><th>Clics</th><th>Inscrits</th><th>Places</th><th>Taux</th></tr>
           </thead>
           <tbody></tbody>
         </table>
-      </div>
-      <div class="modal-actions">
-        <button type="button" id="volunteer-history-close" class="btn secondary">Fermer</button>
-      </div>
+        <div class="export-actions">
+          <button id="export-emails-btn" class="btn secondary">📧 Export Emails (TXT)</button>
+          <button id="export-stats-btn" class="btn secondary">📊 Export Stats (CSV)</button>
+        </div>
+      </section>
+      <section id="volunteers-tab" class="tab-content">
+        <h2>Bénévoles</h2>
+        <input type="text" id="volunteer-search" class="search-input" placeholder="Rechercher…">
+        <table class="data-table" id="volunteers-table">
+          <thead>
+            <tr><th>Prénom</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>Participations 2025</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <button id="export-volunteers-btn" class="btn secondary">🗂️ Export CSV</button>
+        <!-- Historique bénévole -->
+        <div id="volunteer-history-modal" class="modal hidden">
+          <div class="modal-overlay"></div>
+          <div class="modal-dialog">
+            <h3>Historique bénévole</h3>
+            <table class="data-table" id="volunteer-history-table">
+              <thead><tr><th>Événement</th><th>Date</th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <button id="volunteer-history-close" class="btn secondary">Fermer</button>
+          </div>
+        </div>
+      </section>
+      <section id="admins-tab" class="tab-content">
+        <h2>Gestion des administrateurs</h2>
+        <button id="add-admin-btn" class="btn primary">➕ Ajouter admin</button>
+        <table class="data-table" id="admins-table">
+          <thead>
+            <tr><th>Email</th><th>Nom</th><th>Voir événements</th><th>Éditer événements</th><th>Voir stats</th><th>Voir logs</th><th>Voir bénévoles</th><th>Gérer admins</th><th>Configuration</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <!-- Modale ajout admin -->
+        <div id="add-admin-modal" class="modal hidden">
+          <div class="modal-overlay"></div>
+          <div class="modal-dialog">
+            <h3>Nouveau administrateur</h3>
+            <form id="add-admin-form">
+              <div class="form-group"><label for="new-admin-email">Email :</label><input type="email" id="new-admin-email" required></div>
+              <div class="form-group"><label for="new-admin-prenom">Prénom :</label><input type="text" id="new-admin-prenom" required></div>
+              <div class="form-group"><label for="new-admin-nom">Nom :</label><input type="text" id="new-admin-nom" required></div>
+              <div class="form-group perms-group">
+                <label><input type="checkbox" id="perm-view-events"> Voir événements</label>
+                <label><input type="checkbox" id="perm-edit-events"> Éditer événements</label>
+                <label><input type="checkbox" id="perm-view-stats"> Voir stats</label>
+                <label><input type="checkbox" id="perm-view-logs"> Voir logs</label>
+                <label><input type="checkbox" id="perm-view-volunteers"> Voir bénévoles</label>
+                <label><input type="checkbox" id="perm-manage-admins"> Gérer admins</label>
+                <label><input type="checkbox" id="perm-config"> Configuration</label>
+              </div>
+              <div class="modal-actions"><button type="button" id="add-admin-cancel" class="btn secondary">Annuler</button><button type="submit" class="btn primary">Ajouter</button></div>
+            </form>
+          </div>
+        </div>
+      </section>
+      <section id="config-tab" class="tab-content">
+        <h2>Configuration</h2>
+        <form id="config-form" class="config-form">
+          <div class="form-group">
+            <label>Logo :</label>
+            <input type="file" id="logo-input" accept="image/*">
+            <div id="logo-preview" class="logo-preview"></div>
+            <button type="button" id="remove-logo-btn" class="btn secondary">Supprimer logo</button>
+          </div>
+          <div class="form-group">
+            <label for="intro-textarea">Texte d'introduction :</label>
+            <textarea id="intro-textarea"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="event-types-textarea">Types d'événements (JSON array) :</label>
+            <textarea id="event-types-textarea"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn primary">Enregistrer</button>
+          </div>
+        </form>
+      </section>
+      <section id="logs-tab" class="tab-content">
+        <h2>Logs</h2>
+        <table class="data-table" id="logs-table">
+          <thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Entité</th><th>ID</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
     </div>
   </div>
 
-  <!-- Conteneur pour les notifications (toasts) -->
-  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <!-- Modale création/édition d'événement (admin) -->
+  <div id="event-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-dialog">
+      <h3 id="event-modal-title">Nouvel événement</h3>
+      <form id="event-form">
+        <input type="hidden" id="event-id">
+        <div class="form-group"><label for="event-emoji">Emoji :</label><input type="text" id="event-emoji" maxlength="2" required></div>
+        <div class="form-group"><label for="event-title">Titre :</label><input type="text" id="event-title" required></div>
+        <div class="form-group"><label for="event-date">Date :</label><input type="date" id="event-date" required></div>
+        <div class="form-group"><label for="event-time">Heure :</label><input type="time" id="event-time" required></div>
+        <div class="form-group"><label for="event-location">Lieu :</label><input type="text" id="event-location" required></div>
+        <div class="form-group"><label for="event-type">Type :</label><select id="event-type"></select></div>
+        <div class="form-group"><label for="event-description">Description :</label><textarea id="event-description"></textarea></div>
+        <div class="form-group"><label for="event-max">Places maximum :</label><input type="number" id="event-max" min="1" required></div>
+        <div class="form-group form-checkboxes">
+          <label><input type="checkbox" id="event-visible" checked> Visible</label>
+          <label><input type="checkbox" id="event-archived"> Archivé</label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="event-modal-cancel" class="btn secondary">Annuler</button>
+          <button type="submit" class="btn primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
+  <script src="app.js"></script>
 </body>
 </html>
