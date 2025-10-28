@@ -263,7 +263,23 @@
         .eq('event_id', ev.id);
       const inscritsCount = count || 0;
       const rate = ev.max_participants > 0 ? Math.min(100, Math.round((inscritsCount / ev.max_participants) * 100)) : 0;
-      publicEvents.push({ ...ev, inscritsCount, rate });
+      // Liste des emails inscrits
+      const { data: inscritsData } = await supabase
+        .from('inscriptions')
+        .select('email')
+        .eq('event_id', ev.id);
+      const emails = (inscritsData || []).map(i => i.email);
+      // Récupère les noms/prénoms depuis volunteer_profiles
+      let participantsList = [];
+      if (emails.length > 0) {
+        const { data: namesData } = await supabase
+          .from('volunteer_profiles')
+          .select('first_name, last_name, email')
+          .in('email', emails);
+        participantsList = (namesData || []).map(p => ({ first_name: p.first_name || '', last_name: p.last_name || '' }));
+      }
+      const availablePlaces = ev.max_participants - inscritsCount;
+      publicEvents.push({ ...ev, inscritsCount, rate, participantsList, availablePlaces });
     }
     renderPublicEvents();
     updateCountdown();
@@ -298,35 +314,58 @@
   function createPublicEventElement(event) {
     const wrapper = document.createElement('div');
     wrapper.classList.add('public-event');
-    // Date
+    // ENTÊTE
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    // Date badge
     const dateObj = new Date(event.date);
     const day = dateObj.toLocaleDateString('fr-FR', { day: '2-digit' });
     const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' });
-    const dateEl = document.createElement('div');
-    dateEl.className = 'event-date';
-    dateEl.innerHTML = `<span class="day">${day}</span><span class="month">${month}</span>`;
-    wrapper.appendChild(dateEl);
-    // Contenu
-    const content = document.createElement('div');
-    content.className = 'event-content';
-    // Titre
+    const dateBadge = document.createElement('div');
+    dateBadge.className = 'date-badge';
+    dateBadge.innerHTML = `<span class="day">${day}</span><span class="month">${month}</span>`;
+    header.appendChild(dateBadge);
+    // En-tête principal
+    const headerMain = document.createElement('div');
+    headerMain.className = 'header-main';
     const titleEl = document.createElement('h3');
-    titleEl.className = 'event-title';
-    titleEl.innerHTML = `${event.image} <span>${event.titre}</span>`;
-    content.appendChild(titleEl);
-    // Métadonnées
-    const meta = document.createElement('div');
-    meta.className = 'event-meta';
-    const heureStr = event.heure.slice(0, 5);
-    meta.innerHTML = `<span class="time">${heureStr}</span><span class="location">${event.lieu}</span>`;
-    content.appendChild(meta);
-    // Description
+    titleEl.className = 'title';
+    titleEl.innerHTML = `${event.image} ${event.titre}`;
+    headerMain.appendChild(titleEl);
+    // Chips
+    const chips = document.createElement('div');
+    chips.className = 'meta-chips';
+    // Heure chip
+    const timeChip = document.createElement('span');
+    timeChip.className = 'chip';
+    timeChip.innerHTML = `<span class="icon">⏰</span>${event.heure.slice(0,5)}`;
+    chips.appendChild(timeChip);
+    // Lieu chip
+    const locChip = document.createElement('span');
+    locChip.className = 'chip';
+    locChip.innerHTML = `<span class="icon">📍</span>${event.lieu}`;
+    chips.appendChild(locChip);
+    // Type chip (utilise l'emoji comme icône)
+    const typeChip = document.createElement('span');
+    typeChip.className = 'chip';
+    typeChip.innerHTML = `<span class="icon">${event.image}</span>${event.type}`;
+    chips.appendChild(typeChip);
+    headerMain.appendChild(chips);
+    header.appendChild(headerMain);
+    wrapper.appendChild(header);
+    // BODY
+    const bodyDiv = document.createElement('div');
+    bodyDiv.className = 'card-body';
     if (event.description) {
-      const descEl = document.createElement('p');
-      descEl.className = 'event-description';
-      descEl.textContent = event.description;
-      content.appendChild(descEl);
+      const desc = document.createElement('p');
+      desc.className = 'event-description';
+      desc.textContent = event.description;
+      bodyDiv.appendChild(desc);
     }
+    wrapper.appendChild(bodyDiv);
+    // FOOTER
+    const footer = document.createElement('div');
+    footer.className = 'card-footer';
     // Progress bar
     const progressWrapper = document.createElement('div');
     progressWrapper.className = 'progress-wrapper';
@@ -341,18 +380,42 @@
     label.textContent = `${event.inscritsCount}/${event.max_participants} – ${event.rate}%`;
     progressWrapper.appendChild(progressBar);
     progressWrapper.appendChild(label);
-    content.appendChild(progressWrapper);
-    // Bouton inscription
+    footer.appendChild(progressWrapper);
+    // Liste des participants
+    const detailsEl = document.createElement('details');
+    const summaryEl = document.createElement('summary');
+    summaryEl.textContent = `Voir les inscrits (${event.inscritsCount})`;
+    detailsEl.appendChild(summaryEl);
+    if (event.participantsList && event.participantsList.length > 0) {
+      const ul = document.createElement('ul');
+      ul.className = 'participant-list';
+      event.participantsList.forEach(p => {
+        const li = document.createElement('li');
+        const fullName = `${p.first_name} ${p.last_name}`.trim();
+        li.textContent = fullName || p.email;
+        ul.appendChild(li);
+      });
+      detailsEl.appendChild(ul);
+    }
+    footer.appendChild(detailsEl);
+    // Zone d'inscription
+    const signupArea = document.createElement('div');
+    signupArea.className = 'signup-area';
     const signupBtn = document.createElement('button');
-    signupBtn.className = 'btn secondary';
+    signupBtn.className = 'btn primary';
     signupBtn.textContent = "S'inscrire";
     signupBtn.addEventListener('click', () => openSignupModal(event));
-    content.appendChild(signupBtn);
-    // Analytics : clic sur le titre
+    const available = document.createElement('span');
+    available.className = 'available-places';
+    available.textContent = `${event.availablePlaces} place${event.availablePlaces > 1 ? 's' : ''} disponibles`;
+    signupArea.appendChild(signupBtn);
+    signupArea.appendChild(available);
+    footer.appendChild(signupArea);
+    wrapper.appendChild(footer);
+    // Analytics : clic sur le titre déclenche event_click
     titleEl.addEventListener('click', () => {
       recordAnalytics(event.id, 'event_click');
     });
-    wrapper.appendChild(content);
     return wrapper;
   }
 
