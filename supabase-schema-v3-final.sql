@@ -1,213 +1,417 @@
--- supabase-schema-v3-final.sql
--- Schéma complet Ohlun'Joie V3.0
--- DROP TABLES
-DROP TABLE IF EXISTS events CASCADE;
+-- -----------------------------------------------------------------------------
+-- Ohlun'Joie V3.0
+-- Schéma Supabase complet pour la gestion d'événements associatifs.
+--
+-- Ce script installe un ensemble de tables, index, contraintes, fonctions,
+-- triggers et politiques de sécurité (Row Level Security) adaptés à Supabase.
+-- Il inclut également des données d'exemple pour démarrer l'application.
+--
+-- IMPORTANT : exécutez ce script dans une base PostgreSQL vide sur Supabase.
+-- Toutes les tables sont supprimées si elles existent déjà afin de garantir
+-- une installation propre.
+
+-- Active l'extension pgcrypto pour gen_random_uuid() et crypt() (bcrypt).
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- -----------------------------------------------------------------------------
+-- Nettoyage : suppression des tables existantes
+-- L'ordre est important pour respecter les dépendances (FK et triggers)
 DROP TABLE IF EXISTS inscriptions CASCADE;
-DROP TABLE IF EXISTS admins CASCADE;
 DROP TABLE IF EXISTS analytics CASCADE;
 DROP TABLE IF EXISTS volunteer_profiles CASCADE;
+DROP TABLE IF EXISTS events CASCADE;
+DROP TABLE IF EXISTS admins CASCADE;
 DROP TABLE IF EXISTS activity_logs CASCADE;
 DROP TABLE IF EXISTS app_config CASCADE;
 
--- EVENTS
+-- -----------------------------------------------------------------------------
+-- Table : events
+-- Stocke tous les événements (past et futurs). Les colonnes date et heure
+-- sont séparées afin de faciliter les filtres. La colonne visible détermine
+-- si l'événement est affiché au public et archived indique s'il est archivé.
 CREATE TABLE events (
-  id SERIAL PRIMARY KEY,
-  titre VARCHAR(120) NOT NULL,
-  description TEXT,
-  date DATE NOT NULL,
-  heure TIME NOT NULL,
-  lieu VARCHAR(120) NOT NULL,
-  type VARCHAR(60) NOT NULL,
-  image VARCHAR(16) NOT NULL,
-  max_participants INTEGER CHECK (max_participants > 0),
-  visible BOOLEAN DEFAULT TRUE,
-  archived BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_by VARCHAR(120),
-  updated_by VARCHAR(120)
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    titre             TEXT NOT NULL,
+    description       TEXT,
+    date              DATE NOT NULL,
+    heure             TIME NOT NULL,
+    lieu              TEXT NOT NULL,
+    type              TEXT NOT NULL,
+    image             TEXT NOT NULL, -- emoji représentant l'événement
+    max_participants  INTEGER NOT NULL CHECK (max_participants > 0),
+    visible           BOOLEAN NOT NULL DEFAULT TRUE,
+    archived          BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_by        UUID,
+    updated_by        UUID
 );
 
-CREATE INDEX idx_events_date ON events(date);
-CREATE INDEX idx_events_visible ON events(visible);
-CREATE INDEX idx_events_archived ON events(archived);
+-- Index pour accélérer les filtres sur date, visible et archived
+CREATE INDEX idx_events_date ON events (date);
+CREATE INDEX idx_events_visible ON events (visible);
+CREATE INDEX idx_events_archived ON events (archived);
 
--- INSCRIPTIONS
-CREATE TABLE inscriptions (
-  id SERIAL PRIMARY KEY,
-  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  email VARCHAR(120) NOT NULL,
-  nom VARCHAR(80) NOT NULL,
-  prenom VARCHAR(80) NOT NULL,
-  telephone VARCHAR(20) NOT NULL,
-  participations JSONB NOT NULL,
-  inscription_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(event_id, email)
-);
-
--- ADMINS
+-- -----------------------------------------------------------------------------
+-- Table : admins
+-- Gère les comptes administrateurs et leurs permissions. Chaque admin peut
+-- activer ou désactiver les différentes permissions. Le mot de passe est
+-- stocké sous forme de hash bcrypt via la fonction pgcrypto. Le rôle
+-- super_admin n'est pas stocké dans une colonne dédiée mais les super
+-- administrateurs disposent de toutes les permissions actives.
 CREATE TABLE admins (
-  id SERIAL PRIMARY KEY,
-  email VARCHAR(120) UNIQUE NOT NULL,
-  nom VARCHAR(80) NOT NULL,
-  prenom VARCHAR(80) NOT NULL,
-  password_hash VARCHAR(128) NOT NULL,
-  super_admin BOOLEAN DEFAULT FALSE,
-  perm_view_events BOOLEAN DEFAULT TRUE,
-  perm_edit_events BOOLEAN DEFAULT FALSE,
-  perm_view_stats BOOLEAN DEFAULT TRUE,
-  perm_view_logs BOOLEAN DEFAULT FALSE,
-  perm_view_volunteers BOOLEAN DEFAULT TRUE,
-  perm_manage_admins BOOLEAN DEFAULT FALSE,
-  perm_config BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email                   TEXT NOT NULL UNIQUE,
+    nom                     TEXT NOT NULL,
+    hashed_password         TEXT NOT NULL,
+    perm_view_events        BOOLEAN NOT NULL DEFAULT FALSE,
+    perm_edit_events        BOOLEAN NOT NULL DEFAULT FALSE,
+    perm_view_stats         BOOLEAN NOT NULL DEFAULT FALSE,
+    perm_view_logs          BOOLEAN NOT NULL DEFAULT FALSE,
+    perm_view_volunteers    BOOLEAN NOT NULL DEFAULT FALSE,
+    perm_manage_admins      BOOLEAN NOT NULL DEFAULT FALSE,
+    perm_config             BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at              TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- ANALYTICS
+-- -----------------------------------------------------------------------------
+-- Table : inscriptions
+-- Conserve les inscriptions des utilisateurs aux événements. Une contrainte
+-- UNIQUE empêche qu'un même email soit inscrit plusieurs fois au même
+-- événement. Les trois colonnes de participation indiquent dans quelle
+-- partie de l'événement le bénévole souhaite participer.
+CREATE TABLE inscriptions (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id            UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    email               TEXT NOT NULL,
+    phone               TEXT NOT NULL,
+    preparation_salle   BOOLEAN NOT NULL DEFAULT FALSE,
+    partie_evenement    BOOLEAN NOT NULL DEFAULT FALSE,
+    evenement_entier    BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_inscription UNIQUE (event_id, email)
+);
+
+-- -----------------------------------------------------------------------------
+-- Table : analytics
+-- Stocke les données analytiques : page_view lors du chargement de la page et
+-- event_click lorsque l'utilisateur clique sur un événement. La colonne
+-- created_at permet d’analyser l’évolution dans le temps.
 CREATE TABLE analytics (
-  id SERIAL PRIMARY KEY,
-  event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
-  action VARCHAR(24) NOT NULL, -- 'page_view' ou 'event_click'
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id    UUID REFERENCES events(id),
+    action      TEXT NOT NULL,  -- 'page_view' ou 'event_click'
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- VOLUNTEER_PROFILES
+-- -----------------------------------------------------------------------------
+-- Table : volunteer_profiles
+-- Profil des bénévoles généré automatiquement via un trigger après insertion
+-- d'une inscription. La colonne participations_count indique le nombre
+-- d'événements auxquels la personne a participé pendant l'année en cours.
 CREATE TABLE volunteer_profiles (
-  id SERIAL PRIMARY KEY,
-  email VARCHAR(120) UNIQUE NOT NULL,
-  nom VARCHAR(80) NOT NULL,
-  prenom VARCHAR(80) NOT NULL,
-  telephone VARCHAR(20),
-  participations_count INTEGER DEFAULT 0
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    first_name          TEXT,
+    last_name           TEXT,
+    email               TEXT NOT NULL UNIQUE,
+    phone               TEXT,
+    participations_count INTEGER NOT NULL DEFAULT 1,
+    created_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- ACTIVITY_LOGS
+-- -----------------------------------------------------------------------------
+-- Table : activity_logs
+-- Journalise les actions réalisées par les administrateurs. Chaque entrée
+-- contient l’email de l’admin, l’action effectuée, le type d’entité
+-- (events, admins, inscriptions, etc.), l’identifiant concerné et la date.
 CREATE TABLE activity_logs (
-  id SERIAL PRIMARY KEY,
-  admin_email VARCHAR(120) NOT NULL,
-  action VARCHAR(128) NOT NULL,
-  entity_type VARCHAR(40) NOT NULL,
-  entity_id INTEGER,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_email  TEXT NOT NULL,
+    action       TEXT NOT NULL,
+    entity_type  TEXT NOT NULL,
+    entity_id    UUID,
+    created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- APP_CONFIG
+-- -----------------------------------------------------------------------------
+-- Table : app_config
+-- Stocke la configuration de l’application sous forme clé/valeur. Certaines
+-- valeurs sont en JSON (event_types) et d’autres en texte simple. La clé est
+-- l’identifiant unique de chaque configuration.
 CREATE TABLE app_config (
-  id SERIAL PRIMARY KEY,
-  key VARCHAR(40) UNIQUE NOT NULL,
-  value TEXT NOT NULL
+    key      TEXT PRIMARY KEY,
+    value    TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- TRIGGERS
--- updated_at trigger on events
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+-- -----------------------------------------------------------------------------
+-- Fonctions et triggers
+
+-- Fonction : update_updated_at_column
+-- Met à jour la colonne updated_at avec la date et l’heure actuelles à chaque
+-- mise à jour. Cette fonction est attachée en trigger BEFORE UPDATE sur
+-- plusieurs tables.
+CREATE OR REPLACE FUNCTION update_updated_at_column() RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  NEW.updated_at := NOW();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-CREATE TRIGGER trg_update_updated_at
-BEFORE UPDATE ON events
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- trigger: update volunteer_profiles after inscription
-CREATE OR REPLACE FUNCTION update_volunteer_profile()
-RETURNS TRIGGER AS $$
+-- Ajout du trigger BEFORE UPDATE pour maintenir updated_at
+CREATE TRIGGER tr_events_set_updated_at
+  BEFORE UPDATE ON events
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER tr_admins_set_updated_at
+  BEFORE UPDATE ON admins
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER tr_inscriptions_set_updated_at
+  BEFORE UPDATE ON inscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER tr_volunteers_set_updated_at
+  BEFORE UPDATE ON volunteer_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER tr_app_config_set_updated_at
+  BEFORE UPDATE ON app_config
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Fonction : update_volunteer_profile
+-- Lorsqu’une inscription est créée, cette fonction met à jour ou crée un
+-- profil bénévole correspondant. Si le bénévole existe déjà (match sur
+-- l’adresse email), son nombre de participations augmente ; sinon un nouveau
+-- profil est créé avec les informations disponibles (prénom/nom vides par
+-- défaut).
+CREATE OR REPLACE FUNCTION update_volunteer_profile() RETURNS TRIGGER AS $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM volunteer_profiles WHERE email = NEW.email
-  ) THEN
-    INSERT INTO volunteer_profiles(email, nom, prenom, telephone, participations_count)
-    VALUES(NEW.email, NEW.nom, NEW.prenom, NEW.telephone, 1);
-  ELSE
+  -- Si un profil existe déjà pour cet email, incrémente le compteur de participations
+  IF EXISTS (SELECT 1 FROM volunteer_profiles WHERE email = NEW.email) THEN
     UPDATE volunteer_profiles
-    SET
-      nom = NEW.nom,
-      prenom = NEW.prenom,
-      telephone = NEW.telephone,
-      participations_count = participations_count + 1
+    SET participations_count = participations_count + 1,
+        updated_at = NOW()
     WHERE email = NEW.email;
+  ELSE
+    -- Crée un nouveau profil bénévole ; on sépare le prénom et le nom à partir de l’email si possible
+    INSERT INTO volunteer_profiles (id, first_name, last_name, email, phone, participations_count)
+    VALUES (
+        gen_random_uuid(),
+        split_part(NEW.email, '@', 1),
+        '',
+        NEW.email,
+        NEW.phone,
+        1
+    );
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_update_volunteer_profile
-AFTER INSERT ON inscriptions
-FOR EACH ROW EXECUTE FUNCTION update_volunteer_profile();
+-- Trigger après insertion sur inscriptions pour mettre à jour volunteer_profiles
+CREATE TRIGGER tr_inscriptions_after_insert_volunteer
+  AFTER INSERT ON inscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_volunteer_profile();
 
--- CONSTRAINTS & VALIDATIONS (côté base)
--- Email validation
-ALTER TABLE inscriptions ADD CONSTRAINT valid_email CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$');
+-- -----------------------------------------------------------------------------
+-- Activation du Row Level Security (RLS) et définition des politiques
 
--- Téléphone FR validation (+33/06 compatible)
-ALTER TABLE inscriptions ADD CONSTRAINT valid_tel
-CHECK (
-  telephone ~* '^((\\+33 ?|0)[67])[ .-]?([0-9]{2}[ .-]?){4}$'
-);
-
--- POLICIES RLS
--- EVENTS: SELECT visible/archived
+-- Table events
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY public_select_events
-  ON events FOR SELECT
-  USING (visible IS TRUE AND archived IS FALSE);
+-- Politique : les visiteurs (rôle anon) peuvent lire toutes les lignes
+CREATE POLICY allow_public_select_on_events ON events
+  FOR SELECT TO anon
+  USING (TRUE);
+-- Politique : les utilisateurs authentifiés peuvent effectuer toutes les opérations
+CREATE POLICY allow_authenticated_all_events ON events
+  FOR ALL TO authenticated
+  USING (TRUE)
+  WITH CHECK (TRUE);
+-- Politique : le rôle service_role (clé secrète) a tous les droits
+CREATE POLICY allow_service_role_all_events ON events
+  FOR ALL TO service_role
+  USING (TRUE)
+  WITH CHECK (TRUE);
 
--- INSCRIPTIONS: INSERT public
-ALTER TABLE inscriptions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY public_insert_inscriptions
-  ON inscriptions FOR INSERT
-  USING (true);
-
--- ANALYTICS: INSERT/SELECT public
-ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
-CREATE POLICY public_insert_analytics ON analytics FOR INSERT USING (true);
-CREATE POLICY public_select_analytics ON analytics FOR SELECT USING (true);
-
--- APP_CONFIG: SELECT public
-ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
-CREATE POLICY public_select_app_config ON app_config FOR SELECT USING (true);
-
--- ADMINS: Select All for anon (pour admin demo, à restreindre prod)
+-- Table admins
 ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
-CREATE POLICY admin_select_all ON admins FOR SELECT USING (true);
+-- Politique : seuls les utilisateurs authentifiés (administrateurs) peuvent lire/écrire sur la table
+CREATE POLICY allow_authenticated_all_admins ON admins
+  FOR ALL TO authenticated
+  USING (TRUE)
+  WITH CHECK (TRUE);
+CREATE POLICY allow_service_role_all_admins ON admins
+  FOR ALL TO service_role
+  USING (TRUE)
+  WITH CHECK (TRUE);
 
--- ADMIN POLICIES FULL ACCESS
-CREATE POLICY admin_full_events ON events FOR ALL TO anon USING (true);
-CREATE POLICY admin_full_insc ON inscriptions FOR ALL TO anon USING (true);
-CREATE POLICY admin_full_analytics ON analytics FOR ALL TO anon USING (true);
-CREATE POLICY admin_full_config ON app_config FOR ALL TO anon USING (true);
-CREATE POLICY admin_full_volunteers ON volunteer_profiles FOR ALL TO anon USING (true);
-CREATE POLICY admin_full_logs ON activity_logs FOR ALL TO anon USING (true);
+-- Table inscriptions
+ALTER TABLE inscriptions ENABLE ROW LEVEL SECURITY;
+-- Politique : tout visiteur peut insérer une inscription
+CREATE POLICY allow_public_insert_on_inscriptions ON inscriptions
+  FOR INSERT TO anon
+  WITH CHECK (TRUE);
+-- Politique : aucun visiteur ne peut lire ou modifier les inscriptions
+CREATE POLICY deny_public_select_update_delete_on_inscriptions ON inscriptions
+  FOR SELECT TO anon
+  USING (FALSE);
+-- Politique : les administrateurs (authentifiés) peuvent lire/écrire toutes les inscriptions
+CREATE POLICY allow_authenticated_all_inscriptions ON inscriptions
+  FOR ALL TO authenticated
+  USING (TRUE)
+  WITH CHECK (TRUE);
+CREATE POLICY allow_service_role_all_inscriptions ON inscriptions
+  FOR ALL TO service_role
+  USING (TRUE)
+  WITH CHECK (TRUE);
 
--- INITIAL DATA (événements, inscriptions, admin, config)
--- Events (3 exemples)
-INSERT INTO events (titre, description, date, heure, lieu, type, image, max_participants, visible, archived, created_by)
+-- Table analytics
+ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
+-- Politique : tout visiteur peut insérer des données analytiques
+CREATE POLICY allow_public_insert_on_analytics ON analytics
+  FOR INSERT TO anon
+  WITH CHECK (TRUE);
+-- Politique : les visiteurs ne peuvent pas lire ou modifier les données analytiques
+CREATE POLICY deny_public_select_update_delete_on_analytics ON analytics
+  FOR SELECT TO anon
+  USING (FALSE);
+-- Politique : les administrateurs peuvent lire/écrire
+CREATE POLICY allow_authenticated_all_analytics ON analytics
+  FOR ALL TO authenticated
+  USING (TRUE)
+  WITH CHECK (TRUE);
+CREATE POLICY allow_service_role_all_analytics ON analytics
+  FOR ALL TO service_role
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+-- Table volunteer_profiles
+ALTER TABLE volunteer_profiles ENABLE ROW LEVEL SECURITY;
+-- Politique : uniquement les administrateurs peuvent accéder aux profils bénévoles
+CREATE POLICY allow_authenticated_all_volunteers ON volunteer_profiles
+  FOR ALL TO authenticated
+  USING (TRUE)
+  WITH CHECK (TRUE);
+CREATE POLICY allow_service_role_all_volunteers ON volunteer_profiles
+  FOR ALL TO service_role
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+-- Table activity_logs
+ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+-- Politique : seuls les administrateurs peuvent lire les logs
+CREATE POLICY allow_authenticated_all_logs ON activity_logs
+  FOR ALL TO authenticated
+  USING (TRUE)
+  WITH CHECK (TRUE);
+CREATE POLICY allow_service_role_all_logs ON activity_logs
+  FOR ALL TO service_role
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+-- Table app_config
+ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
+-- Politique : les visiteurs peuvent lire la configuration (intro_text, logo_url, event_types)
+CREATE POLICY allow_public_select_on_app_config ON app_config
+  FOR SELECT TO anon
+  USING (TRUE);
+-- Politique : les administrateurs peuvent lire/écrire la configuration
+CREATE POLICY allow_authenticated_all_app_config ON app_config
+  FOR ALL TO authenticated
+  USING (TRUE)
+  WITH CHECK (TRUE);
+CREATE POLICY allow_service_role_all_app_config ON app_config
+  FOR ALL TO service_role
+  USING (TRUE)
+  WITH CHECK (TRUE);
+
+-- -----------------------------------------------------------------------------
+-- Insertion de données d’exemple
+
+-- Quelques événements exemples
+INSERT INTO events (id, titre, description, date, heure, lieu, type, image, max_participants, visible, archived, created_at, updated_at)
 VALUES
-  ('Soirée d''ouverture', 'Première soirée Ohlun’Joie, festive et conviviale.', CURRENT_DATE + INTERVAL '7 days', '18:30', 'Salle Polyvalente', 'soirée', '🎉', 20, TRUE, FALSE, 'zinck.maxime@gmail.com'),
-  ('Atelier Cuisine Solidaire', 'Rejoignez-nous pour cuisiner pour la communauté.', CURRENT_DATE + INTERVAL '14 days', '10:00', 'Maison des Associations', 'atelier', '🍲', 15, TRUE, FALSE, 'zinck.maxime@gmail.com'),
-  ('Marche en Forêt', 'Sortie randonnée, tous niveaux.', CURRENT_DATE + INTERVAL '21 days', '09:00', 'Parking Forêt', 'sortie', '🌳', 30, TRUE, FALSE, 'zinck.maxime@gmail.com');
+  -- Concert de Printemps
+  (gen_random_uuid(),
+   'Concert de Printemps',
+   'Un concert festif pour célébrer l''arrivée du printemps avec plusieurs groupes locaux.',
+   DATE '2025-05-15',
+   TIME '19:00',
+   'Salle des Fêtes',
+   'concert',
+   '🎵',
+   50,
+   TRUE,
+   FALSE,
+   NOW(),
+   NOW()),
+  -- Fête de la Musique
+  (gen_random_uuid(),
+   'Fête de la Musique',
+   'Édition annuelle de la fête de la musique avec des artistes amateurs et professionnels.',
+   DATE '2025-06-21',
+   TIME '18:00',
+   'Parc Central',
+   'fête',
+   '🎤',
+   100,
+   TRUE,
+   FALSE,
+   NOW(),
+   NOW()),
+  -- Marché de Noël
+  (gen_random_uuid(),
+   'Marché de Noël',
+   'Venez découvrir nos artisans locaux et profiter de l''ambiance de Noël.',
+   DATE '2025-12-10',
+   TIME '10:00',
+   'Place du Village',
+   'marché',
+   '🎄',
+   80,
+   TRUE,
+   FALSE,
+   NOW(),
+   NOW());
 
--- Inscriptions (3 exemples)
-INSERT INTO inscriptions (event_id, email, nom, prenom, telephone, participations)
+-- Inscriptions d’exemple
+-- Chaque email ne peut être inscrit qu’une seule fois par événement (contrainte unique)
+INSERT INTO inscriptions (id, event_id, email, phone, preparation_salle, partie_evenement, evenement_entier, created_at, updated_at)
 VALUES
-  (1, 'dupont.laura@email.fr', 'Dupont', 'Laura', '06 12 23 34 45', '{"evenement_entier": true}'),
-  (2, 'martin.jean@email.fr', 'Martin', 'Jean', '0612432635', '{"preparation_salle": true}'),
-  (3, 'nom@example.com', 'Durand', 'Clara', '+33 6 98 76 54 32', '{"partie_evenement": true}');
+  (gen_random_uuid(), (SELECT id FROM events LIMIT 1 OFFSET 0), 'alice@example.com', '+33 6 12 34 56 78', TRUE, FALSE, FALSE, NOW(), NOW()),
+  (gen_random_uuid(), (SELECT id FROM events LIMIT 1 OFFSET 1), 'bob@example.com', '06 12 34 56 78', FALSE, TRUE, FALSE, NOW(), NOW()),
+  (gen_random_uuid(), (SELECT id FROM events LIMIT 1 OFFSET 2), 'charlie@example.com', '0612345678', FALSE, FALSE, TRUE, NOW(), NOW());
 
--- Admin (démo, hashé bcrypt)
-INSERT INTO admins (email, nom, prenom, password_hash, super_admin, perm_view_events, perm_edit_events, perm_view_stats, perm_view_logs, perm_view_volunteers, perm_manage_admins, perm_config)
-VALUES (
-  'zinck.maxime@gmail.com',
-  'Zinck',
-  'Maxime',
-  '$2b$10$IgjBfRSpPy0hDo0kG5/N3O5YJpUl7HTDCNp2AyZyOrWXNgtGLwUJ.', -- hashé pour 'Zz/max789'
-  TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE
+-- Administrateur initial (Maxime Zinck)
+-- Le mot de passe est hashé dynamiquement avec pgcrypto/crypt() pour éviter de
+-- stocker la valeur claire. En cas de restauration manuelle sur une autre
+-- instance, exécutez cette commande pour générer un hash bcrypt.
+INSERT INTO admins (
+    id, email, nom, hashed_password,
+    perm_view_events, perm_edit_events, perm_view_stats,
+    perm_view_logs, perm_view_volunteers, perm_manage_admins, perm_config,
+    created_at, updated_at
+) VALUES (
+    gen_random_uuid(),
+    'zinck.maxime@gmail.com',
+    'Maxime Zinck',
+    crypt('Zz/max789', gen_salt('bf')),
+    TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE,
+    NOW(), NOW()
 );
 
--- App config (intro, logo_url, event_types)
-INSERT INTO app_config (key, value) VALUES
-  ('intro_text', 'Bienvenue sur la plateforme événementielle Ohlun’Joie ! Participez, organisez, partagez.'),
-  ('logo_url', ''),
-  ('event_types', '["soirée", "atelier", "sortie", "conférence", "repas"]');
+-- Configuration d’exemple
+INSERT INTO app_config (key, value, created_at, updated_at) VALUES
+  ('intro_text', 'Bienvenue sur Ohlun''Joie ! Cette plateforme vous permet de découvrir les prochains événements et de vous inscrire facilement.', NOW(), NOW()),
+  ('logo_url', 'data:image/svg+xml;base64,', NOW(), NOW()),
+  ('event_types', '["concert", "fête", "marché"]', NOW(), NOW());
+
+-- Les triggers AFTER INSERT sur inscriptions ont déjà créé les profils bénévoles
+-- correspondants grâce à l’INSERT ci‑dessus.
+
+-- Fin du script
