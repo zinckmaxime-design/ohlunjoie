@@ -97,6 +97,7 @@
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const toast = (msg) => {
@@ -105,6 +106,8 @@ const toast = (msg) => {
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
 };
+
+// Theme
 (function initTheme() {
   const saved = localStorage.getItem('theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -118,6 +121,8 @@ const toast = (msg) => {
     $('#theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
   };
 })();
+
+// Modales
 const modal = {
   open(id) {
     const backdrop = $('#modal-backdrop');
@@ -135,10 +140,14 @@ document.addEventListener('click', (e) => {
   if (e.target.matches('[data-close]')) modal.closeAll();
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
+
+// Admin
 const ADMIN_EMAIL = 'zinck.maxime@gmail.com';
 const ADMIN_PASS = 'Zz/max789';
 let isAdmin = sessionStorage.getItem('isAdmin') === '1';
+
 $('#admin-toggle').onclick = () => modal.open('#modal-admin');
+
 $('#admin-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const email = $('#admin-email').value.trim();
@@ -148,17 +157,19 @@ $('#admin-form').addEventListener('submit', (e) => {
     isAdmin = true;
     modal.closeAll();
     mountAdmin();
-    toast('✅ Connecté en tant qu'admin');
+    toast('✅ Connecté en tant qu\'admin');
   } else {
     toast('❌ Identifiants incorrects');
   }
 });
+
 function unmountAdmin() {
   const host = $('#admin-section');
   host.innerHTML = '';
   host.hidden = true;
   host.setAttribute('aria-hidden', 'true');
 }
+
 function mountAdmin() {
   const host = $('#admin-section');
   host.hidden = false;
@@ -188,6 +199,7 @@ function mountAdmin() {
         <div id="stats-content">Statistiques en cours de développement...</div>
       </div>
     </div>`;
+  
   $$('#admin-section .tabs .tab').forEach(btn => {
     btn.onclick = () => {
       $$('#admin-section .tabs .tab').forEach(b => b.classList.remove('active'));
@@ -196,24 +208,29 @@ function mountAdmin() {
       $('#tab-' + btn.dataset.tab).classList.add('active');
     };
   });
+  
   $('#admin-logout').onclick = () => {
     sessionStorage.removeItem('isAdmin');
     isAdmin = false;
     unmountAdmin();
     toast('Déconnecté');
   };
+  
   loadAdminData();
 }
+
 async function loadAdminData() {
   const [inscRes, eventsRes, emailsRes] = await Promise.all([
     supabase.from('inscriptions').select('id', { count: 'exact', head: true }),
     supabase.from('events').select('id', { count: 'exact', head: true }).eq('visible', true).eq('archived', false),
     supabase.from('inscriptions').select('email')
   ]);
+  
   $('#kpi-total').textContent = inscRes.count || 0;
   $('#kpi-actifs').textContent = eventsRes.count || 0;
   const uniqueEmails = new Set((emailsRes.data || []).map(x => x.email));
   $('#kpi-emails').textContent = uniqueEmails.size;
+  
   const { data: allEvents } = await supabase.from('events')
     .select('id, max_participants, inscriptions(count)')
     .order('date');
@@ -224,8 +241,11 @@ async function loadAdminData() {
   const avgRate = rates.length ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) : 0;
   $('#kpi-taux').textContent = avgRate + '%';
 }
+
 if (isAdmin) mountAdmin();
 else unmountAdmin();
+
+// Public
 async function fetchPublicEvents() {
   const { data } = await supabase.from('events')
     .select('*')
@@ -234,18 +254,21 @@ async function fetchPublicEvents() {
     .order('date', { ascending: true });
   return data || [];
 }
+
 function openInscription(ev) {
   $('#insc-event-title').textContent = `${ev.image || '📅'} ${ev.titre}`;
   $('#insc-event-meta').textContent = `${ev.date} • ${ev.heure || ''} • ${ev.lieu}`;
   $('#insc-event-id').value = ev.id;
   modal.open('#modal-inscription');
 }
+
 function bindSubscribe(btn, ev) {
   if (!btn) return;
-  btn.textContent = 'S'inscrire';
+  btn.textContent = 'S\'inscrire';
   btn.classList.add('btn', 'btn-primary');
   btn.onclick = () => openInscription(ev);
 }
+
 function renderTimeline(events) {
   const root = $('#timeline-view');
   root.innerHTML = '';
@@ -265,6 +288,7 @@ function renderTimeline(events) {
     root.appendChild(card);
   });
 }
+
 function renderList(events) {
   const root = $('#list-view');
   root.innerHTML = '';
@@ -291,6 +315,7 @@ function renderList(events) {
   tableWrap.appendChild(table);
   root.appendChild(tableWrap);
 }
+
 function renderCards(events) {
   const root = $('#cards-view');
   root.innerHTML = '';
@@ -313,15 +338,18 @@ function renderCards(events) {
   });
   root.appendChild(grid);
 }
+
 function setActiveView(which) {
   $$('.view').forEach(v => v.classList.remove('active'));
   $('#' + which + '-view').classList.add('active');
   $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
   $('#view-' + which).classList.add('active');
 }
+
 $('#view-timeline').onclick = () => setActiveView('timeline');
 $('#view-list').onclick = () => setActiveView('list');
 $('#view-cards').onclick = () => setActiveView('cards');
+
 async function loadPublic() {
   const events = await fetchPublicEvents();
   renderTimeline(events);
@@ -329,6 +357,7 @@ async function loadPublic() {
   renderCards(events);
   updateNextEvent(events);
 }
+
 function updateNextEvent(events) {
   const badge = $('#next-event-badge');
   if (!events.length) {
@@ -341,7 +370,10 @@ function updateNextEvent(events) {
   const diffDays = Math.max(0, Math.ceil((eventDate - today) / 86400000));
   badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
+
 loadPublic();
+
+// Inscription form
 $('#insc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
@@ -354,13 +386,16 @@ $('#insc-form').addEventListener('submit', async (e) => {
   const partie_evenement = !!fd.get('partie_evenement');
   const evenement_entier = !!fd.get('evenement_entier');
   const event_id = Number(fd.get('event_id'));
+  
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const telOk = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(telephone);
   const minOne = preparation_salle || partie_evenement || evenement_entier;
+  
   if (!prenom || !nom || !emailOk || !telOk || !minOne) {
     toast('⚠️ Vérifie les champs requis');
     return;
   }
+  
   const { error } = await supabase.from('inscriptions').insert({
     event_id,
     prenom,
@@ -372,16 +407,20 @@ $('#insc-form').addEventListener('submit', async (e) => {
     partie_evenement,
     evenement_entier
   });
+  
   if (error) {
     console.error(error);
-    toast('❌ Erreur lors de l'inscription');
+    toast('❌ Erreur lors de l\'inscription');
     return;
   }
+  
   toast('✅ Inscription enregistrée !');
   modal.closeAll();
   e.target.reset();
   loadPublic();
 });
+
+// Auto archive
 function scheduleAutoArchive() {
   setInterval(async () => {
     const now = new Date();
@@ -401,7 +440,5 @@ function scheduleAutoArchive() {
 }
 scheduleAutoArchive();
   </script>
-</body>
-
 </body>
 </html>
