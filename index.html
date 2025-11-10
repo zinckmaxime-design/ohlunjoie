@@ -61,7 +61,9 @@
         <label>Prénom*<input name="prenom" required autocomplete="given-name"></label>
         <label>Nom*<input name="nom" required autocomplete="family-name"></label>
         <label>Email*<input name="email" type="email" required autocomplete="email"></label>
-        <label>Téléphone*<input name="telephone" required autocomplete="tel"></label>
+        <label>Téléphone*<input name="telephone" placeholder="06 12 34 56 78" required autocomplete="tel"></label>
+        <label>Heure d'arrivée<input name="heure_arrivee" type="time"></label>
+        <label>Heure de départ<input name="heure_depart" type="time"></label>
         <label class="full-width">Commentaire<textarea name="commentaire" rows="2"></textarea></label>
         <fieldset class="full-width participations">
           <legend>Participations (min 1 requis)</legend>
@@ -93,7 +95,6 @@
   <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
   <script>
-// Supabase init
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -107,22 +108,28 @@ const toast = (msg) => {
   setTimeout(() => el.classList.remove('show'), 2500);
 };
 
-// Theme
+// THEME: Auto le soir (19h-8h), manuel avec toggle
 (function initTheme() {
-  const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const theme = saved || (prefersDark ? 'dark' : 'light');
+  function detectTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved;
+    const hour = new Date().getHours();
+    return (hour >= 19 || hour < 8) ? 'dark' : 'light';
+  }
+  const theme = detectTheme();
   document.documentElement.dataset.theme = theme;
-  $('#theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+  updateThemeButton(theme);
   $('#theme-toggle').onclick = () => {
     const newTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = newTheme;
     localStorage.setItem('theme', newTheme);
-    $('#theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    updateThemeButton(newTheme);
   };
+  function updateThemeButton(t) {
+    $('#theme-toggle').textContent = t === 'dark' ? '☀️' : '🌙';
+  }
 })();
 
-// Modales
 const modal = {
   open(id) {
     const backdrop = $('#modal-backdrop');
@@ -141,7 +148,6 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
 
-// Admin
 const ADMIN_EMAIL = 'zinck.maxime@gmail.com';
 const ADMIN_PASS = 'Zz/max789';
 let isAdmin = sessionStorage.getItem('isAdmin') === '1';
@@ -156,6 +162,8 @@ $('#admin-form').addEventListener('submit', (e) => {
     sessionStorage.setItem('isAdmin', '1');
     isAdmin = true;
     modal.closeAll();
+    $('#admin-email').value = '';
+    $('#admin-password').value = '';
     mountAdmin();
     toast('✅ Connecté en tant qu\'admin');
   } else {
@@ -245,13 +253,20 @@ async function loadAdminData() {
 if (isAdmin) mountAdmin();
 else unmountAdmin();
 
-// Public
 async function fetchPublicEvents() {
   const { data } = await supabase.from('events')
     .select('*')
     .eq('visible', true)
     .eq('archived', false)
     .order('date', { ascending: true });
+  return data || [];
+}
+
+async function fetchInscriptionsForEvent(eventId) {
+  const { data } = await supabase.from('inscriptions')
+    .select('prenom, nom')
+    .eq('event_id', eventId)
+    .order('date_inscription', { ascending: false });
   return data || [];
 }
 
@@ -272,7 +287,11 @@ function bindSubscribe(btn, ev) {
 function renderTimeline(events) {
   const root = $('#timeline-view');
   root.innerHTML = '';
-  events.forEach(ev => {
+  events.forEach(async (ev) => {
+    const inscriptions = await fetchInscriptionsForEvent(ev.id);
+    const count = inscriptions.length;
+    const pct = Math.min(100, Math.round((count / Math.max(1, ev.max_participants)) * 100));
+    
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
@@ -283,7 +302,10 @@ function renderTimeline(events) {
         </div>
         <div class="card-actions"><button class="subscribe-btn"></button></div>
       </div>
-      <p>${ev.description || ''}</p>`;
+      <p>${ev.description || ''}</p>
+      <div class="progress"><span style="width:${pct}%"></span></div>
+      <div class="inscrit-count">${count}/${ev.max_participants} inscrits</div>
+      ${inscriptions.length > 0 ? `<div class="inscrit-list"><strong>Inscrits:</strong> ${inscriptions.map(i => i.prenom + ' ' + i.nom).join(', ')}</div>` : ''}`;
     bindSubscribe(card.querySelector('.subscribe-btn'), ev);
     root.appendChild(card);
   });
@@ -301,13 +323,15 @@ function renderList(events) {
       <tr><th>Date</th><th>Titre</th><th>Lieu</th><th>Places</th><th></th></tr>
     </thead>
     <tbody></tbody>`;
-  events.forEach(ev => {
+  events.forEach(async (ev) => {
+    const inscriptions = await fetchInscriptionsForEvent(ev.id);
+    const count = inscriptions.length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${ev.date} ${ev.heure || ''}</td>
       <td>${ev.titre}</td>
       <td>${ev.lieu}</td>
-      <td>${ev.max_participants || ''}</td>
+      <td>${count}/${ev.max_participants || ''}</td>
       <td><button class="subscribe-btn"></button></td>`;
     table.querySelector('tbody').appendChild(tr);
     bindSubscribe(tr.querySelector('.subscribe-btn'), ev);
@@ -321,7 +345,11 @@ function renderCards(events) {
   root.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'cards-grid';
-  events.forEach(ev => {
+  events.forEach(async (ev) => {
+    const inscriptions = await fetchInscriptionsForEvent(ev.id);
+    const count = inscriptions.length;
+    const pct = Math.min(100, Math.round((count / Math.max(1, ev.max_participants)) * 100));
+    
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
@@ -332,7 +360,9 @@ function renderCards(events) {
         </div>
         <div class="card-actions"><button class="subscribe-btn"></button></div>
       </div>
-      <p>${ev.description || ''}</p>`;
+      <p>${ev.description || ''}</p>
+      <div class="progress"><span style="width:${pct}%"></span></div>
+      <div class="inscrit-count">${count}/${ev.max_participants} inscrits</div>`;
     bindSubscribe(card.querySelector('.subscribe-btn'), ev);
     grid.appendChild(card);
   });
@@ -373,7 +403,6 @@ function updateNextEvent(events) {
 
 loadPublic();
 
-// Inscription form
 $('#insc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
@@ -381,6 +410,8 @@ $('#insc-form').addEventListener('submit', async (e) => {
   const nom = fd.get('nom')?.trim();
   const email = fd.get('email')?.trim();
   const telephone = fd.get('telephone')?.trim();
+  const heure_arrivee = fd.get('heure_arrivee')?.trim() || null;
+  const heure_depart = fd.get('heure_depart')?.trim() || null;
   const commentaire = fd.get('commentaire')?.trim() || '';
   const preparation_salle = !!fd.get('preparation_salle');
   const partie_evenement = !!fd.get('partie_evenement');
@@ -402,6 +433,8 @@ $('#insc-form').addEventListener('submit', async (e) => {
     nom,
     email,
     telephone,
+    heure_arrivee,
+    heure_depart,
     commentaire,
     preparation_salle,
     partie_evenement,
@@ -420,7 +453,6 @@ $('#insc-form').addEventListener('submit', async (e) => {
   loadPublic();
 });
 
-// Auto archive
 function scheduleAutoArchive() {
   setInterval(async () => {
     const now = new Date();
