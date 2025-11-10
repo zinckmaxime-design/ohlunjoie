@@ -3,10 +3,57 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
   <title>Ohlun'Joie V3.0</title>
+
+  <!-- STYLE EXTERNE (recommandé) -->
   <link rel="stylesheet" href="style-v3-final.css">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Option de secours: styles essentiels si le CSS n’est pas encore en place
+  <style>
+    :root{--bg:#ffffff;--fg:#111827;--muted:#6b7280;--card:#ffffff;--border:#e5e7eb;--primary:#0ea5e9;}
+    @media (prefers-color-scheme: dark){
+      :root{--bg:#111827;--fg:#f9fafb;--muted:#9ca3af;--card:#1f2937;--border:#374151;--primary:#38bdf8;}
+    }
+    html,body{height:100%} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto,Arial}
+    .container{max-width:1100px;margin:0 auto;padding:1rem}
+    .site-header{border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+    .header-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .brand{display:flex;align-items:center;gap:.5rem;font-weight:700}.logo-emoji{font-size:1.6rem}
+    .header-actions{display:flex;align-items:center;gap:.5rem}
+    .tab,.btn,.chip,.icon-btn{cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--fg);border-radius:10px;padding:.5rem .8rem}
+    .tab.active,.chip.active,.btn{border-color:var(--primary)}
+    .btn{background:var(--primary);color:#fff;border:0}.icon-btn{border-radius:12px}
+    .view{display:none}.view.active{display:block}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem;margin:.8rem 0}
+    .card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:.8rem}
+    .card-title{font-weight:700}.muted{color:var(--muted)}
+    .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+    @media(max-width:900px){.cards-grid{grid-template-columns:1fr}}
+    .table{width:100%;border-collapse:collapse}.table th,.table td{border-bottom:1px solid var(--border);padding:.6rem .5rem;text-align:left}
+    .tabs{display:flex;gap:.4rem;margin:.6rem 0}.tab-panel{display:none}.tab-panel.active{display:block}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+    @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+    .progress{height:8px;border-radius:10px;background:var(--border);overflow:hidden}
+    .progress > span{display:block;height:100%;background:var(--primary)}
+    .site-footer{margin-top:2rem;border-top:1px solid var(--border);padding:2rem 0;text-align:center;position:sticky;top:100%;background:var(--bg)}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:1rem;background:var(--card);border:1px solid var(--border);padding:.6rem 1rem;border-radius:10px;display:none}
+    .toast.show{display:block}
+    /* Timeline rail */
+    #timeline-view .card{position:relative;margin-left:1.5rem}
+    #timeline-view .card::before{content:"";position:absolute;left:-1rem;top:.4rem;bottom:-.4rem;width:2px;background:var(--border)}
+    #timeline-view .card::after{content:"";position:absolute;left:-1.2rem;top:.8rem;width:10px;height:10px;border-radius:50%;background:var(--primary)}
+    /* Modales */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);z-index:50}
+    .modal{position:fixed;inset:0;display:grid;place-items:center;z-index:60}
+    .modal[hidden],.modal-backdrop[hidden]{display:none}
+    .modal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:620px;width:min(92vw,620px);padding:1rem}
+    .modal-close{float:right;border:0;background:transparent;font-size:1.2rem;cursor:pointer}
+    .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem}
+    .form-grid .full{grid-column:1/-1}
+    #admin-section[hidden]{display:none}
+  </style>
+  -->
 </head>
 <body>
   <header class="site-header">
@@ -22,7 +69,7 @@
           <button id="view-cards" class="tab">Cartes</button>
         </div>
         <button id="theme-toggle" class="icon-btn" aria-label="Changer de thème">🌙</button>
-        <button id="admin-toggle" class="icon-btn" aria-label="Ouvrir l’admin">☰</button>
+        <button id="admin-toggle" class="icon-btn" aria-label="Administration">🔑</button>
       </div>
     </div>
   </header>
@@ -31,137 +78,18 @@
     <section class="intro">
       <h1>Événements</h1>
       <p id="intro-text">Notre association rassemble des bénévoles passionnés qui organisent des événements variés pour créer du lien social et enrichir la vie de notre commune.</p>
-      <div class="next-event">
-        <button id="next-event-btn" class="btn">Prochain événement dans <span id="next-event-countdown">…</span></button>
-      </div>
+      <div class="next-event"><span id="next-event-badge" class="muted"></span></div>
     </section>
 
+    <!-- Public -->
     <section id="public-section">
       <div id="timeline-view" class="view active"></div>
       <div id="list-view" class="view"></div>
       <div id="cards-view" class="view"></div>
-
-      <details class="inscription-panel" id="inscription-panel">
-        <summary>Inscription</summary>
-        <form id="inscription-form">
-          <div class="grid">
-            <label>Prénom*<input name="prenom" required></label>
-            <label>Nom*<input name="nom" required></label>
-            <label>Email*<input name="email" type="email" required></label>
-            <label>Téléphone*<input name="telephone" required></label>
-          </div>
-          <label>Commentaire<textarea name="commentaire"></textarea></label>
-          <fieldset class="participations">
-            <legend>Participations (min 1)</legend>
-            <label><input type="checkbox" name="preparation_salle"> Préparation salle</label>
-            <label><input type="checkbox" name="partie_evenement"> Partie soirée</label>
-            <label><input type="checkbox" name="evenement_entier"> Soirée entière</label>
-          </fieldset>
-          <label>Événement
-            <select id="inscription-event" name="event_id"></select>
-          </label>
-          <div class="rgpd-note">Vos données sont utilisées uniquement pour la gestion des inscriptions et ne seront jamais transmises à des tiers.</div>
-          <button type="submit" class="btn">S’inscrire</button>
-        </form>
-      </details>
     </section>
 
-    <section id="admin-section">
-      <h2>Administration</h2>
-      <div class="login-row">
-        <input id="admin-email" placeholder="Email admin">
-        <input id="admin-password" type="password" placeholder="Mot de passe">
-        <button id="admin-login" class="btn">Connexion</button>
-      </div>
-      <div class="tabs">
-        <button data-tab="dash" class="tab active">Dashboard</button>
-        <button data-tab="events" class="tab">Événements</button>
-        <button data-tab="stats" class="tab">Statistiques</button>
-        <button data-tab="volunteers" class="tab">Bénévoles</button>
-        <button data-tab="admins" class="tab">Gestion Admins</button>
-        <button data-tab="config" class="tab">Configuration</button>
-        <button data-tab="logs" class="tab">Logs</button>
-      </div>
-
-      <div class="tab-panels">
-        <div id="tab-dash" class="tab-panel active">
-          <div class="kpi-grid">
-            <div class="kpi"><div class="kpi-label">Total Inscrits</div><div id="kpi-total" class="kpi-value">0</div></div>
-            <div class="kpi"><div class="kpi-label">Événements Actifs</div><div id="kpi-actifs" class="kpi-value">0</div></div>
-            <div class="kpi"><div class="kpi-label">Emails Uniques</div><div id="kpi-emails" class="kpi-value">0</div></div>
-            <div class="kpi"><div class="kpi-label">Taux Moyen</div><div id="kpi-taux" class="kpi-value">0%</div></div>
-          </div>
-        </div>
-
-        <div id="tab-events" class="tab-panel">
-          <div class="event-filters">
-            <button class="chip active" data-filter="actifs">🟢 Actifs</button>
-            <button class="chip" data-filter="masques">🟠 Masqués</button>
-            <button class="chip" data-filter="archives">⚫ Archivés</button>
-            <button class="chip" data-filter="tous">📋 Tous</button>
-            <button id="event-new" class="btn">+ Nouvel événement</button>
-          </div>
-          <div id="admin-events-cards" class="cards-grid"></div>
-        </div>
-
-        <div id="tab-stats" class="tab-panel">
-          <div id="stats-kpis" class="kpi-grid"></div>
-          <div id="stats-table" class="table-wrap"></div>
-          <div class="actions-row">
-            <button id="export-emails" class="btn">📧 Export emails (txt)</button>
-            <button id="export-stats" class="btn">📥 Export stats (CSV)</button>
-          </div>
-        </div>
-
-        <div id="tab-volunteers" class="tab-panel">
-          <div class="search-row">
-            <input id="vol-search" placeholder="Rechercher bénévole (nom, prénom, email)">
-          </div>
-          <div id="vol-table" class="table-wrap"></div>
-          <div class="actions-row">
-            <button id="export-vol" class="btn">📥 Export bénévoles (CSV)</button>
-          </div>
-        </div>
-
-        <div id="tab-admins" class="tab-panel">
-          <div class="actions-row">
-            <button id="admin-add" class="btn">➕ Ajouter admin</button>
-          </div>
-          <div id="admins-table" class="table-wrap"></div>
-        </div>
-
-        <div id="tab-config" class="tab-panel">
-          <div class="config-grid">
-            <div class="card">
-              <h3>Logo</h3>
-              <input id="logo-input" type="file" accept="image/*">
-              <img id="logo-preview" alt="Logo" class="logo-preview" />
-              <div class="actions-row">
-                <button id="logo-save" class="btn">💾 Sauvegarder</button>
-                <button id="logo-delete" class="btn danger">🗑️ Supprimer</button>
-              </div>
-            </div>
-            <div class="card">
-              <h3>Texte d’intro</h3>
-              <textarea id="intro-input" rows="5"></textarea>
-              <button id="intro-save" class="btn">💾 Sauvegarder</button>
-            </div>
-            <div class="card">
-              <h3>Types d’événements</h3>
-              <div id="types-list" class="chips"></div>
-              <div class="row">
-                <input id="type-new" placeholder="Nouveau type">
-                <button id="type-add" class="btn">➕ Ajouter</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="tab-logs" class="tab-panel">
-          <div id="logs-table" class="table-wrap"></div>
-        </div>
-      </div>
-    </section>
+    <!-- Admin rendu uniquement si connecté -->
+    <section id="admin-section" hidden></section>
   </main>
 
   <footer class="site-footer">
@@ -170,8 +98,91 @@
     </div>
   </footer>
 
-  <div id="toast" class="toast"></div>
+  <!-- Modale inscription -->
+  <div id="modal-backdrop" class="modal-backdrop" hidden></div>
+  <div id="modal-inscription" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="insc-title">
+    <div class="modal-card">
+      <button class="modal-close" data-close>✕</button>
+      <h3 id="insc-title">S’inscrire à <span id="insc-event-title"></span></h3>
+      <p class="muted"><span id="insc-event-meta"></span></p>
+      <form id="insc-form" class="form-grid">
+        <label>Prénom*<input name="prenom" required></label>
+        <label>Nom*<input name="nom" required></label>
+        <label>Email*<input name="email" type="email" required></label>
+        <label>Téléphone*<input name="telephone" required></label>
+        <label class="full">Commentaire<textarea name="commentaire"></textarea></label>
+        <fieldset class="full">
+          <legend>Participations (min 1)</legend>
+          <label><input type="checkbox" name="preparation_salle"> Préparation salle</label>
+          <label><input type="checkbox" name="partie_evenement"> Partie soirée</label>
+          <label><input type="checkbox" name="evenement_entier"> Soirée entière</label>
+        </fieldset>
+        <input type="hidden" name="event_id" id="insc-event-id">
+        <button type="submit" class="btn full">S’inscrire</button>
+      </form>
+    </div>
+  </div>
 
+  <!-- Modale admin -->
+  <div id="modal-admin" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-title">
+    <div class="modal-card">
+      <button class="modal-close" data-close>✕</button>
+      <h3 id="admin-title">Administration</h3>
+      <form id="admin-form" class="form-grid">
+        <label>Email<input id="admin-email" type="email" required></label>
+        <label>Mot de passe<input id="admin-password" type="password" required></label>
+        <button type="submit" class="btn">Connexion</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Supabase CDN + App -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app-v3-final.js"></script>
+
+  <!-- Option de secours JS minimal si ton app n’est pas encore en place
+  <script>
+    const SUPABASE_URL='https://duqkrpgcqbasbnzynfuh.supabase.co';
+    const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
+    const supabase = window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+    const toast=(m)=>{let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t);}t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
+    // Thème
+    (function(){const saved=localStorage.getItem('theme');const prefers=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';const theme=saved||prefers;document.documentElement.dataset.theme=theme;document.getElementById('theme-toggle').textContent=theme==='dark'?'☀️':'🌙';
+      document.getElementById('theme-toggle').onclick=()=>{const t=(document.documentElement.dataset.theme==='dark')?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('theme',t);document.getElementById('theme-toggle').textContent=t==='dark'?'☀️':'🌙';};})();
+    // Modales
+    const modal={open:(id)=>{document.getElementById('modal-backdrop').hidden=false;document.querySelector(id).hidden=false;},closeAll:()=>{document.getElementById('modal-backdrop').hidden=true;document.querySelectorAll('.modal').forEach(m=>m.hidden=true);} };
+    document.addEventListener('click',e=>{ if(e.target.matches('[data-close]')) modal.closeAll(); });
+    document.getElementById('admin-toggle').onclick=()=>modal.open('#modal-admin');
+
+    let isAdmin=sessionStorage.getItem('isAdmin')==='1';
+    function unmountAdmin(){const host=document.getElementById('admin-section');host.innerHTML='';host.hidden=true;}
+    function mountAdmin(){const host=document.getElementById('admin-section');host.hidden=false;host.innerHTML='<h2>Administration</h2><p>(Tableaux admin rendus ici après connexion)</p>'; }
+    if(isAdmin) mountAdmin(); else unmountAdmin();
+
+    document.getElementById('admin-form').addEventListener('submit',(e)=>{e.preventDefault();const email=document.getElementById('admin-email').value.trim();const pass=document.getElementById('admin-password').value;
+      if(email==='zinck.maxime@gmail.com' && pass==='Zz/max789'){sessionStorage.setItem('isAdmin','1');isAdmin=true;modal.closeAll();mountAdmin();toast('Connecté.');}else toast('Identifiants invalides.');});
+
+    function bindSubscribe(btn,ev){btn.textContent='S’inscrire';btn.classList.add('btn');btn.onclick=()=>{document.getElementById('insc-event-title').textContent=(ev.image||'📅')+' '+ev.titre;
+        document.getElementById('insc-event-meta').textContent=`${ev.date} • ${ev.heure||''} • ${ev.lieu}`; document.getElementById('insc-event-id').value=ev.id; modal.open('#modal-inscription');};}
+    function renderTimeline(events){const root=document.getElementById('timeline-view');root.innerHTML='';events.forEach(ev=>{const card=document.createElement('div');card.className='card';
+      card.innerHTML=`<div class="card-header"><div><div class="card-title">${ev.image||'📅'} ${ev.titre} <span class="badge type">${ev.type||''}</span></div><div class="muted">${ev.date} • ${ev.heure||''} • ${ev.lieu}</div></div><div class="card-actions"><button class="see"></button></div></div><p>${ev.description||''}</p>`; bindSubscribe(card.querySelector('.see'),ev); root.appendChild(card);});}
+    function renderList(events){const root=document.getElementById('list-view');root.innerHTML='';const table=document.createElement('table');table.className='table';table.innerHTML='<thead><tr><th>Date</th><th>Titre</th><th>Lieu</th><th>Places</th><th></th></tr></thead><tbody></tbody>';
+      events.forEach(ev=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${ev.date} ${ev.heure||''}</td><td>${ev.titre}</td><td>${ev.lieu}</td><td>${ev.max_participants||''}</td><td><button class="see"></button></td>`;table.querySelector('tbody').appendChild(tr);bindSubscribe(tr.querySelector('.see'),ev);}); root.appendChild(table);}
+    function renderCards(events){const root=document.getElementById('cards-view');root.innerHTML='';const grid=document.createElement('div');grid.className='cards-grid';
+      events.forEach(ev=>{const card=document.createElement('div');card.className='card';card.innerHTML=`<div class="card-header"><div><div class="card-title">${ev.image||'📅'} ${ev.titre} <span class="badge type">${ev.type||''}</span></div><div class="muted">${ev.date} • ${ev.heure||''} • ${ev.lieu}</div></div><div class="card-actions"><button class="see"></button></div></div><p>${ev.description||''}</p>`;bindSubscribe(card.querySelector('.see'),ev);grid.appendChild(card);}); root.appendChild(grid);}
+    function setActive(which){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(which+'-view').classList.add('active');document.querySelectorAll('.view-switch .tab').forEach(b=>b.classList.remove('active'));document.getElementById('view-'+which).classList.add('active');}
+    document.getElementById('view-timeline').onclick=()=>setActive('timeline');document.getElementById('view-list').onclick=()=>setActive('list');document.getElementById('view-cards').onclick=()=>setActive('cards');
+
+    async function loadPublic(){const {data}=await supabase.from('events').select('*').eq('visible',true).eq('archived',false).order('date',{ascending:true});const evs=data||[];
+      renderTimeline(evs);renderList(evs);renderCards(evs);updateNext(evs);} loadPublic();
+    function updateNext(events){const badge=document.getElementById('next-event-badge');if(!events.length){badge.textContent='';return;}const d0=new Date(events[0].date+'T'+(events[0].heure||'00:00'));const days=Math.max(0,Math.ceil((d0-new Date())/86400000));badge.textContent=`Prochain événement dans ${days} jours`; }
+    document.getElementById('insc-form').addEventListener('submit',async(e)=>{e.preventDefault();const fd=new FormData(e.target);
+      const p=fd.get('prenom')?.trim(),n=fd.get('nom')?.trim(),em=fd.get('email')?.trim(),tel=fd.get('telephone')?.trim();const c=fd.get('commentaire')?.trim()||'';const ps=!!fd.get('preparation_salle'),pe=!!fd.get('partie_evenement'),ee=!!fd.get('evenement_entier');const id=Number(fd.get('event_id'));
+      const emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);const telOk=/^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(tel);if(!p||!n||!emailOk||!telOk||(ps+pe+ee<1)){toast('Vérifie les champs requis.');return;}
+      const {error}=await supabase.from('inscriptions').insert({event_id:id,prenom:p,nom:n,email:em,telephone:tel,commentaire:c,preparation_salle:ps,partie_evenement:pe,evenement_entier:ee}); if(error){toast('Erreur inscription.');return;}
+      toast('Inscription enregistrée !'); modal.closeAll(); loadPublic();});
+  </script>
+  -->
 </body>
 </html>
