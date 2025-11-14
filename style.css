@@ -1881,3 +1881,62 @@ button:disabled, .btn[disabled] {
 .btn-see-details:hover {
   background: #c6f2ef;
 }
+.event-detail-admin {
+  margin-bottom: 2em;
+  background: #f9fafb;
+  padding: 1.1em 1.6em;
+  border-radius: 13px;
+  border-left: 5px solid #0d7377;
+}
+.event-detail-title {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: .2em;
+}
+.event-detail-meta {
+  color: #559;
+  font-size: .93em;
+  margin-bottom: .5em;
+}
+.event-detail-desc {
+  font-size: 1em;
+  line-height: 1.5;
+  color: #444;
+}
+.insc-table-admin th[data-sort]{
+  background: #f8f8f8;
+  position: relative;
+}
+.insc-table-admin th.sorted-asc::after {
+  content: "▲";
+  font-size: .7em;
+  margin-left: 5px;
+}
+.insc-table-admin th.sorted-desc::after {
+  content: "▼";
+  font-size: .7em;
+  margin-left: 5px;
+}
+.insc-details-row td {
+  background: #f5f6fa;
+  border-top: 1px solid #e1e4e8;
+  font-size: 0.97em;
+}
+.details-panel {
+  padding: 1em 1.5em;
+  border-radius: 8px;
+  color: #222;
+}
+.btn-see-details {
+  background: #eee;
+  color: #0d7377;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 1.5em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-see-details:hover {
+  background: #c6f2ef;
+}
