@@ -2043,3 +2043,80 @@ button:disabled, .btn[disabled] {
   }
   .roles-matrix tr { display: flex; flex-direction: column; margin-bottom: 0.5em; }
 }
+.form-admin-user {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+  padding: 1em 0.5em 0.5em 0.5em;
+}
+.form-row-admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4em;
+}
+.form-row-admin label {
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  font-size: 1em;
+  gap: 0.3em;
+}
+.form-row-admin input,
+.form-row-admin select {
+  padding: 0.65em 1em;
+  border-radius: 7px;
+  border: 1.5px solid #ccc;
+  font-size: 1em;
+}
+.roles-matrix {
+  margin-top: 1em;
+}
+.roles-matrix-title {
+  margin-bottom: 0.5em;
+  font-size: 1.04em;
+  color: #05525a;
+}
+.roles-matrix table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.roles-matrix th,
+.roles-matrix td {
+  padding: 0.45em 0.7em;
+  text-align: center;
+  font-size: 1em;
+}
+.roles-matrix th {
+  background: #f0f8ff;
+  color: #05525a;
+  font-weight: 700;
+}
+.roles-matrix td {
+  background: #f9faff;
+}
+.roles-matrix tr td:first-child {
+  text-align: left;
+  font-weight: 500;
+  color: #333;
+}
+.btn-large {
+  padding: 0.95rem 2rem;
+  font-size: 1em;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  background: #0d7377;
+  color: white;
+}
+.btn-large:hover {
+  background: #05525a;
+}
+@media (max-width: 600px) {
+  .form-row-admin { flex-direction: column; }
+  .roles-matrix table, .roles-matrix thead, .roles-matrix tbody {
+    display: block;
+  }
+  .roles-matrix tr { display: flex; flex-direction: column; margin-bottom: 0.5em; }
+}
