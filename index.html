@@ -257,23 +257,14 @@
   <div class="modal-card modal-card-large">
     <div class="modal-header">
       <h3 id="admin-user-mod-title">Nouvel Admin</h3>
-      <button class="modal-close" data-close>&times;</button>
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
     </div>
     <form id="form-admin-user" class="form-admin-user">
       <input type="hidden" id="admin-user-id">
       <div class="form-row-admin">
-        <label>
-          <span>Prénom</span>
-          <input id="admin-user-prenom" required>
-        </label>
-        <label>
-          <span>Nom</span>
-          <input id="admin-user-nom" required>
-        </label>
-        <label>
-          <span>Email</span>
-          <input id="admin-user-email" required type="email">
-        </label>
+        <label><span>Prénom</span><input id="admin-user-prenom" required></label>
+        <label><span>Nom</span><input id="admin-user-nom" required></label>
+        <label><span>Email</span><input id="admin-user-email" required type="email"></label>
       </div>
       <div class="form-row-admin">
         <label>
@@ -284,40 +275,19 @@
             <option value="super_admin">Super Admin</option>
           </select>
         </label>
-        <label>
-          <span>Mot de passe</span>
-          <input id="admin-user-pass" required type="password">
-        </label>
+        <label><span>Mot de passe</span><input id="admin-user-pass" required type="password"></label>
       </div>
       <div class="roles-matrix">
         <div class="roles-matrix-title"><b>Droits par onglet</b></div>
         <table>
-          <thead>
-            <tr>
-              <th>Module</th>
-              <th>Consultation</th>
-              <th>Modification</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Module</th><th>Consultation</th><th>Modification</th></tr></thead>
           <tbody>
-            <tr><td>Dashboard</td>
-              <td><input type="checkbox" class="mod-view" data-module="dashboard"></td>
-              <td><input type="checkbox" class="mod-edit" data-module="dashboard"></td></tr>
-            <tr><td>Événements</td>
-              <td><input type="checkbox" class="mod-view" data-module="events"></td>
-              <td><input type="checkbox" class="mod-edit" data-module="events"></td></tr>
-            <tr><td>Inscriptions</td>
-              <td><input type="checkbox" class="mod-view" data-module="inscriptions"></td>
-              <td><input type="checkbox" class="mod-edit" data-module="inscriptions"></td></tr>
-            <tr><td>Bénévoles</td>
-              <td><input type="checkbox" class="mod-view" data-module="volunteers"></td>
-              <td><input type="checkbox" class="mod-edit" data-module="volunteers"></td></tr>
-            <tr><td>Admins</td>
-              <td><input type="checkbox" class="mod-view" data-module="admins"></td>
-              <td><input type="checkbox" class="mod-edit" data-module="admins"></td></tr>
-            <tr><td>Association</td>
-              <td><input type="checkbox" class="mod-view" data-module="association"></td>
-              <td><input type="checkbox" class="mod-edit" data-module="association"></td></tr>
+            <tr><td>Dashboard</td><td><input type="checkbox" class="mod-view" data-module="dashboard"></td><td><input type="checkbox" class="mod-edit" data-module="dashboard"></td></tr>
+            <tr><td>Événements</td><td><input type="checkbox" class="mod-view" data-module="events"></td><td><input type="checkbox" class="mod-edit" data-module="events"></td></tr>
+            <tr><td>Inscriptions</td><td><input type="checkbox" class="mod-view" data-module="inscriptions"></td><td><input type="checkbox" class="mod-edit" data-module="inscriptions"></td></tr>
+            <tr><td>Bénévoles</td><td><input type="checkbox" class="mod-view" data-module="volunteers"></td><td><input type="checkbox" class="mod-edit" data-module="volunteers"></td></tr>
+            <tr><td>Admins</td><td><input type="checkbox" class="mod-view" data-module="admins"></td><td><input type="checkbox" class="mod-edit" data-module="admins"></td></tr>
+            <tr><td>Association</td><td><input type="checkbox" class="mod-view" data-module="association"></td><td><input type="checkbox" class="mod-edit" data-module="association"></td></tr>
           </tbody>
         </table>
       </div>
@@ -327,6 +297,7 @@
     </form>
   </div>
 </div>
+
 
 
 
