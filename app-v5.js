@@ -756,7 +756,7 @@ async function filterInscriptions() {
   const list = $('#inscriptions-list');
   let selectedEventData = null;
 
-  // En-tête événement détaillé si événement sélectionné
+  // Si un événement est sélectionné, affiche l'entête style carte
   if (eventId) {
     const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single();
     selectedEventData = event;
@@ -767,8 +767,6 @@ async function filterInscriptions() {
   const { data: inscs } = await query.order('date_inscription', { ascending: false });
 
   let html = '';
-
-  // Bloc en-tête événement style vignette
   if (selectedEventData) {
     html += `
       <div class="event-detail-admin">
@@ -787,12 +785,10 @@ async function filterInscriptions() {
     <table class="insc-table-admin">
       <thead>
         <tr>
-          <th data-sort="prenom">PRÉNOM</th>
-          <th data-sort="nom">NOM</th>
-          <th data-sort="email">EMAIL</th>
-          <th data-sort="telephone">TÉL</th>
           <th data-sort="heure_arrivee">ARRIVÉE</th>
           <th data-sort="heure_depart">DÉPART</th>
+          <th data-sort="prenom">PRÉNOM</th>
+          <th data-sort="nom">NOM</th>
           <th data-sort="participation">PARTICIPATIONS</th>
           <th data-sort="commentaire">COMMENTAIRE</th>
           <th></th>
@@ -807,27 +803,28 @@ async function filterInscriptions() {
     if (i.partie_evenement) parts.push('Partie');
     if (i.evenement_entier) parts.push('Entier');
     html += `<tr>
-      <td>${i.prenom}</td>
-      <td>${i.nom}</td>
-      <td>${i.email}</td>
-      <td>${i.telephone}</td>
       <td>${i.heure_arrivee || '-'}</td>
       <td>${i.heure_depart || '-'}</td>
+      <td>${i.prenom}</td>
+      <td>${i.nom}</td>
       <td>${parts.join(', ')}</td>
       <td>${i.commentaire || '-'}</td>
       <td><button class="btn-see-details" data-idx="${idx}">Voir +</button></td>
     </tr>
     <tr class="insc-details-row" style="display:none;">
-      <td colspan="9">
+      <td colspan="7">
         <div class="details-panel">
           <strong>Heure arrivée :</strong> ${i.heure_arrivee || '-'}<br>
           <strong>Heure départ :</strong> ${i.heure_depart || '-'}<br>
           <strong>Prénom :</strong> ${i.prenom}<br>
           <strong>Nom :</strong> ${i.nom}<br>
           <strong>Participations :</strong> ${parts.join(', ') || '-'}<br>
-          <strong>Email :</strong> ${i.email}<br>
-          <strong>Tél :</strong> ${i.telephone}<br>
-          <strong>Commentaire :</strong> ${i.commentaire || '-'}<br>
+          <hr>
+          <div style="color:#444; font-size: 0.97em;"><b>Autres infos :</b><br>
+            Email : ${i.email || '-'}<br>
+            Tél : ${i.telephone || '-'}<br>
+            Commentaire : ${i.commentaire || '-'}
+          </div>
         </div>
       </td>
     </tr>
@@ -837,7 +834,7 @@ async function filterInscriptions() {
   html += '</tbody></table>';
   list.innerHTML = html;
 
-  // Affichage/fermeture détails déroulants
+  // Ouvre/ferme le détail
   document.querySelectorAll('.btn-see-details').forEach(btn => {
     btn.onclick = function() {
       const detailsRow = btn.closest('tr').nextElementSibling;
