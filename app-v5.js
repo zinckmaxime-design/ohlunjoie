@@ -712,3 +712,42 @@ document.getElementById('form-edit-event').onsubmit = async function(e) {
   document.getElementById('modal-edit-event').hidden = true;
   loadAdminEvents();
 };
+document.getElementById('form-create-event').onsubmit = async function(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  
+  const titre = fd.get('titre')?.trim();
+  const date = fd.get('date')?.trim();
+  const heure = fd.get('heure')?.trim() || null;
+  const lieu = fd.get('lieu')?.trim();
+  const max_participants = Number(fd.get('max_participants'));
+  const description = fd.get('description')?.trim() || '';
+  const visible = !!fd.get('visible');
+  
+  if (!titre || !date || !lieu || max_participants < 1) {
+    toast('⚠️ Veuillez remplir tous les champs obligatoires');
+    return;
+  }
+  
+  const { error } = await supabase.from('events').insert({
+    titre,
+    date,
+    heure,
+    lieu,
+    max_participants,
+    description,
+    visible,
+    archived: false
+  });
+  
+  if (error) {
+    console.error(error);
+    toast('❌ Erreur lors de la création');
+    return;
+  }
+  
+  toast('✅ Événement créé avec succès !');
+  modal.closeAll();
+  e.target.reset();
+  loadAdminEvents();
+};
