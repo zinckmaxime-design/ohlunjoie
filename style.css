@@ -2120,3 +2120,107 @@ button:disabled, .btn[disabled] {
   }
   .roles-matrix tr { display: flex; flex-direction: column; margin-bottom: 0.5em; }
 }
+/* CONFIG PANEL - Association */
+.config-panel {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2em;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.config-section {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 2em;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.config-section h3 {
+  margin: 0 0 1.5em 0;
+  color: #05525a;
+  font-size: 1.2em;
+}
+
+.config-group {
+  margin-bottom: 1.5em;
+}
+
+.config-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.label-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.3em;
+  font-size: 1em;
+}
+
+.label-desc {
+  font-size: 0.85em;
+  color: #999;
+  margin-bottom: 0.5em;
+}
+
+.config-label input,
+.config-label textarea {
+  padding: 0.7em 1em;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+  transition: border-color 0.3s;
+}
+
+.config-label input:focus,
+.config-label textarea:focus {
+  outline: none;
+  border-color: #0d7377;
+  box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.1);
+}
+
+.config-actions {
+  display: flex;
+  gap: 1em;
+  margin-top: 2em;
+  padding-top: 1.5em;
+  border-top: 1px solid #ddd;
+}
+
+.config-actions button {
+  flex: 1;
+}
+
+.info-section {
+  background: #fff;
+  border: 2px solid #e0f7f9;
+}
+
+.preview-box {
+  background: #f0f9fb;
+  padding: 1.5em;
+  border-radius: 8px;
+  border: 1px solid #b3e5fc;
+  text-align: center;
+}
+
+#preview-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .config-panel {
+    grid-template-columns: 1fr;
+  }
+  
+  .config-actions {
+    flex-direction: column;
+  }
+  
+  .config-actions button {
+    width: 100%;
+  }
+}
