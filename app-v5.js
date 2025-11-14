@@ -754,13 +754,36 @@ document.getElementById('form-create-event').onsubmit = async function(e) {
 async function filterInscriptions() {
   const eventId = $('#event-filter')?.value;
   const list = $('#inscriptions-list');
+  let selectedEventData = null;
+
+  // En-tête événement détaillé si événement sélectionné
+  if (eventId) {
+    const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single();
+    selectedEventData = event;
+  }
 
   let query = supabase.from('inscriptions').select('*');
   if (eventId) query = query.eq('event_id', eventId);
-
   const { data: inscs } = await query.order('date_inscription', { ascending: false });
 
-  let html = `
+  let html = '';
+
+  // Bloc en-tête événement style vignette
+  if (selectedEventData) {
+    html += `
+      <div class="event-detail-admin">
+        <div class="event-detail-title">${selectedEventData.image || '📅'} <strong>${selectedEventData.titre}</strong></div>
+        <div class="event-detail-meta">
+          ${selectedEventData.date || ''} 
+          ${selectedEventData.heure ? '• ' + selectedEventData.heure : ''} 
+          ${selectedEventData.lieu ? '• ' + selectedEventData.lieu : ''}
+        </div>
+        <div class="event-detail-desc">${selectedEventData.description || ''}</div>
+      </div>
+    `;
+  }
+
+  html += `
     <table class="insc-table-admin">
       <thead>
         <tr>
@@ -797,13 +820,13 @@ async function filterInscriptions() {
     <tr class="insc-details-row" style="display:none;">
       <td colspan="9">
         <div class="details-panel">
-          <strong>Prénom :</strong> ${i.prenom}<br>
-          <strong>Nom :</strong> ${i.nom}<br>
-          <strong>Email :</strong> ${i.email}<br>
-          <strong>Tél :</strong> ${i.telephone}<br>
           <strong>Heure arrivée :</strong> ${i.heure_arrivee || '-'}<br>
           <strong>Heure départ :</strong> ${i.heure_depart || '-'}<br>
+          <strong>Prénom :</strong> ${i.prenom}<br>
+          <strong>Nom :</strong> ${i.nom}<br>
           <strong>Participations :</strong> ${parts.join(', ') || '-'}<br>
+          <strong>Email :</strong> ${i.email}<br>
+          <strong>Tél :</strong> ${i.telephone}<br>
           <strong>Commentaire :</strong> ${i.commentaire || '-'}<br>
         </div>
       </td>
@@ -814,7 +837,7 @@ async function filterInscriptions() {
   html += '</tbody></table>';
   list.innerHTML = html;
 
-  // Détails déroulants
+  // Affichage/fermeture détails déroulants
   document.querySelectorAll('.btn-see-details').forEach(btn => {
     btn.onclick = function() {
       const detailsRow = btn.closest('tr').nextElementSibling;
@@ -843,7 +866,6 @@ async function filterInscriptions() {
           : tdB.localeCompare(tdA, 'fr');
       });
 
-      // Réordonne le tbody : chaque ligne suivie directement de son details
       tbody.innerHTML = '';
       rows.forEach((tr, idx) => {
         tbody.appendChild(tr);
