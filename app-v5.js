@@ -322,44 +322,136 @@ async function filterInscriptions() {
 // BÉNÉVOLES
 async function loadAdminVolunteers() {
   const host = $('#module-volunteers');
-  host.innerHTML = '<p>Chargement des bénévoles...</p>';
-  
-  let yearFilter = new Date().getFullYear();
-  
-  const { data: inscs } = await supabase.from('inscriptions').select('prenom, nom, email');
-  const uniqueVolunteers = {};
-  inscs.forEach(i => {
-    const key = i.email;
-    if (!uniqueVolunteers[key]) uniqueVolunteers[key] = { prenom: i.prenom, nom: i.nom, email: i.email, count: 0 };
-    uniqueVolunteers[key].count++;
-  });
-  
-  let html = `<label>Filtrer par année: 
-    <select onchange="loadAdminVolunteers()">
-      <option value="2025">2025</option>
-      <option value="2024">2024</option>
-      <option value="2023">2023</option>
-    </select>
-  </label>
-  <table>
-    <thead><tr><th>Prénom</th><th>Nom</th><th>Email</th><th>Participations</th><th>Taux Présence</th></tr></thead>
-    <tbody>`;
-  
-  Object.values(uniqueVolunteers).forEach(v => {
-    html += `<tr>
-      <td>${v.prenom}</td>
-      <td>${v.nom}</td>
-      <td>${v.email}</td>
-      <td>${v.count}</td>
-      <td>
-        <div class="progress-bar"><span style="width:${Math.min(100, v.count * 20)}%"></span></div>
-      </td>
-    </tr>`;
-  });
-  
-  html += '</tbody></table>';
-  host.innerHTML = html;
+  host.innerHTML = `<p>Chargement des bénévoles...</p>`;
+
+  // Génère les années disponibles depuis la BDD (optionnel)
+  const thisYear = new Date().getFullYear();
+  const years = [thisYear, thisYear + 1];
+  let selectHtml = `<label>Filtrer par année: 
+    <select id="year-volunteers" style="margin-right:1em;">${years.map(y =>
+      `<option value="${y}">${y}</option>`).join('')}</select>
+    <input id="search-volunteers" type="text" placeholder="Recherche prénom, nom, email..." style="padding:0.45em 1em;border-radius:8px;border:1.5px solid #ddd; margin-left:1em;width:260px;">
+  </label>`;
+
+  host.innerHTML = selectHtml + `<div id="volunteers-list"></div>`;
+
+  async function renderList() {
+    const year = $('#year-volunteers').value;
+    const search = $('#search-volunteers').value.trim().toLowerCase();
+    // On filtre sur l’année
+    const { data: events } = await supabase.from('events').select('id, date').gte('date', year + '-01-01').lte('date', year + '-12-31');
+    const { data: inscs } = await supabase.from('inscriptions').select('*');
+    // Récup totaux événements pour % participation
+    const allEventIds = new Set(events.map(e => e.id));
+
+    // Création mapping bénévoles
+    const volunteers = {};
+    inscs.forEach(i => {
+      // Filtrer sur events de l'année
+      if (!allEventIds.has(i.event_id)) return;
+      const key = (i.email || '').toLowerCase();
+      if (!key) return;
+      if (!volunteers[key]) {
+        volunteers[key] = {
+          prenom: i.prenom,
+          nom: i.nom,
+          email: i.email,
+          prepa: 0,
+          entier: 0,
+          partie: 0,
+          nb_events_present: new Set(),
+          participations: 0
+        };
+      }
+      if (i.preparation_salle) volunteers[key].prepa++;
+      if (i.evenement_entier) volunteers[key].entier++;
+      if (i.partie_evenement) volunteers[key].partie++;
+      volunteers[key].participations++;
+      volunteers[key].nb_events_present.add(i.event_id);
+    });
+
+    // Préparer pour affichage et filtrage par recherche
+    let array = Object.values(volunteers);
+    if (search) {
+      array = array.filter(v =>
+        (v.prenom || '').toLowerCase().includes(search) ||
+        (v.nom || '').toLowerCase().includes(search) ||
+        (v.email || '').toLowerCase().includes(search)
+      );
+    }
+
+    // Calcul du nombre d'événements total pour l'année
+    const totalEvents = allEventIds.size;
+
+    // Sort by prénom par défaut
+    array.sort((a, b) => (a.prenom || '').localeCompare(b.prenom || '', 'fr'));
+
+    // Construction du tableau HTML
+    let html = `
+      <table class="volunteers-table-admin">
+        <thead>
+          <tr>
+            <th data-sort="prenom">Prénom</th>
+            <th data-sort="nom">Nom</th>
+            <th data-sort="email">Email</th>
+            <th data-sort="prepa">Prépa</th>
+            <th data-sort="entier">Entier</th>
+            <th data-sort="partie">Partie</th>
+            <th data-sort="presence">Présence (%)</th>
+            <th data-sort="participations">Nb participations</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    array.forEach(v => {
+      const pct = totalEvents ? Math.round(v.nb_events_present.size / totalEvents * 100) : 0;
+      html += `<tr>
+        <td>${v.prenom}</td>
+        <td>${v.nom}</td>
+        <td>${v.email}</td>
+        <td>${v.prepa}</td>
+        <td>${v.entier}</td>
+        <td>${v.partie}</td>
+        <td>${pct}</td>
+        <td>${v.participations}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    $('#volunteers-list').innerHTML = html;
+
+    // Tri interactif sur chaque th
+    document.querySelectorAll('.volunteers-table-admin th[data-sort]').forEach((th, colIdx) => {
+      th.style.cursor = 'pointer';
+      th.onclick = function() {
+        let rows = Array.from(th.closest('table').querySelectorAll('tbody tr'));
+        const asc = !th.classList.toggle('sorted-asc');
+        th.classList.remove('sorted-desc');
+        if (!asc) th.classList.add('sorted-desc');
+        rows.sort((a, b) => {
+          const tdA = a.children[colIdx].textContent.trim().toLowerCase();
+          const tdB = b.children[colIdx].textContent.trim().toLowerCase();
+          if (colIdx >= 3) { // numériques
+            return asc
+              ? (+tdA) - (+tdB)
+              : (+tdB) - (+tdA);
+          }
+          return asc
+            ? tdA.localeCompare(tdB, 'fr')
+            : tdB.localeCompare(tdA, 'fr');
+        });
+        // réinsère le tbody trié
+        const tbody = th.closest('table').querySelector('tbody');
+        tbody.innerHTML = '';
+        rows.forEach(tr => tbody.appendChild(tr));
+      };
+    });
+  }
+
+  host.querySelector('#year-volunteers').onchange = renderList;
+  host.querySelector('#search-volunteers').oninput = renderList;
+  renderList();
 }
+
 
 // ADMINS
 async function loadAdminUsers() {
