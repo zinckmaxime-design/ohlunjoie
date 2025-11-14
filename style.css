@@ -1940,3 +1940,24 @@ button:disabled, .btn[disabled] {
 .btn-see-details:hover {
   background: #c6f2ef;
 }
+#search-volunteers {
+  font-size: 1em;
+  margin-bottom: 1em;
+}
+.volunteers-table-admin th[data-sort]{
+  background: #f8f8f8;
+  position: relative;
+}
+.volunteers-table-admin th.sorted-asc::after {
+  content: "▲";
+  font-size: .7em;
+  margin-left: 5px;
+}
+.volunteers-table-admin th.sorted-desc::after {
+  content: "▼";
+  font-size: .7em;
+  margin-left: 5px;
+}
+.volunteers-table-admin tr td, .volunteers-table-admin tr th {
+  padding: .5em .8em;
+}
