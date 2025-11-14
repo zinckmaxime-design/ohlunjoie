@@ -516,7 +516,6 @@ async function loadAdminVolunteers() {
 // ADMINS - GESTION COMPLÈTE (Création/Édition/Suppression)
 // ============================================================
 
-// Ouvre la modale en mode ÉDITION pré-rempli
 async function openEditAdmin(adminData, droits) {
   document.getElementById('admin-user-id').value = adminData?.id || '';
   document.getElementById('admin-user-prenom').value = adminData?.prenom || '';
@@ -540,7 +539,6 @@ async function openEditAdmin(adminData, droits) {
   modal.open('#modal-admin-user');
 }
 
-// Édition d'un admin existant (appelée au clic du bouton ✏️)
 async function adminEditUser(id) {
   const { data: admin } = await supabase.from('admins').select('*').eq('id', id).single();
   if (!admin) return toast('❌ Admin introuvable');
@@ -553,7 +551,6 @@ async function adminEditUser(id) {
   })));
 }
 
-// Suppression d'un admin (appelée au clic du bouton 🗑️)
 async function adminDeleteUser(id) {
   if (!confirm("⚠️ Confirmer la suppression de cet administrateur ?")) return;
   
@@ -563,7 +560,6 @@ async function adminDeleteUser(id) {
   loadAdminUsers();
 }
 
-// Soumission du formulaire (création ou édition)
 document.getElementById('form-admin-user').onsubmit = async function(e) {
   e.preventDefault();
   
@@ -622,7 +618,6 @@ document.getElementById('form-admin-user').onsubmit = async function(e) {
   }
 };
 
-// AFFICHAGE DE LA LISTE DES ADMINS
 async function loadAdminUsers() {
   if (!adminPermissions.admins?.view) {
     $('#module-admins').innerHTML = '<p>❌ Accès refusé</p>';
@@ -666,7 +661,6 @@ async function loadAdminUsers() {
   host.innerHTML = html;
 }
 
-// Création d'un nouvel admin
 function adminCreateUser() {
   document.getElementById('form-admin-user').reset();
   document.getElementById('admin-user-id').value = '';
@@ -675,22 +669,9 @@ function adminCreateUser() {
   modal.open('#modal-admin-user');
 }
 
-// ASSOCIATION
+// ============================================================
 // ASSOCIATION - VERSION CORRIGÉE ET FONCTIONNELLE
-// Initialiser la config au démarrage si elle n'existe pas
-async function initSiteConfig() {
-  const { data: configs } = await supabase.from('site_config').select('id').limit(1);
-  if (!configs || configs.length === 0) {
-    await supabase.from('site_config').insert([{
-      association_name: 'Ohlun\'Joie',
-      intro_text: 'Notre association rassemble des bénévoles passionnés...',
-      association_description: 'Association locale de bénévolat',
-      logo_url: null
-    }]);
-    console.log('✅ Config initiale créée');
-  }
-}
-initSiteConfig();
+// ============================================================
 
 async function loadAdminAssociation() {
   const host = $('#module-association');
@@ -717,7 +698,7 @@ async function loadAdminAssociation() {
           <label class="config-label">
             <span class="label-title">📛 Nom de l'association</span>
             <span class="label-desc">Ex: Ohlun'Joie, La Main Tendue, etc.</span>
-            <input id="name-input" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
+            <input id="config-name" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
           </label>
         </div>
 
@@ -725,7 +706,7 @@ async function loadAdminAssociation() {
           <label class="config-label">
             <span class="label-title">📝 Texte d'introduction (Site Public)</span>
             <span class="label-desc">Affiché sur la page publique des événements</span>
-            <textarea id="intro-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
+            <textarea id="config-intro" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
           </label>
         </div>
 
@@ -733,13 +714,13 @@ async function loadAdminAssociation() {
           <label class="config-label">
             <span class="label-title">👥 Description pour les bénévoles</span>
             <span class="label-desc">Texte encourageant pour les volontaires</span>
-            <textarea id="desc-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
+            <textarea id="config-desc" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
           </label>
         </div>
 
         <div class="config-actions">
-          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">💾 Enregistrer les modifications</button>
-          <button class="btn btn-secondary" onclick="resetAssociationForm()">↺ Réinitialiser</button>
+          <button class="btn btn-primary btn-large" id="btn-save-config">💾 Enregistrer les modifications</button>
+          <button class="btn btn-secondary" id="btn-reset-config">↺ Réinitialiser</button>
         </div>
       </div>
 
@@ -750,14 +731,22 @@ async function loadAdminAssociation() {
             ${logoDisplay ? logoDisplay : '<span style="font-size:3em;">🤝</span>'}
           </div>
           <div id="preview-name" style="font-size:1.3em;font-weight:bold;text-align:center;margin-bottom:0.5em;">${config?.association_name || 'Ohlun\'Joie'}</div>
-          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Votre texte d\'introduction...'}</div>
+          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Votre texte...'}</div>
         </div>
       </div>
     </div>
   `;
 
-  // GESTION UPLOAD IMAGE
-  const logoUpload = $('#logo-upload');
+  setTimeout(() => {
+    document.getElementById('btn-save-config').onclick = saveConfigData;
+    document.getElementById('btn-reset-config').onclick = () => {
+      if (confirm('Réinitialiser le formulaire?')) {
+        loadAdminAssociation();
+      }
+    };
+  }, 100);
+
+  const logoUpload = document.getElementById('logo-upload');
   if (logoUpload) {
     logoUpload.addEventListener('change', function(e) {
       const file = e.target.files[0];
@@ -772,48 +761,30 @@ async function loadAdminAssociation() {
       reader.onload = (event) => {
         const base64 = event.target.result;
         
-        // Afficher l'aperçu
-        const previewDiv = document.getElementById('logo-preview');
-        previewDiv.innerHTML = `
+        document.getElementById('logo-preview').innerHTML = `
           <div style="border:2px dashed #0d7377;border-radius:8px;padding:1em;text-align:center;">
             <img src="${base64}" alt="Preview" style="max-width:100%;max-height:150px;border-radius:6px;">
-            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">✅ Image sélectionnée</p>
+            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">✅ Prête à enregistrer</p>
           </div>
         `;
         
-        // Mettre à jour aussi l'aperçu public
-        const previewLogo = document.getElementById('preview-logo');
-        if (previewLogo) {
-          previewLogo.innerHTML = `<img src="${base64}" alt="Logo Preview" style="max-width:150px;height:auto;border-radius:8px;">`;
-        }
+        document.getElementById('preview-logo').innerHTML = `<img src="${base64}" alt="Logo" style="max-width:150px;height:auto;border-radius:8px;">`;
         
-        // Stocker en base64 dans un attribut data
         logoUpload.dataset.imageBase64 = base64;
-        toast('✅ Image uploadée (aperçu mis à jour)');
+        toast('✅ Image sélectionnée');
       };
       reader.readAsDataURL(file);
     });
   }
 }
 
-// SAUVEGARDER LA CONFIGURATION
-// SAUVEGARDER LA CONFIGURATION - VERSION CORRIGÉE
-async function saveAssociationConfig() {
-  console.log('🔄 Tentative d\'enregistrement...');
+async function saveConfigData() {
+  console.log('💾 Sauvegarde en cours...');
   
-  const nameInput = document.getElementById('name-input');
-  const introInput = document.getElementById('intro-input');
-  const descInput = document.getElementById('desc-input');
+  const name = document.getElementById('config-name')?.value?.trim();
+  const intro = document.getElementById('config-intro')?.value?.trim();
+  const desc = document.getElementById('config-desc')?.value?.trim();
   const logoUpload = document.getElementById('logo-upload');
-  
-  if (!nameInput || !introInput || !descInput) {
-    toast('⚠️ Formulaire non trouvé - recharge la page');
-    return;
-  }
-  
-  const name = nameInput.value?.trim();
-  const intro = introInput.value?.trim();
-  const desc = descInput.value?.trim();
   const logoBase64 = logoUpload?.dataset.imageBase64 || null;
   
   if (!name) {
@@ -821,90 +792,52 @@ async function saveAssociationConfig() {
     return;
   }
   
-  // Récupérer la config existante
-  const { data: configs, error: fetchError } = await supabase
-    .from('site_config')
-    .select('id')
-    .limit(1);
-  
-  if (fetchError) {
-    console.error('Erreur fetch:', fetchError);
-    toast('❌ Erreur lecture base');
-    return;
-  }
-  
-  const config = configs && configs.length > 0 ? configs[0] : null;
-  
-  const updateData = { 
-    association_name: name, 
-    intro_text: intro, 
-    association_description: desc
-  };
-  
-  // Si une nouvelle image a été uploadée, la stocker
-  if (logoBase64) {
-    updateData.logo_url = logoBase64;
-    console.log('📸 Image à enregistrer (longueur base64:', logoBase64.length, ')');
-  }
-  
-  console.log('💾 Données à enregistrer:', updateData);
-  
   try {
+    const { data: configs } = await supabase.from('site_config').select('id').limit(1);
+    const config = configs && configs.length > 0 ? configs[0] : null;
+    
+    const updateData = { 
+      association_name: name, 
+      intro_text: intro, 
+      association_description: desc
+    };
+    
+    if (logoBase64) {
+      updateData.logo_url = logoBase64;
+    }
+    
     if (config) {
-      console.log('🔄 Mise à jour config existante (ID:', config.id, ')...');
+      console.log('🔄 UPDATE config ID:', config.id);
       const { error } = await supabase
         .from('site_config')
         .update(updateData)
         .eq('id', config.id);
       
-      if (error) {
-        console.error('❌ Erreur update:', error);
-        throw error;
-      }
+      if (error) throw error;
     } else {
-      console.log('➕ Création nouvelle config...');
+      console.log('➕ INSERT nouvelle config');
       const { error } = await supabase
         .from('site_config')
         .insert([updateData]);
       
-      if (error) {
-        console.error('❌ Erreur insert:', error);
-        throw error;
-      }
+      if (error) throw error;
     }
     
     console.log('✅ Succès!');
-    toast('✅ Configuration enregistrée avec succès');
+    toast('✅ Enregistré avec succès');
     
-    // Réinitialiser l'upload après succès
     if (logoUpload) {
       logoUpload.value = '';
       delete logoUpload.dataset.imageBase64;
     }
     
-    // Recharger après 1 seconde
     setTimeout(() => {
       loadAdminAssociation();
     }, 1000);
     
   } catch (err) {
-    console.error('❌ Erreur complète:', err);
-    toast('❌ Erreur: ' + (err.message || 'Erreur inconnue'));
-  }
-}
-
-// RÉINITIALISER LE FORMULAIRE
-function resetAssociationForm() {
-  if (confirm('Êtes-vous sûr? Les changements non sauvegardés seront perdus.')) {
-    loadAdminAssociation();
-  }
-}
-
-
-// RÉINITIALISER LE FORMULAIRE
-function resetAssociationForm() {
-  if (confirm('Êtes-vous sûr? Les changements non sauvegardés seront perdus.')) {
-    loadAdminAssociation();
+    console.error('❌ Erreur sauvegarde:', err);
+    toast('❌ Erreur: ' + err.message);
   }
 }
 
