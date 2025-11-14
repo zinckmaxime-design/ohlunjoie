@@ -786,8 +786,6 @@ async function saveConfigData() {
   const desc = document.getElementById('config-desc')?.value?.trim();
   const logoUpload = document.getElementById('logo-upload');
   
-  console.log('📝 Données:', { name, intro, desc, hasImage: !!logoUpload?.dataset.imageBase64 });
-  
   if (!name) {
     toast('⚠️ Le nom est requis');
     return;
@@ -803,33 +801,23 @@ async function saveConfigData() {
       association_description: desc
     };
     
-    // IMPORTANT: Si image, l'ajouter
     if (logoUpload?.dataset.imageBase64) {
       updateData.logo_url = logoUpload.dataset.imageBase64;
-      console.log('📸 Image à enregistrer');
     }
     
     if (config) {
-      console.log('🔄 UPDATE ID:', config.id, updateData);
-      const { error } = await supabase
-        .from('site_config')
-        .update(updateData)
-        .eq('id', config.id);
-      
+      const { error } = await supabase.from('site_config').update(updateData).eq('id', config.id);
       if (error) throw error;
     } else {
-      console.log('➕ INSERT');
-      const { error } = await supabase
-        .from('site_config')
-        .insert([updateData]);
-      
+      const { error } = await supabase.from('site_config').insert([updateData]);
       if (error) throw error;
     }
     
-    console.log('✅ ENREGISTRÉ');
     toast('✅ Enregistré !');
     
-    // RAFRAÎCHIR
+    // ✅ CECI EST LA CLÉE : RECHARGE LE HEADER AUSSI
+    await loadSiteConfig();
+    
     await new Promise(r => setTimeout(r, 500));
     loadAdminAssociation();
     
@@ -839,7 +827,8 @@ async function saveConfigData() {
   }
 }
 
-console.log('✅ saveConfigData REMPLACÉE');
+console.log('✅ saveConfigData MISE À JOUR');
+
 
 
 // EVENT STUBS
