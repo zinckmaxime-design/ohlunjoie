@@ -670,3 +670,36 @@ function scheduleAutoArchive() {
   }, 60000);
 }
 scheduleAutoArchive();
+
+function openEventEditModal(ev) {
+  document.getElementById('modal-edit-event').hidden = false;
+  document.getElementById('edit-event-id').value = ev.id;
+  document.getElementById('edit-event-titre').value = ev.titre || '';
+  document.getElementById('edit-event-date').value = ev.date || '';
+  document.getElementById('edit-event-heure').value = ev.heure || '';
+  document.getElementById('edit-event-lieu').value = ev.lieu || '';
+  document.getElementById('edit-event-max').value = ev.max_participants || 0;
+  document.getElementById('edit-event-description').value = ev.description || '';
+}
+
+function adminEditEvent(id) {
+  supabase.from('events').select('*').eq('id', id).single().then(({ data }) => {
+    if (!data) return toast('Erreur chargement événement');
+    openEventEditModal(data);
+  });
+}
+
+document.getElementById('form-edit-event').onsubmit = async function(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-event-id').value;
+  const titre = document.getElementById('edit-event-titre').value;
+  const date = document.getElementById('edit-event-date').value;
+  const heure = document.getElementById('edit-event-heure').value;
+  const lieu = document.getElementById('edit-event-lieu').value;
+  const max = Number(document.getElementById('edit-event-max').value);
+  const desc = document.getElementById('edit-event-description').value;
+  await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
+  toast('Événement modifié !');
+  document.getElementById('modal-edit-event').hidden = true;
+  loadAdminEvents();
+};
