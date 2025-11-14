@@ -670,3 +670,62 @@ function scheduleAutoArchive() {
   }, 60000);
 }
 scheduleAutoArchive();
+
+// Fonction d'ouverture de l'édition
+function adminEditEvent(eventId) {
+  // Cherche les infos de l'événement à modifier
+  supabase.from('events').select('*').eq('id', eventId).single().then(({ data }) => {
+    if (!data) return toast('Erreur chargement event');
+    openEventEditModal(data);
+  });
+}
+
+// Insère ce code HTML pour la modale d'édition à la fin de ton index.html (hors des balises <main> mais avant </body>)
+/*
+<div id="modal-edit-event" class="modal" hidden>
+  <div class="modal-card">
+    <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    <h3>Éditer événement</h3>
+    <form id="form-edit-event">
+      <input type="hidden" name="id" id="edit-event-id">
+      <label>Titre<input name="titre" id="edit-event-titre" required></label>
+      <label>Date<input name="date" type="date" id="edit-event-date" required></label>
+      <label>Heure<input name="heure" type="time" id="edit-event-heure"></label>
+      <label>Lieu<input name="lieu" id="edit-event-lieu"></label>
+      <label>Max inscrits<input name="max_participants" type="number" id="edit-event-max"></label>
+      <label>Description<textarea name="description" id="edit-event-description" rows="2"></textarea></label>
+      <div style="margin-top:1em;">
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+*/
+
+// Ajoute ceci dans ton JS :
+function openEventEditModal(ev) {
+  document.getElementById('modal-edit-event').hidden = false;
+  document.getElementById('edit-event-id').value = ev.id;
+  document.getElementById('edit-event-titre').value = ev.titre || '';
+  document.getElementById('edit-event-date').value = ev.date || '';
+  document.getElementById('edit-event-heure').value = ev.heure || '';
+  document.getElementById('edit-event-lieu').value = ev.lieu || '';
+  document.getElementById('edit-event-max').value = ev.max_participants || 0;
+  document.getElementById('edit-event-description').value = ev.description || '';
+}
+
+// Handler submit édition
+document.getElementById('form-edit-event').onsubmit = async function(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-event-id').value;
+  const titre = document.getElementById('edit-event-titre').value;
+  const date = document.getElementById('edit-event-date').value;
+  const heure = document.getElementById('edit-event-heure').value;
+  const lieu = document.getElementById('edit-event-lieu').value;
+  const max = Number(document.getElementById('edit-event-max').value);
+  const desc = document.getElementById('edit-event-description').value;
+  await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
+  toast('Événement modifié !');
+  document.getElementById('modal-edit-event').hidden = true;
+  loadAdminEvents(); // Recharge la liste
+};
