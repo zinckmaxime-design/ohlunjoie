@@ -446,7 +446,6 @@ async function saveAssociationConfig() {
 
 // STUBS (à compléter)
 function adminCreateEvent() { toast('Créer événement - À développer'); }
-function adminEditEvent(id) { toast('Éditer événement ' + id); }
 function adminDeleteEvent(id) { toast('Supprimer événement ' + id); }
 function adminCreateUser() { toast('Créer admin - À développer'); }
 function adminEditUser(id) { toast('Éditer admin ' + id); }
@@ -671,6 +670,7 @@ function scheduleAutoArchive() {
 }
 scheduleAutoArchive();
 
+// EDITION ÉVÉNEMENT - MODALE
 function openEventEditModal(ev) {
   document.getElementById('modal-edit-event').hidden = false;
   document.getElementById('edit-event-id').value = ev.id;
