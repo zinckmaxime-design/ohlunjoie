@@ -176,6 +176,83 @@
     </form>
   </div>
 </div>
+<!-- MODALE CRÉATION EVENEMENT - VERSION ESTHÉTIQUE -->
+<div id="modal-create-event" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="create-title">
+  <div class="modal-card modal-card-large">
+    <div class="modal-header">
+      <h3 id="create-title">➕ Créer un nouvel événement</h3>
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    </div>
+    
+    <form id="form-create-event" class="form-edit-event">
+      
+      <!-- Section Informations principales -->
+      <div class="form-section">
+        <h4 class="section-title">ℹ️ Infos générales</h4>
+        
+        <div class="form-row-2col">
+          <label class="form-label">
+            <span class="label-text">Titre de l'événement *</span>
+            <input type="text" name="titre" required placeholder="ex: Conférence citoyenne">
+          </label>
+          
+          <label class="form-label">
+            <span class="label-text">Lieu *</span>
+            <input type="text" name="lieu" required placeholder="ex: Mairie">
+          </label>
+        </div>
+        
+        <label class="form-label full-width">
+          <span class="label-text">Description</span>
+          <textarea name="description" rows="3" placeholder="Décrivez brièvement l'événement..."></textarea>
+        </label>
+      </div>
+      
+      <!-- Section Date et horaire -->
+      <div class="form-section">
+        <h4 class="section-title">📅 Date & Horaire</h4>
+        
+        <div class="form-row-2col">
+          <label class="form-label">
+            <span class="label-text">Date *</span>
+            <input type="date" name="date" required>
+          </label>
+          
+          <label class="form-label">
+            <span class="label-text">Heure de début</span>
+            <input type="time" name="heure">
+          </label>
+        </div>
+      </div>
+      
+      <!-- Section Capacité -->
+      <div class="form-section">
+        <h4 class="section-title">👥 Capacité</h4>
+        
+        <label class="form-label">
+          <span class="label-text">Nombre maximum de participants *</span>
+          <input type="number" name="max_participants" min="1" required placeholder="ex: 50">
+        </label>
+      </div>
+      
+      <!-- Section Visibilité -->
+      <div class="form-section">
+        <h4 class="section-title">👁️ Visibilité</h4>
+        
+        <label class="form-checkbox">
+          <input type="checkbox" name="visible" checked>
+          <span class="checkbox-label">Rendre cet événement visible sur le site public</span>
+        </label>
+      </div>
+      
+      <!-- Boutons d'action -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">✅ Créer l'événement</button>
+        <button type="button" class="btn btn-secondary btn-large" data-close>Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 
 </body>
