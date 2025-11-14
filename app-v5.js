@@ -294,29 +294,105 @@ async function loadAdminInscriptions() {
 async function filterInscriptions() {
   const eventId = $('#event-filter')?.value;
   const list = $('#inscriptions-list');
-  
+  let selectedEventData = null;
+
+  if (eventId) {
+    const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single();
+    selectedEventData = event;
+  }
+
   let query = supabase.from('inscriptions').select('*');
   if (eventId) query = query.eq('event_id', eventId);
-  
   const { data: inscs } = await query.order('date_inscription', { ascending: false });
-  
-  let html = '<table><thead><tr><th>Prénom</th><th>Nom</th><th>Email</th><th>Tél</th><th>Participations</th><th>Commentaire</th></tr></thead><tbody>';
+
+  let countPrep = 0, countEntier = 0, countPartie = 0;
   inscs.forEach(i => {
+    if (i.preparation_salle) countPrep++;
+    if (i.evenement_entier) countEntier++;
+    if (i.partie_evenement) countPartie++;
+  });
+
+  let html = '';
+  if (selectedEventData) {
+    html += `
+      <div class="event-detail-admin">
+        <div class="event-detail-title">${selectedEventData.image || '📅'} <strong>${selectedEventData.titre}</strong></div>
+        <div class="event-detail-meta">
+          ${selectedEventData.date || ''} 
+          ${selectedEventData.heure ? '• ' + selectedEventData.heure : ''} 
+          ${selectedEventData.lieu ? '• ' + selectedEventData.lieu : ''}
+        </div>
+        <div class="event-detail-desc">${selectedEventData.description || ''}</div>
+        <div class="event-detail-totals">
+          <b>Préparation&nbsp;:</b> ${countPrep} &nbsp;|&nbsp; 
+          <b>Soirée entière&nbsp;:</b> ${countEntier} &nbsp;|&nbsp; 
+          <b>Partie de la soirée&nbsp;:</b> ${countPartie}
+        </div>
+      </div>
+    `;
+  }
+
+  html += `
+    <table class="insc-table-admin">
+      <thead>
+        <tr>
+          <th data-sort="heure_arrivee">ARRIVÉE</th>
+          <th data-sort="heure_depart">DÉPART</th>
+          <th data-sort="prenom">PRÉNOM</th>
+          <th data-sort="nom">NOM</th>
+          <th data-sort="participation">PARTICIPATIONS</th>
+          <th data-sort="commentaire">COMMENTAIRE</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  inscs.forEach((i, idx) => {
     const parts = [];
     if (i.preparation_salle) parts.push('Prépa');
     if (i.partie_evenement) parts.push('Partie');
     if (i.evenement_entier) parts.push('Entier');
+
+    const autres = [];
+    if (i.email) autres.push('Email&nbsp;:&nbsp;' + i.email);
+    if (i.telephone) autres.push('Tél&nbsp;:&nbsp;' + i.telephone);
+    
     html += `<tr>
+      <td>${i.heure_arrivee || '-'}</td>
+      <td>${i.heure_depart || '-'}</td>
       <td>${i.prenom}</td>
       <td>${i.nom}</td>
-      <td>${i.email}</td>
-      <td>${i.telephone}</td>
       <td>${parts.join(', ')}</td>
       <td>${i.commentaire || '-'}</td>
-    </tr>`;
+      <td><button class="btn-see-details" data-idx="${idx}">Voir +</button></td>
+    </tr>
+    <tr class="insc-details-row" style="display:none;">
+      <td colspan="7">
+        <div class="details-panel">
+          <strong>Heure arrivée :</strong> ${i.heure_arrivee || '-'}<br>
+          <strong>Heure départ :</strong> ${i.heure_depart || '-'}<br>
+          <strong>Prénom :</strong> ${i.prenom}<br>
+          <strong>Nom :</strong> ${i.nom}<br>
+          <strong>Participations :</strong> ${parts.join(', ') || '-'}<br>
+          ${autres.length > 0 ? '<hr><b>Autres infos :</b><br>' + autres.join('<br>') : ''}
+          ${i.commentaire ? '<br><b>Commentaire :</b> ' + i.commentaire : ''}
+        </div>
+      </td>
+    </tr>
+    `;
   });
+
   html += '</tbody></table>';
   list.innerHTML = html;
+
+  document.querySelectorAll('.btn-see-details').forEach(btn => {
+    btn.onclick = function() {
+      const detailsRow = btn.closest('tr').nextElementSibling;
+      detailsRow.style.display = detailsRow.style.display === 'table-row' ? 'none' : 'table-row';
+      btn.textContent = detailsRow.style.display === 'table-row' ? 'Fermer' : 'Voir +';
+    };
+  });
 }
 
 // BÉNÉVOLES
@@ -324,7 +400,6 @@ async function loadAdminVolunteers() {
   const host = $('#module-volunteers');
   host.innerHTML = `<p>Chargement des bénévoles...</p>`;
 
-  // Génère les années disponibles depuis la BDD (optionnel)
   const thisYear = new Date().getFullYear();
   const years = [thisYear, thisYear + 1];
   let selectHtml = `<label>Filtrer par année: 
@@ -338,16 +413,12 @@ async function loadAdminVolunteers() {
   async function renderList() {
     const year = $('#year-volunteers').value;
     const search = $('#search-volunteers').value.trim().toLowerCase();
-    // On filtre sur l’année
     const { data: events } = await supabase.from('events').select('id, date').gte('date', year + '-01-01').lte('date', year + '-12-31');
     const { data: inscs } = await supabase.from('inscriptions').select('*');
-    // Récup totaux événements pour % participation
     const allEventIds = new Set(events.map(e => e.id));
 
-    // Création mapping bénévoles
     const volunteers = {};
     inscs.forEach(i => {
-      // Filtrer sur events de l'année
       if (!allEventIds.has(i.event_id)) return;
       const key = (i.email || '').toLowerCase();
       if (!key) return;
@@ -370,7 +441,6 @@ async function loadAdminVolunteers() {
       volunteers[key].nb_events_present.add(i.event_id);
     });
 
-    // Préparer pour affichage et filtrage par recherche
     let array = Object.values(volunteers);
     if (search) {
       array = array.filter(v =>
@@ -380,13 +450,9 @@ async function loadAdminVolunteers() {
       );
     }
 
-    // Calcul du nombre d'événements total pour l'année
     const totalEvents = allEventIds.size;
-
-    // Sort by prénom par défaut
     array.sort((a, b) => (a.prenom || '').localeCompare(b.prenom || '', 'fr'));
 
-    // Construction du tableau HTML
     let html = `
       <table class="volunteers-table-admin">
         <thead>
@@ -419,7 +485,6 @@ async function loadAdminVolunteers() {
     html += '</tbody></table>';
     $('#volunteers-list').innerHTML = html;
 
-    // Tri interactif sur chaque th
     document.querySelectorAll('.volunteers-table-admin th[data-sort]').forEach((th, colIdx) => {
       th.style.cursor = 'pointer';
       th.onclick = function() {
@@ -430,16 +495,11 @@ async function loadAdminVolunteers() {
         rows.sort((a, b) => {
           const tdA = a.children[colIdx].textContent.trim().toLowerCase();
           const tdB = b.children[colIdx].textContent.trim().toLowerCase();
-          if (colIdx >= 3) { // numériques
-            return asc
-              ? (+tdA) - (+tdB)
-              : (+tdB) - (+tdA);
+          if (colIdx >= 3) {
+            return asc ? (+tdA) - (+tdB) : (+tdB) - (+tdA);
           }
-          return asc
-            ? tdA.localeCompare(tdB, 'fr')
-            : tdB.localeCompare(tdA, 'fr');
+          return asc ? tdA.localeCompare(tdB, 'fr') : tdB.localeCompare(tdA, 'fr');
         });
-        // réinsère le tbody trié
         const tbody = th.closest('table').querySelector('tbody');
         tbody.innerHTML = '';
         rows.forEach(tr => tbody.appendChild(tr));
@@ -450,6 +510,169 @@ async function loadAdminVolunteers() {
   host.querySelector('#year-volunteers').onchange = renderList;
   host.querySelector('#search-volunteers').oninput = renderList;
   renderList();
+}
+
+// ============================================================
+// ADMINS - GESTION COMPLÈTE (Création/Édition/Suppression)
+// ============================================================
+
+// Ouvre la modale en mode ÉDITION pré-rempli
+async function openEditAdmin(adminData, droits) {
+  document.getElementById('admin-user-id').value = adminData?.id || '';
+  document.getElementById('admin-user-prenom').value = adminData?.prenom || '';
+  document.getElementById('admin-user-nom').value = adminData?.nom || '';
+  document.getElementById('admin-user-email').value = adminData?.email || '';
+  document.getElementById('admin-user-role').value = adminData?.role || '';
+  document.getElementById('admin-user-pass').value = '';
+
+  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
+
+  if (droits?.length) {
+    droits.forEach(d => {
+      const viewBox = document.querySelector(`.mod-view[data-module="${d.module}"]`);
+      const editBox = document.querySelector(`.mod-edit[data-module="${d.module}"]`);
+      if (viewBox) viewBox.checked = !!d.view;
+      if (editBox) editBox.checked = !!d.edit;
+    });
+  }
+
+  document.getElementById('admin-user-mod-title').textContent = adminData?.id ? 'Modifier Admin' : 'Nouvel Admin';
+  modal.open('#modal-admin-user');
+}
+
+// Édition d'un admin existant (appelée au clic du bouton ✏️)
+async function adminEditUser(id) {
+  const { data: admin } = await supabase.from('admins').select('*').eq('id', id).single();
+  if (!admin) return toast('❌ Admin introuvable');
+  
+  const { data: droits } = await supabase.from('admin_roles').select('*').eq('admin_id', id);
+  openEditAdmin(admin, droits.map(d => ({
+    module: d.module,
+    view: d.can_view,
+    edit: d.can_edit
+  })));
+}
+
+// Suppression d'un admin (appelée au clic du bouton 🗑️)
+async function adminDeleteUser(id) {
+  if (!confirm("⚠️ Confirmer la suppression de cet administrateur ?")) return;
+  
+  await supabase.from('admins').delete().eq('id', id);
+  await supabase.from('admin_roles').delete().eq('admin_id', id);
+  toast('✅ Admin supprimé');
+  loadAdminUsers();
+}
+
+// Soumission du formulaire (création ou édition)
+document.getElementById('form-admin-user').onsubmit = async function(e) {
+  e.preventDefault();
+  
+  const id = document.getElementById('admin-user-id').value.trim();
+  const prenom = document.getElementById('admin-user-prenom').value.trim();
+  const nom = document.getElementById('admin-user-nom').value.trim();
+  const email = document.getElementById('admin-user-email').value.trim();
+  const role = document.getElementById('admin-user-role').value;
+  const password = document.getElementById('admin-user-pass').value;
+
+  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
+    module: tr.querySelector('td').innerText.trim().toLowerCase(),
+    can_view: tr.querySelector('.mod-view').checked,
+    can_edit: tr.querySelector('.mod-edit').checked
+  }));
+
+  let adminData = { prenom, nom, email, role };
+  if (password) adminData.password_hash = password;
+
+  try {
+    if (!id) {
+      const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
+      if (error) throw error;
+      
+      await supabase.from('admin_roles').upsert(
+        droits.map(d => ({
+          admin_id: created.id,
+          module: d.module,
+          can_view: d.can_view,
+          can_edit: d.can_edit,
+          can_delete: false
+        }))
+      );
+      toast('✅ Admin créé avec succès');
+    } else {
+      const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
+      if (updateError) throw updateError;
+      
+      await supabase.from('admin_roles').upsert(
+        droits.map(d => ({
+          admin_id: id,
+          module: d.module,
+          can_view: d.can_view,
+          can_edit: d.can_edit,
+          can_delete: false
+        }))
+      );
+      toast('✅ Admin modifié avec succès');
+    }
+    
+    modal.closeAll();
+    loadAdminUsers();
+  } catch (error) {
+    console.error(error);
+    toast('❌ Erreur : ' + error.message);
+  }
+};
+
+// AFFICHAGE DE LA LISTE DES ADMINS
+async function loadAdminUsers() {
+  if (!adminPermissions.admins?.view) {
+    $('#module-admins').innerHTML = '<p>❌ Accès refusé</p>';
+    return;
+  }
+  
+  const host = $('#module-admins');
+  host.innerHTML = '<p>Chargement des administrateurs...</p>';
+  
+  const { data: admins } = await supabase.from('admins').select('*').order('created_at');
+  
+  let html = `<button class="btn btn-primary" onclick="adminCreateUser()">➕ Nouvel Admin</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Rôle</th>
+          <th>Actif</th>
+          <th>Dernière Visite</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+  admins.forEach(a => {
+    html += `<tr>
+      <td>${a.prenom} ${a.nom}</td>
+      <td>${a.email}</td>
+      <td>${a.role}</td>
+      <td>${a.is_active ? '✅' : '❌'}</td>
+      <td>${a.last_login ? new Date(a.last_login).toLocaleDateString('fr-FR') : '-'}</td>
+      <td>
+        <button class="btn-small" onclick="adminEditUser('${a.id}')">✏️</button>
+        <button class="btn-small btn-danger" onclick="adminDeleteUser('${a.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  });
+  
+  html += '</tbody></table>';
+  host.innerHTML = html;
+}
+
+// Création d'un nouvel admin
+function adminCreateUser() {
+  document.getElementById('form-admin-user').reset();
+  document.getElementById('admin-user-id').value = '';
+  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('admin-user-mod-title').textContent = 'Nouvel Admin';
+  modal.open('#modal-admin-user');
 }
 
 // ASSOCIATION
@@ -500,217 +723,93 @@ async function saveAssociationConfig() {
   toast('✅ Configuration enregistrée');
 }
 
-// STUBS (à compléter)
+// EVENT STUBS
 function adminCreateEvent() {
-  // Réinitialise le formulaire
   document.getElementById('form-create-event').reset();
-  // Définit la date par défaut à aujourd'hui
   const today = new Date().toISOString().split('T')[0];
   document.querySelector('#form-create-event [name="date"]').value = today;
-  // Ouvre la modale
   modal.open('#modal-create-event');
 }
 
-function adminDeleteEvent(id) { toast('Supprimer événement ' + id); }
-function adminCreateUser() {
-  // Ouvre la modale ou affiche le vrai formulaire
-  document.getElementById('form-admin-user').reset();
-  document.getElementById('admin-user-id').value = '';
-  // Décoche tous modules/permissions
-  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
-  document.getElementById('admin-user-mod-title').textContent = 'Nouvel Admin';
-  modal.open('#modal-admin-user');
+function adminEditEvent(id) {
+  supabase.from('events').select('*').eq('id', id).single().then(({ data }) => {
+    if (!data) return toast('Erreur chargement événement');
+    document.getElementById('modal-edit-event').hidden = false;
+    document.getElementById('edit-event-id').value = data.id;
+    document.getElementById('edit-event-titre').value = data.titre || '';
+    document.getElementById('edit-event-date').value = data.date || '';
+    document.getElementById('edit-event-heure').value = data.heure || '';
+    document.getElementById('edit-event-lieu').value = data.lieu || '';
+    document.getElementById('edit-event-max').value = data.max_participants || 0;
+    document.getElementById('edit-event-description').value = data.description || '';
+  });
 }
 
-function adminEditUser(id) { toast('Éditer admin ' + id); }
-function adminDeleteUser(id) { toast('Supprimer admin ' + id); }
-
-if (isAdmin) {
-  adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
-  mountAdmin();
-} else {
-  unmountAdmin();// ============================================================
-// ADMINS - GESTION COMPLÈTE (Création/Édition/Suppression)
-// ============================================================
-
-// Ouvre la modale en mode ÉDITION pré-rempli
-async function openEditAdmin(adminData, droits) {
-  document.getElementById('admin-user-id').value = adminData?.id || '';
-  document.getElementById('admin-user-prenom').value = adminData?.prenom || '';
-  document.getElementById('admin-user-nom').value = adminData?.nom || '';
-  document.getElementById('admin-user-email').value = adminData?.email || '';
-  document.getElementById('admin-user-role').value = adminData?.role || '';
-  document.getElementById('admin-user-pass').value = ''; // Toujours vide en édition
-
-  // Décoche tous les droits d'abord
-  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
-
-  // Coche les droits présents
-  if (droits?.length) {
-    droits.forEach(d => {
-      const viewBox = document.querySelector(`.mod-view[data-module="${d.module}"]`);
-      const editBox = document.querySelector(`.mod-edit[data-module="${d.module}"]`);
-      if (viewBox) viewBox.checked = !!d.view;
-      if (editBox) editBox.checked = !!d.edit;
-    });
-  }
-
-  document.getElementById('admin-user-mod-title').textContent = adminData?.id ? 'Modifier Admin' : 'Nouvel Admin';
-  modal.open('#modal-admin-user');
+function adminDeleteEvent(id) {
+  if (!confirm("Supprimer cet événement ?")) return;
+  supabase.from('events').delete().eq('id', id).then(() => {
+    toast('✅ Événement supprimé');
+    loadAdminEvents();
+  });
 }
 
-// Édition d'un admin existant (appelée au clic du bouton ✏️)
-async function adminEditUser(id) {
-  const { data: admin } = await supabase.from('admins').select('*').eq('id', id).single();
-  if (!admin) return toast('❌ Admin introuvable');
-  
-  const { data: droits } = await supabase.from('admin_roles').select('*').eq('admin_id', id);
-  openEditAdmin(admin, droits.map(d => ({
-    module: d.module,
-    view: d.can_view,
-    edit: d.can_edit
-  })));
-}
-
-// Suppression d'un admin (appelée au clic du bouton 🗑️)
-async function adminDeleteUser(id) {
-  if (!confirm("⚠️ Confirmer la suppression de cet administrateur ?")) return;
-  
-  await supabase.from('admins').delete().eq('id', id);
-  await supabase.from('admin_roles').delete().eq('admin_id', id);
-  toast('✅ Admin supprimé');
-  loadAdminUsers();
-}
-
-// Soumission du formulaire (création ou édition)
-document.getElementById('form-admin-user').onsubmit = async function(e) {
+// EVENT FORM HANDLERS
+document.getElementById('form-edit-event').onsubmit = async function(e) {
   e.preventDefault();
-  
-  const id = document.getElementById('admin-user-id').value.trim();
-  const prenom = document.getElementById('admin-user-prenom').value.trim();
-  const nom = document.getElementById('admin-user-nom').value.trim();
-  const email = document.getElementById('admin-user-email').value.trim();
-  const role = document.getElementById('admin-user-role').value;
-  const password = document.getElementById('admin-user-pass').value;
-
-  // Récupération des droits cochés
-  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
-    module: tr.querySelector('td').innerText.trim().toLowerCase(),
-    can_view: tr.querySelector('.mod-view').checked,
-    can_edit: tr.querySelector('.mod-edit').checked
-  }));
-
-  let adminData = { prenom, nom, email, role };
-  if (password) adminData.password_hash = password; // ⚠️ Stockage simplifié - à sécuriser!
-
-  try {
-    if (!id) {
-      // CRÉATION
-      const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
-      if (error) throw error;
-      
-      // Insère les droits
-      await supabase.from('admin_roles').upsert(
-        droits.map(d => ({
-          admin_id: created.id,
-          module: d.module,
-          can_view: d.can_view,
-          can_edit: d.can_edit,
-          can_delete: false
-        }))
-      );
-      toast('✅ Admin créé avec succès');
-    } else {
-      // ÉDITION
-      const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
-      if (updateError) throw updateError;
-      
-      // Met à jour les droits
-      await supabase.from('admin_roles').upsert(
-        droits.map(d => ({
-          admin_id: id,
-          module: d.module,
-          can_view: d.can_view,
-          can_edit: d.can_edit,
-          can_delete: false
-        }))
-      );
-      toast('✅ Admin modifié avec succès');
-    }
-    
-    modal.closeAll();
-    loadAdminUsers();
-  } catch (error) {
-    console.error(error);
-    toast('❌ Erreur : ' + error.message);
-  }
+  const id = document.getElementById('edit-event-id').value;
+  const titre = document.getElementById('edit-event-titre').value;
+  const date = document.getElementById('edit-event-date').value;
+  const heure = document.getElementById('edit-event-heure').value;
+  const lieu = document.getElementById('edit-event-lieu').value;
+  const max = Number(document.getElementById('edit-event-max').value);
+  const desc = document.getElementById('edit-event-description').value;
+  await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
+  toast('✅ Événement modifié');
+  document.getElementById('modal-edit-event').hidden = true;
+  loadAdminEvents();
 };
 
-// AFFICHAGE DE LA LISTE DES ADMINS (Modifié)
-async function loadAdminUsers() {
-  if (!adminPermissions.admins?.view) {
-    $('#module-admins').innerHTML = '<p>❌ Accès refusé</p>';
+document.getElementById('form-create-event').onsubmit = async function(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  
+  const titre = fd.get('titre')?.trim();
+  const date = fd.get('date')?.trim();
+  const heure = fd.get('heure')?.trim() || null;
+  const lieu = fd.get('lieu')?.trim();
+  const max_participants = Number(fd.get('max_participants'));
+  const description = fd.get('description')?.trim() || '';
+  const visible = !!fd.get('visible');
+  
+  if (!titre || !date || !lieu || max_participants < 1) {
+    toast('⚠️ Veuillez remplir tous les champs obligatoires');
     return;
   }
   
-  const host = $('#module-admins');
-  host.innerHTML = '<p>Chargement des administrateurs...</p>';
-  
-  const { data: admins } = await supabase.from('admins').select('*').order('created_at');
-  
-  let html = `<button class="btn btn-primary" onclick="adminCreateUser()">➕ Nouvel Admin</button>
-    <table>
-      <thead>
-        <tr>
-          <th>Prénom</th>
-          <th>Nom</th>
-          <th>Email</th>
-          <th>Rôle</th>
-          <th>Actif</th>
-          <th>Dernière Visite</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>`;
-  
-  admins.forEach(a => {
-    html += `<tr>
-      <td>${a.prenom}</td>
-      <td>${a.nom}</td>
-      <td>${a.email}</td>
-      <td>${a.role}</td>
-      <td>${a.is_active ? '✅' : '❌'}</td>
-      <td>${a.last_login ? new Date(a.last_login).toLocaleDateString('fr-FR') : '-'}</td>
-      <td>
-        <button class="btn-edit-admin" data-id="${a.id}">✏️</button>
-        <button class="btn-delete-admin" data-id="${a.id}">🗑️</button>
-      </td>
-    </tr>`;
+  const { error } = await supabase.from('events').insert({
+    titre,
+    date,
+    heure,
+    lieu,
+    max_participants,
+    description,
+    visible,
+    archived: false
   });
   
-  html += '</tbody></table>';
-  host.innerHTML = html;
+  if (error) {
+    console.error(error);
+    toast('❌ Erreur lors de la création');
+    return;
+  }
+  
+  toast('✅ Événement créé avec succès');
+  modal.closeAll();
+  e.target.reset();
+  loadAdminEvents();
+};
 
-  // BRANCHEMENT des boutons éditer
-  document.querySelectorAll('.btn-edit-admin').forEach(btn => {
-    btn.onclick = async () => {
-      const id = btn.getAttribute('data-id');
-      await adminEditUser(id);
-    };
-  });
-
-  // BRANCHEMENT des boutons supprimer
-  document.querySelectorAll('.btn-delete-admin').forEach(btn => {
-    btn.onclick = async () => {
-      const id = btn.getAttribute('data-id');
-      await adminDeleteUser(id);
-    };
-  });
-}
-
-}
-
-// PUBLIC (ÉLÉMENTS EXISTANTS)
+// PUBLIC SECTION
 async function fetchPublicEvents() {
   const { data } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
   return data || [];
@@ -922,329 +1021,10 @@ function scheduleAutoArchive() {
 }
 scheduleAutoArchive();
 
-// EDITION ÉVÉNEMENT - MODALE
-function openEventEditModal(ev) {
-  document.getElementById('modal-edit-event').hidden = false;
-  document.getElementById('edit-event-id').value = ev.id;
-  document.getElementById('edit-event-titre').value = ev.titre || '';
-  document.getElementById('edit-event-date').value = ev.date || '';
-  document.getElementById('edit-event-heure').value = ev.heure || '';
-  document.getElementById('edit-event-lieu').value = ev.lieu || '';
-  document.getElementById('edit-event-max').value = ev.max_participants || 0;
-  document.getElementById('edit-event-description').value = ev.description || '';
+// INIT
+if (isAdmin) {
+  adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
+  mountAdmin();
+} else {
+  unmountAdmin();
 }
-
-function adminEditEvent(id) {
-  supabase.from('events').select('*').eq('id', id).single().then(({ data }) => {
-    if (!data) return toast('Erreur chargement événement');
-    openEventEditModal(data);
-  });
-}
-
-document.getElementById('form-edit-event').onsubmit = async function(e) {
-  e.preventDefault();
-  const id = document.getElementById('edit-event-id').value;
-  const titre = document.getElementById('edit-event-titre').value;
-  const date = document.getElementById('edit-event-date').value;
-  const heure = document.getElementById('edit-event-heure').value;
-  const lieu = document.getElementById('edit-event-lieu').value;
-  const max = Number(document.getElementById('edit-event-max').value);
-  const desc = document.getElementById('edit-event-description').value;
-  await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
-  toast('Événement modifié !');
-  document.getElementById('modal-edit-event').hidden = true;
-  loadAdminEvents();
-};
-document.getElementById('form-create-event').onsubmit = async function(e) {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  
-  const titre = fd.get('titre')?.trim();
-  const date = fd.get('date')?.trim();
-  const heure = fd.get('heure')?.trim() || null;
-  const lieu = fd.get('lieu')?.trim();
-  const max_participants = Number(fd.get('max_participants'));
-  const description = fd.get('description')?.trim() || '';
-  const visible = !!fd.get('visible');
-  
-  if (!titre || !date || !lieu || max_participants < 1) {
-    toast('⚠️ Veuillez remplir tous les champs obligatoires');
-    return;
-  }
-  
-  const { error } = await supabase.from('events').insert({
-    titre,
-    date,
-    heure,
-    lieu,
-    max_participants,
-    description,
-    visible,
-    archived: false
-  });
-  
-  if (error) {
-    console.error(error);
-    toast('❌ Erreur lors de la création');
-    return;
-  }
-  
-  toast('✅ Événement créé avec succès !');
-  modal.closeAll();
-  e.target.reset();
-  loadAdminEvents();
-};
-async function filterInscriptions() {
-  const eventId = $('#event-filter')?.value;
-  const list = $('#inscriptions-list');
-  let selectedEventData = null;
-
-  // Récupérer infos de l'événement sélectionné
-  if (eventId) {
-    const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single();
-    selectedEventData = event;
-  }
-
-  let query = supabase.from('inscriptions').select('*');
-  if (eventId) query = query.eq('event_id', eventId);
-  const { data: inscs } = await query.order('date_inscription', { ascending: false });
-
-  // Comptage pour les totaux par type
-  let countPrep = 0, countEntier = 0, countPartie = 0;
-  inscs.forEach(i => {
-    if (i.preparation_salle) countPrep++;
-    if (i.evenement_entier) countEntier++;
-    if (i.partie_evenement) countPartie++;
-  });
-
-  let html = '';
-  if (selectedEventData) {
-    html += `
-      <div class="event-detail-admin">
-        <div class="event-detail-title">${selectedEventData.image || '📅'} <strong>${selectedEventData.titre}</strong></div>
-        <div class="event-detail-meta">
-          ${selectedEventData.date || ''} 
-          ${selectedEventData.heure ? '• ' + selectedEventData.heure : ''} 
-          ${selectedEventData.lieu ? '• ' + selectedEventData.lieu : ''}
-        </div>
-        <div class="event-detail-desc">${selectedEventData.description || ''}</div>
-        <div class="event-detail-totals">
-          <b>Préparation&nbsp;:</b> ${countPrep} &nbsp;|&nbsp; 
-          <b>Soirée entière&nbsp;:</b> ${countEntier} &nbsp;|&nbsp; 
-          <b>Partie de la soirée&nbsp;:</b> ${countPartie}
-        </div>
-      </div>
-    `;
-  }
-
-  html += `
-    <table class="insc-table-admin">
-      <thead>
-        <tr>
-          <th data-sort="heure_arrivee">ARRIVÉE</th>
-          <th data-sort="heure_depart">DÉPART</th>
-          <th data-sort="prenom">PRÉNOM</th>
-          <th data-sort="nom">NOM</th>
-          <th data-sort="participation">PARTICIPATIONS</th>
-          <th data-sort="commentaire">COMMENTAIRE</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  inscs.forEach((i, idx) => {
-    const parts = [];
-    if (i.preparation_salle) parts.push('Prépa');
-    if (i.partie_evenement) parts.push('Partie');
-    if (i.evenement_entier) parts.push('Entier');
-
-    // "Autres infos" : tout ce qui n'est pas affiché en direct ni dans details principaux
-    const autres = [];
-    if (i.email) autres.push('Email&nbsp;:&nbsp;' + i.email);
-    if (i.telephone) autres.push('Tél&nbsp;:&nbsp;' + i.telephone);
-    // comment dire si le champs commentaire est déjà affiché
-    // => ne pas doubler ici, car déjà dans colonne
-    html += `<tr>
-      <td>${i.heure_arrivee || '-'}</td>
-      <td>${i.heure_depart || '-'}</td>
-      <td>${i.prenom}</td>
-      <td>${i.nom}</td>
-      <td>${parts.join(', ')}</td>
-      <td>${i.commentaire || '-'}</td>
-      <td><button class="btn-see-details" data-idx="${idx}">Voir +</button></td>
-    </tr>
-    <tr class="insc-details-row" style="display:none;">
-      <td colspan="7">
-        <div class="details-panel">
-          <strong>Heure arrivée :</strong> ${i.heure_arrivee || '-'}<br>
-          <strong>Heure départ :</strong> ${i.heure_depart || '-'}<br>
-          <strong>Prénom :</strong> ${i.prenom}<br>
-          <strong>Nom :</strong> ${i.nom}<br>
-          <strong>Participations :</strong> ${parts.join(', ') || '-'}<br>
-          ${autres.length > 0 ? '<hr><b>Autres infos :</b><br>' + autres.join('<br>') : ''}
-          ${i.commentaire ? '<br><b>Commentaire :</b> ' + i.commentaire : ''}
-        </div>
-      </td>
-    </tr>
-    `;
-  });
-
-  html += '</tbody></table>';
-  list.innerHTML = html;
-
-  // Voir + déroulant
-  document.querySelectorAll('.btn-see-details').forEach(btn => {
-    btn.onclick = function() {
-      const detailsRow = btn.closest('tr').nextElementSibling;
-      detailsRow.style.display = detailsRow.style.display === 'table-row' ? 'none' : 'table-row';
-      btn.textContent = detailsRow.style.display === 'table-row' ? 'Fermer' : 'Voir +';
-    };
-  });
-
-  // Tri
-  document.querySelectorAll('.insc-table-admin th[data-sort]').forEach((th, colIdx) => {
-    th.style.cursor = 'pointer';
-    th.onclick = function() {
-      const tbody = th.closest('table').querySelector('tbody');
-      let rows = Array.from(tbody.querySelectorAll('tr')).filter((_,idx) => idx%2 === 0);
-      let detailsRows = Array.from(tbody.querySelectorAll('tr')).filter((_,idx) => idx%2 === 1);
-
-      const asc = !th.classList.toggle('sorted-asc');
-      th.classList.remove('sorted-desc');
-      if(!asc) th.classList.add('sorted-desc');
-
-      rows.sort((a, b) => {
-        const tdA = a.children[colIdx].textContent.trim().toLowerCase();
-        const tdB = b.children[colIdx].textContent.trim().toLowerCase();
-        return asc
-          ? tdA.localeCompare(tdB, 'fr')
-          : tdB.localeCompare(tdA, 'fr');
-      });
-
-      tbody.innerHTML = '';
-      rows.forEach((tr, idx) => {
-        tbody.appendChild(tr);
-        tbody.appendChild(detailsRows[idx]);
-      });
-    };
-  });
-}
-// Bouton nouvel admin
-document.getElementById('btn-new-admin').onclick = () => {
-  // Vide le formulaire et décoche tous droits
-  // Ouvre la modale
-};
-
-// Au submit
-document.getElementById('form-admin-user').onsubmit = async function(e) {
-  e.preventDefault();
-  const id = document.getElementById('admin-user-id').value;
-  const prenom = document.getElementById('admin-user-prenom').value;
-  const nom = document.getElementById('admin-user-nom').value;
-  const email = document.getElementById('admin-user-email').value;
-  const role = document.getElementById('admin-user-role').value;
-  const pass = document.getElementById('admin-user-pass').value;
-  // Récupère droits sous forme d'array [{module,can_view,can_edit}]
-  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
-     module: tr.querySelector('td').textContent.toLowerCase(),
-     can_view: tr.querySelector('.mod-view').checked,
-     can_edit: tr.querySelector('.mod-edit').checked
-  }));
-  // INSERT or UPDATE in Supabase
-  // ... (ta requête)
-  // Mets à jour la table `admin_roles` pour chaque droit
-};
-
-// Au clic suppress, supprime admin+roles
-// Au clic Edit: pré-rempli les cases et coche les droits déjà présents pour cet id
-// Ouvre le formulaire d'édition prérempli pour un admin (adminData = objet {id, prenom, ...})
-async function openEditAdmin(adminData, droits) {
-  // Remplir les champs simples
-  document.getElementById('admin-user-id').value = adminData.id;
-  document.getElementById('admin-user-prenom').value = adminData.prenom;
-  document.getElementById('admin-user-nom').value = adminData.nom;
-  document.getElementById('admin-user-email').value = adminData.email;
-  document.getElementById('admin-user-role').value = adminData.role;
-  document.getElementById('admin-user-pass').value = '';
-
-  // Décoche tout
-  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
-
-  // Coche les permissions selon l'objet droits (ex: [{module:'events',view:true,edit:false}, ...])
-  if (droits) {
-    droits.forEach(d => {
-      const viewBox = document.querySelector(`.mod-view[data-module="${d.module}"]`);
-      const editBox = document.querySelector(`.mod-edit[data-module="${d.module}"]`);
-      if (viewBox) viewBox.checked = !!d.view;
-      if (editBox) editBox.checked = !!d.edit;
-    });
-  }
-  document.getElementById('admin-user-mod-title').textContent = 'Modifier Admin';
-  modal.open('#modal-admin-user');
-}
-async function openEditAdmin(adminData, droits) {
-  document.getElementById('admin-user-id').value = adminData?.id || '';
-  document.getElementById('admin-user-prenom').value = adminData?.prenom || '';
-  document.getElementById('admin-user-nom').value = adminData?.nom || '';
-  document.getElementById('admin-user-email').value = adminData?.email || '';
-  document.getElementById('admin-user-role').value = adminData?.role || '';
-  document.getElementById('admin-user-pass').value = ''; // Toujours vide en édition
-
-  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
-
-  if (droits?.length) {
-    droits.forEach(d => {
-      const viewBox = document.querySelector(`.mod-view[data-module="${d.module}"]`);
-      const editBox = document.querySelector(`.mod-edit[data-module="${d.module}"]`);
-      if (viewBox) viewBox.checked = !!d.view;
-      if (editBox) editBox.checked = !!d.edit;
-    });
-  }
-
-  document.getElementById('admin-user-mod-title').textContent = adminData?.id ? 'Modifier Admin' : 'Nouvel Admin';
-  modal.open('#modal-admin-user');
-}
-document.getElementById('form-admin-user').onsubmit = async function(e) {
-  e.preventDefault();
-  const id = document.getElementById('admin-user-id').value.trim();
-  const prenom = document.getElementById('admin-user-prenom').value.trim();
-  const nom = document.getElementById('admin-user-nom').value.trim();
-  const email = document.getElementById('admin-user-email').value.trim();
-  const role = document.getElementById('admin-user-role').value;
-  const password = document.getElementById('admin-user-pass').value;
-
-  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
-    module: tr.querySelector('td').innerText.trim().toLowerCase(),
-    can_view: tr.querySelector('.mod-view').checked,
-    can_edit: tr.querySelector('.mod-edit').checked
-  }));
-
-  let adminData = { prenom, nom, email, role };
-  if (password) adminData.password = password;
-
-  if (!id) {
-    const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
-    if (error) return toast("Erreur création admin");
-    await supabase.from('admin_roles').upsert(
-      droits.map(d => ({
-        admin_id: created.id,
-        module: d.module,
-        can_view: d.can_view,
-        can_edit: d.can_edit
-      }))
-    );
-  } else {
-    await supabase.from('admins').update(adminData).eq('id', id);
-    await supabase.from('admin_roles').upsert(
-      droits.map(d => ({
-        admin_id: id,
-        module: d.module,
-        can_view: d.can_view,
-        can_edit: d.can_edit
-      }))
-    );
-  }
-  modal.closeAll();
-  loadAdmins();
-};
