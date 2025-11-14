@@ -1041,3 +1041,68 @@ async function openEditAdmin(adminData, droits) {
   document.getElementById('admin-user-mod-title').textContent = 'Modifier Admin';
   modal.open('#modal-admin-user');
 }
+async function openEditAdmin(adminData, droits) {
+  document.getElementById('admin-user-id').value = adminData?.id || '';
+  document.getElementById('admin-user-prenom').value = adminData?.prenom || '';
+  document.getElementById('admin-user-nom').value = adminData?.nom || '';
+  document.getElementById('admin-user-email').value = adminData?.email || '';
+  document.getElementById('admin-user-role').value = adminData?.role || '';
+  document.getElementById('admin-user-pass').value = ''; // Toujours vide en édition
+
+  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
+
+  if (droits?.length) {
+    droits.forEach(d => {
+      const viewBox = document.querySelector(`.mod-view[data-module="${d.module}"]`);
+      const editBox = document.querySelector(`.mod-edit[data-module="${d.module}"]`);
+      if (viewBox) viewBox.checked = !!d.view;
+      if (editBox) editBox.checked = !!d.edit;
+    });
+  }
+
+  document.getElementById('admin-user-mod-title').textContent = adminData?.id ? 'Modifier Admin' : 'Nouvel Admin';
+  modal.open('#modal-admin-user');
+}
+document.getElementById('form-admin-user').onsubmit = async function(e) {
+  e.preventDefault();
+  const id = document.getElementById('admin-user-id').value.trim();
+  const prenom = document.getElementById('admin-user-prenom').value.trim();
+  const nom = document.getElementById('admin-user-nom').value.trim();
+  const email = document.getElementById('admin-user-email').value.trim();
+  const role = document.getElementById('admin-user-role').value;
+  const password = document.getElementById('admin-user-pass').value;
+
+  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
+    module: tr.querySelector('td').innerText.trim().toLowerCase(),
+    can_view: tr.querySelector('.mod-view').checked,
+    can_edit: tr.querySelector('.mod-edit').checked
+  }));
+
+  let adminData = { prenom, nom, email, role };
+  if (password) adminData.password = password;
+
+  if (!id) {
+    const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
+    if (error) return toast("Erreur création admin");
+    await supabase.from('admin_roles').upsert(
+      droits.map(d => ({
+        admin_id: created.id,
+        module: d.module,
+        can_view: d.can_view,
+        can_edit: d.can_edit
+      }))
+    );
+  } else {
+    await supabase.from('admins').update(adminData).eq('id', id);
+    await supabase.from('admin_roles').upsert(
+      droits.map(d => ({
+        admin_id: id,
+        module: d.module,
+        can_view: d.can_view,
+        can_edit: d.can_edit
+      }))
+    );
+  }
+  modal.closeAll();
+  loadAdmins();
+};
