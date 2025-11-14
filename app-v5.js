@@ -565,7 +565,185 @@ if (isAdmin) {
   adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
   mountAdmin();
 } else {
-  unmountAdmin();
+  unmountAdmin();// ============================================================
+// ADMINS - GESTION COMPLÈTE (Création/Édition/Suppression)
+// ============================================================
+
+// Ouvre la modale en mode ÉDITION pré-rempli
+async function openEditAdmin(adminData, droits) {
+  document.getElementById('admin-user-id').value = adminData?.id || '';
+  document.getElementById('admin-user-prenom').value = adminData?.prenom || '';
+  document.getElementById('admin-user-nom').value = adminData?.nom || '';
+  document.getElementById('admin-user-email').value = adminData?.email || '';
+  document.getElementById('admin-user-role').value = adminData?.role || '';
+  document.getElementById('admin-user-pass').value = ''; // Toujours vide en édition
+
+  // Décoche tous les droits d'abord
+  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
+
+  // Coche les droits présents
+  if (droits?.length) {
+    droits.forEach(d => {
+      const viewBox = document.querySelector(`.mod-view[data-module="${d.module}"]`);
+      const editBox = document.querySelector(`.mod-edit[data-module="${d.module}"]`);
+      if (viewBox) viewBox.checked = !!d.view;
+      if (editBox) editBox.checked = !!d.edit;
+    });
+  }
+
+  document.getElementById('admin-user-mod-title').textContent = adminData?.id ? 'Modifier Admin' : 'Nouvel Admin';
+  modal.open('#modal-admin-user');
+}
+
+// Édition d'un admin existant (appelée au clic du bouton ✏️)
+async function adminEditUser(id) {
+  const { data: admin } = await supabase.from('admins').select('*').eq('id', id).single();
+  if (!admin) return toast('❌ Admin introuvable');
+  
+  const { data: droits } = await supabase.from('admin_roles').select('*').eq('admin_id', id);
+  openEditAdmin(admin, droits.map(d => ({
+    module: d.module,
+    view: d.can_view,
+    edit: d.can_edit
+  })));
+}
+
+// Suppression d'un admin (appelée au clic du bouton 🗑️)
+async function adminDeleteUser(id) {
+  if (!confirm("⚠️ Confirmer la suppression de cet administrateur ?")) return;
+  
+  await supabase.from('admins').delete().eq('id', id);
+  await supabase.from('admin_roles').delete().eq('admin_id', id);
+  toast('✅ Admin supprimé');
+  loadAdminUsers();
+}
+
+// Soumission du formulaire (création ou édition)
+document.getElementById('form-admin-user').onsubmit = async function(e) {
+  e.preventDefault();
+  
+  const id = document.getElementById('admin-user-id').value.trim();
+  const prenom = document.getElementById('admin-user-prenom').value.trim();
+  const nom = document.getElementById('admin-user-nom').value.trim();
+  const email = document.getElementById('admin-user-email').value.trim();
+  const role = document.getElementById('admin-user-role').value;
+  const password = document.getElementById('admin-user-pass').value;
+
+  // Récupération des droits cochés
+  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
+    module: tr.querySelector('td').innerText.trim().toLowerCase(),
+    can_view: tr.querySelector('.mod-view').checked,
+    can_edit: tr.querySelector('.mod-edit').checked
+  }));
+
+  let adminData = { prenom, nom, email, role };
+  if (password) adminData.password_hash = password; // ⚠️ Stockage simplifié - à sécuriser!
+
+  try {
+    if (!id) {
+      // CRÉATION
+      const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
+      if (error) throw error;
+      
+      // Insère les droits
+      await supabase.from('admin_roles').upsert(
+        droits.map(d => ({
+          admin_id: created.id,
+          module: d.module,
+          can_view: d.can_view,
+          can_edit: d.can_edit,
+          can_delete: false
+        }))
+      );
+      toast('✅ Admin créé avec succès');
+    } else {
+      // ÉDITION
+      const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
+      if (updateError) throw updateError;
+      
+      // Met à jour les droits
+      await supabase.from('admin_roles').upsert(
+        droits.map(d => ({
+          admin_id: id,
+          module: d.module,
+          can_view: d.can_view,
+          can_edit: d.can_edit,
+          can_delete: false
+        }))
+      );
+      toast('✅ Admin modifié avec succès');
+    }
+    
+    modal.closeAll();
+    loadAdminUsers();
+  } catch (error) {
+    console.error(error);
+    toast('❌ Erreur : ' + error.message);
+  }
+};
+
+// AFFICHAGE DE LA LISTE DES ADMINS (Modifié)
+async function loadAdminUsers() {
+  if (!adminPermissions.admins?.view) {
+    $('#module-admins').innerHTML = '<p>❌ Accès refusé</p>';
+    return;
+  }
+  
+  const host = $('#module-admins');
+  host.innerHTML = '<p>Chargement des administrateurs...</p>';
+  
+  const { data: admins } = await supabase.from('admins').select('*').order('created_at');
+  
+  let html = `<button class="btn btn-primary" onclick="adminCreateUser()">➕ Nouvel Admin</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Prénom</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Rôle</th>
+          <th>Actif</th>
+          <th>Dernière Visite</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+  admins.forEach(a => {
+    html += `<tr>
+      <td>${a.prenom}</td>
+      <td>${a.nom}</td>
+      <td>${a.email}</td>
+      <td>${a.role}</td>
+      <td>${a.is_active ? '✅' : '❌'}</td>
+      <td>${a.last_login ? new Date(a.last_login).toLocaleDateString('fr-FR') : '-'}</td>
+      <td>
+        <button class="btn-edit-admin" data-id="${a.id}">✏️</button>
+        <button class="btn-delete-admin" data-id="${a.id}">🗑️</button>
+      </td>
+    </tr>`;
+  });
+  
+  html += '</tbody></table>';
+  host.innerHTML = html;
+
+  // BRANCHEMENT des boutons éditer
+  document.querySelectorAll('.btn-edit-admin').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-id');
+      await adminEditUser(id);
+    };
+  });
+
+  // BRANCHEMENT des boutons supprimer
+  document.querySelectorAll('.btn-delete-admin').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-id');
+      await adminDeleteUser(id);
+    };
+  });
+}
+
 }
 
 // PUBLIC (ÉLÉMENTS EXISTANTS)
