@@ -52,92 +52,35 @@
 
   <div id="modal-backdrop" class="modal-backdrop" hidden></div>
 
-  <!-- MODALE INSCRIPTION AMÉLIORÉE -->
-  <div id="modal-inscription" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="insc-title">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 id="insc-title">S'inscrire</h3>
-        <button class="modal-close" data-close aria-label="Fermer">✕</button>
+ <!-- MODALE INSCRIPTION – Version classique compacte -->
+<div id="modal-inscription" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="insc-title">
+  <div class="modal-card">
+    <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    <h3 id="insc-title">S'inscrire à <span id="insc-event-title"></span></h3>
+    <p class="modal-meta"><span id="insc-event-meta"></span></p>
+    <form id="insc-form" class="form-grid">
+      <label>Prénom*<input name="prenom" required autocomplete="given-name"></label>
+      <label>Nom*<input name="nom" required autocomplete="family-name"></label>
+      <label>Email*<input name="email" type="email" required autocomplete="email"></label>
+      <label>Téléphone*<input name="telephone" required autocomplete="tel"></label>
+      <label>Heure d'arrivée<input name="heure_arrivee" type="time"></label>
+      <label>Heure de départ<input name="heure_depart" type="time"></label>
+      <label class="full-width">Commentaire<textarea name="commentaire" rows="2"></textarea></label>
+      <fieldset class="full-width participations" style="margin-top:10px;">
+        <legend>Participations (min 1 requis)</legend>
+        <label style="margin-right:16px;"><input type="checkbox" name="preparation_salle"> Préparation salle</label>
+        <label style="margin-right:16px;"><input type="checkbox" name="partie_evenement"> Partie soirée</label>
+        <label><input type="checkbox" name="evenement_entier"> Soirée entière</label>
+      </fieldset>
+      <input type="hidden" name="event_id" id="insc-event-id">
+      <div class="form-notice full-width">
+        <small>Vos données sont utilisées uniquement pour la gestion des inscriptions et ne seront jamais transmises à des tiers.</small>
       </div>
-      <div class="modal-event-meta">
-        <p id="insc-event-title" class="event-title"></p>
-        <p id="insc-event-meta" class="event-meta"></p>
-      </div>
-      <form id="insc-form" class="insc-form">
-        <div class="form-section">
-          <h4>Informations personnelles</h4>
-          <div class="form-row">
-            <label class="form-group">
-              <span class="label-text">Prénom*</span>
-              <input name="prenom" required autocomplete="given-name" placeholder="Votre prénom">
-            </label>
-            <label class="form-group">
-              <span class="label-text">Nom*</span>
-              <input name="nom" required autocomplete="family-name" placeholder="Votre nom">
-            </label>
-          </div>
-          <div class="form-row">
-            <label class="form-group">
-              <span class="label-text">Email*</span>
-              <input name="email" type="email" required autocomplete="email" placeholder="vous@email.com">
-            </label>
-            <label class="form-group">
-              <span class="label-text">Téléphone*</span>
-              <input name="telephone" required autocomplete="tel" placeholder="06 12 34 56 78">
-            </label>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Disponibilités (optionnel)</h4>
-          <div class="form-row">
-            <label class="form-group">
-              <span class="label-text">Heure d'arrivée</span>
-              <input name="heure_arrivee" type="time">
-            </label>
-            <label class="form-group">
-              <span class="label-text">Heure de départ</span>
-              <input name="heure_depart" type="time">
-            </label>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Participations</h4>
-          <fieldset class="participations">
-            <legend>Sélectionnez au moins une participation</legend>
-            <label class="checkbox-item">
-              <input type="checkbox" name="preparation_salle">
-              <span>Préparation de la salle</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" name="partie_evenement">
-              <span>Partie de l'événement</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" name="evenement_entier">
-              <span>Événement entier</span>
-            </label>
-          </fieldset>
-        </div>
-
-        <div class="form-section">
-          <label class="form-group">
-            <span class="label-text">Commentaire</span>
-            <textarea name="commentaire" rows="3" placeholder="Allergies, remarques..."></textarea>
-          </label>
-        </div>
-
-        <div class="form-notice">
-          <strong>🔒 Vos données</strong><br>
-          <small>Utilisées uniquement pour gérer cette inscription. Jamais partagées avec des tiers.</small>
-        </div>
-
-        <input type="hidden" name="event_id" id="insc-event-id">
-        <button type="submit" class="btn btn-primary btn-large">Confirmer mon inscription</button>
-      </form>
-    </div>
+      <button type="submit" class="btn btn-primary full-width">S'inscrire</button>
+    </form>
   </div>
+</div>
+
 
   <!-- MODALE ADMIN (Login) -->
   <div id="modal-admin" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-title">
