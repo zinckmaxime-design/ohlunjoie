@@ -108,25 +108,75 @@
   <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
   <script src="app-v5.js"></script>
-  <!-- MODALE EDITION EVENEMENT -->
-<div id="modal-edit-event" class="modal" hidden>
-  <div class="modal-card">
-    <button class="modal-close" data-close aria-label="Fermer">✕</button>
-    <h3>Éditer événement</h3>
-    <form id="form-edit-event">
-      <input type="hidden" name="id" id="edit-event-id">
-      <label>Titre<input name="titre" id="edit-event-titre" required></label>
-      <label>Date<input name="date" type="date" id="edit-event-date" required></label>
-      <label>Heure<input name="heure" type="time" id="edit-event-heure"></label>
-      <label>Lieu<input name="lieu" id="edit-event-lieu"></label>
-      <label>Max inscrits<input name="max_participants" type="number" id="edit-event-max"></label>
-      <label>Description<textarea name="description" id="edit-event-description" rows="2"></textarea></label>
-      <div style="margin-top:1em;">
-        <button type="submit" class="btn btn-primary">Enregistrer</button>
+<!-- MODALE EDITION EVENEMENT - VERSION ESTHÉTIQUE -->
+<div id="modal-edit-event" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="edit-title">
+  <div class="modal-card modal-card-large">
+    <div class="modal-header">
+      <h3 id="edit-title">📝 Éditer l'événement</h3>
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    </div>
+    
+    <form id="form-edit-event" class="form-edit-event">
+      <input type="hidden" id="edit-event-id">
+      
+      <!-- Section Informations principales -->
+      <div class="form-section">
+        <h4 class="section-title">Infos générales</h4>
+        
+        <div class="form-row-2col">
+          <label class="form-label">
+            <span class="label-text">Titre de l'événement</span>
+            <input type="text" id="edit-event-titre" required placeholder="ex: Conférence citoyenne">
+          </label>
+          
+          <label class="form-label">
+            <span class="label-text">Lieu</span>
+            <input type="text" id="edit-event-lieu" required placeholder="ex: Mairie">
+          </label>
+        </div>
+        
+        <label class="form-label full-width">
+          <span class="label-text">Description</span>
+          <textarea id="edit-event-description" rows="3" placeholder="Décrivez brièvement l'événement..."></textarea>
+        </label>
+      </div>
+      
+      <!-- Section Date et horaire -->
+      <div class="form-section">
+        <h4 class="section-title">📅 Date & Horaire</h4>
+        
+        <div class="form-row-2col">
+          <label class="form-label">
+            <span class="label-text">Date</span>
+            <input type="date" id="edit-event-date" required>
+          </label>
+          
+          <label class="form-label">
+            <span class="label-text">Heure de début</span>
+            <input type="time" id="edit-event-heure">
+          </label>
+        </div>
+      </div>
+      
+      <!-- Section Capacité -->
+      <div class="form-section">
+        <h4 class="section-title">👥 Capacité</h4>
+        
+        <label class="form-label">
+          <span class="label-text">Nombre maximum de participants</span>
+          <input type="number" id="edit-event-max" min="1" required placeholder="ex: 50">
+        </label>
+      </div>
+      
+      <!-- Boutons d'action -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">💾 Enregistrer les modifications</button>
+        <button type="button" class="btn btn-secondary btn-large" data-close>Annuler</button>
       </div>
     </form>
   </div>
 </div>
+
 
 </body>
 </html>
