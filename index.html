@@ -108,5 +108,24 @@
   <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
   <script src="app-v5.js"></script>
+  <div id="modal-edit-event" class="modal" hidden>
+  <div class="modal-card">
+    <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    <h3>Éditer événement</h3>
+    <form id="form-edit-event">
+      <input type="hidden" name="id" id="edit-event-id">
+      <label>Titre<input name="titre" id="edit-event-titre" required></label>
+      <label>Date<input name="date" type="date" id="edit-event-date" required></label>
+      <label>Heure<input name="heure" type="time" id="edit-event-heure"></label>
+      <label>Lieu<input name="lieu" id="edit-event-lieu"></label>
+      <label>Max inscrits<input name="max_participants" type="number" id="edit-event-max"></label>
+      <label>Description<textarea name="description" id="edit-event-description" rows="2"></textarea></label>
+      <div style="margin-top:1em;">
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+*/
 </body>
 </html>
