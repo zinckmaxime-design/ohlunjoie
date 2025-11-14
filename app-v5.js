@@ -1016,3 +1016,28 @@ document.getElementById('form-admin-user').onsubmit = async function(e) {
 
 // Au clic suppress, supprime admin+roles
 // Au clic Edit: pré-rempli les cases et coche les droits déjà présents pour cet id
+// Ouvre le formulaire d'édition prérempli pour un admin (adminData = objet {id, prenom, ...})
+async function openEditAdmin(adminData, droits) {
+  // Remplir les champs simples
+  document.getElementById('admin-user-id').value = adminData.id;
+  document.getElementById('admin-user-prenom').value = adminData.prenom;
+  document.getElementById('admin-user-nom').value = adminData.nom;
+  document.getElementById('admin-user-email').value = adminData.email;
+  document.getElementById('admin-user-role').value = adminData.role;
+  document.getElementById('admin-user-pass').value = '';
+
+  // Décoche tout
+  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
+
+  // Coche les permissions selon l'objet droits (ex: [{module:'events',view:true,edit:false}, ...])
+  if (droits) {
+    droits.forEach(d => {
+      const viewBox = document.querySelector(`.mod-view[data-module="${d.module}"]`);
+      const editBox = document.querySelector(`.mod-edit[data-module="${d.module}"]`);
+      if (viewBox) viewBox.checked = !!d.view;
+      if (editBox) editBox.checked = !!d.edit;
+    });
+  }
+  document.getElementById('admin-user-mod-title').textContent = 'Modifier Admin';
+  modal.open('#modal-admin-user');
+}
