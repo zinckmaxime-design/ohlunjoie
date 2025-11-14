@@ -1630,3 +1630,177 @@ button:disabled, .btn[disabled] {
   font-weight: 700;
   letter-spacing: 0.1em;
 }
+/* MODALE - Édition Événement */
+.modal-card-large {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.form-edit-event {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 12px;
+  border-left: 4px solid var(--primary, #0d7377);
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.form-label.full-width {
+  grid-column: 1 / -1;
+}
+
+.label-text {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary, #333);
+}
+
+.form-label input,
+.form-label textarea,
+.form-label select {
+  padding: 0.9rem 1rem;
+  border: 2px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  background: var(--bg-input, #fff);
+  color: var(--text-primary, #333);
+}
+
+.form-label input:focus,
+.form-label textarea:focus,
+.form-label select:focus {
+  outline: none;
+  border-color: var(--primary, #0d7377);
+  box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.1);
+  background: var(--bg-input-focus, #fff);
+}
+
+.form-label textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.form-label input::placeholder,
+.form-label textarea::placeholder {
+  color: var(--text-muted, #999);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.btn-large {
+  padding: 0.95rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.btn-primary.btn-large {
+  background: var(--primary, #0d7377);
+  color: white;
+}
+
+.btn-primary.btn-large:hover {
+  background: var(--primary-dark, #05525a);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 115, 119, 0.3);
+}
+
+.btn-secondary.btn-large {
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-primary, #333);
+  border: 2px solid var(--border-color, #ddd);
+}
+
+.btn-secondary.btn-large:hover {
+  background: var(--bg-tertiary, #e0e0e0);
+  border-color: var(--text-primary, #333);
+}
+
+/* Mode sombre */
+[data-theme="dark"] .form-section {
+  background: var(--bg-secondary, #2a2a2a);
+  border-left-color: var(--primary, #14d9ff);
+}
+
+[data-theme="dark"] .label-text {
+  color: var(--text-primary, #eee);
+}
+
+[data-theme="dark"] .form-label input,
+[data-theme="dark"] .form-label textarea,
+[data-theme="dark"] .form-label select {
+  background: var(--bg-input, #1a1a1a);
+  color: var(--text-primary, #eee);
+  border-color: var(--border-color, #444);
+}
+
+[data-theme="dark"] .form-label input::placeholder,
+[data-theme="dark"] .form-label textarea::placeholder {
+  color: var(--text-muted, #666);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-section {
+    padding: 1rem;
+  }
+  
+  .form-edit-event {
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .btn-large {
+    width: 100%;
+  }
+}
