@@ -979,3 +979,31 @@ async function filterInscriptions() {
     };
   });
 }
+// Bouton nouvel admin
+document.getElementById('btn-new-admin').onclick = () => {
+  // Vide le formulaire et décoche tous droits
+  // Ouvre la modale
+};
+
+// Au submit
+document.getElementById('form-admin-user').onsubmit = async function(e) {
+  e.preventDefault();
+  const id = document.getElementById('admin-user-id').value;
+  const prenom = document.getElementById('admin-user-prenom').value;
+  const nom = document.getElementById('admin-user-nom').value;
+  const email = document.getElementById('admin-user-email').value;
+  const role = document.getElementById('admin-user-role').value;
+  const pass = document.getElementById('admin-user-pass').value;
+  // Récupère droits sous forme d'array [{module,can_view,can_edit}]
+  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
+     module: tr.querySelector('td').textContent.toLowerCase(),
+     can_view: tr.querySelector('.mod-view').checked,
+     can_edit: tr.querySelector('.mod-edit').checked
+  }));
+  // INSERT or UPDATE in Supabase
+  // ... (ta requête)
+  // Mets à jour la table `admin_roles` pour chaque droit
+};
+
+// Au clic suppress, supprime admin+roles
+// Au clic Edit: pré-rempli les cases et coche les droits déjà présents pour cet id
