@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
   <title>Ohlun'Joie — Événements</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -33,13 +32,11 @@
       <p id="intro-text">Notre association rassemble des bénévoles passionnés qui organisent des événements variés pour créer du lien social et enrichir la vie de notre commune.</p>
       <div class="next-event"><span id="next-event-badge" class="badge-info"></span></div>
     </section>
-
     <section id="public-section">
       <div id="timeline-view" class="view active"></div>
       <div id="list-view" class="view"></div>
       <div id="cards-view" class="view"></div>
     </section>
-
     <section id="admin-section" hidden aria-hidden="true"></section>
   </main>
 
@@ -52,39 +49,38 @@
 
   <div id="modal-backdrop" class="modal-backdrop" hidden></div>
 
-<!-- MODALE INSCRIPTION – Cases à cocher alignées (pro) -->
-<div id="modal-inscription" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="insc-title">
-  <div class="modal-card">
-    <button class="modal-close" data-close aria-label="Fermer">✕</button>
-    <h3 id="insc-title">S'inscrire à <span id="insc-event-title"></span></h3>
-    <p class="modal-meta"><span id="insc-event-meta"></span></p>
-    <form id="insc-form" class="form-grid">
-      <label>Prénom*<input name="prenom" required autocomplete="given-name"></label>
-      <label>Nom*<input name="nom" required autocomplete="family-name"></label>
-      <label>Email*<input name="email" type="email" required autocomplete="email"></label>
-      <label>Téléphone*<input name="telephone" required autocomplete="tel"></label>
-      <label>Heure d'arrivée<input name="heure_arrivee" type="time"></label>
-      <label>Heure de départ<input name="heure_depart" type="time"></label>
-      <label class="full-width">Commentaire<textarea name="commentaire" rows="2"></textarea></label>
-      <fieldset class="full-width participations" style="margin-top:10px; border:1px dashed #ddd; border-radius:8px; padding:10px 16px 6px;">
-        <legend>Participations (min 1 requis)</legend>
-        <div style="display: flex; gap: 32px; align-items: center; flex-wrap: wrap;">
-          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="preparation_salle"> Préparation salle</label>
-          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="partie_evenement"> Partie soirée</label>
-          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="evenement_entier"> Soirée entière</label>
+  <!-- MODALE INSCRIPTION compacte -->
+  <div id="modal-inscription" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="insc-title">
+    <div class="modal-card">
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+      <h3 id="insc-title">S'inscrire à <span id="insc-event-title"></span></h3>
+      <p class="modal-meta"><span id="insc-event-meta"></span></p>
+      <form id="insc-form" class="form-grid">
+        <label>Prénom*<input name="prenom" required autocomplete="given-name"></label>
+        <label>Nom*<input name="nom" required autocomplete="family-name"></label>
+        <label>Email*<input name="email" type="email" required autocomplete="email"></label>
+        <label>Téléphone*<input name="telephone" required autocomplete="tel"></label>
+        <label>Heure d'arrivée<input name="heure_arrivee" type="time"></label>
+        <label>Heure de départ<input name="heure_depart" type="time"></label>
+        <label class="full-width">Commentaire<textarea name="commentaire" rows="2"></textarea></label>
+        <fieldset class="full-width participations" style="margin-top:10px; border:1px dashed #ddd; border-radius:8px; padding:10px 16px 6px;">
+          <legend>Participations (min 1 requis)</legend>
+          <div style="display: flex; gap: 32px; align-items: center; flex-wrap: wrap;">
+            <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="preparation_salle"> Préparation salle</label>
+            <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="partie_evenement"> Partie soirée</label>
+            <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="evenement_entier"> Soirée entière</label>
+          </div>
+        </fieldset>
+        <input type="hidden" name="event_id" id="insc-event-id">
+        <div class="form-notice full-width">
+          <small>Vos données sont utilisées uniquement pour la gestion des inscriptions et ne seront jamais transmises à des tiers.</small>
         </div>
-      </fieldset>
-      <input type="hidden" name="event_id" id="insc-event-id">
-      <div class="form-notice full-width">
-        <small>Vos données sont utilisées uniquement pour la gestion des inscriptions et ne seront jamais transmises à des tiers.</small>
-      </div>
-      <button type="submit" class="btn btn-primary full-width">S'inscrire</button>
-    </form>
+        <button type="submit" class="btn btn-primary full-width">S'inscrire</button>
+      </form>
+    </div>
   </div>
-</div>
 
-
-  <!-- MODALE ADMIN (Login) -->
+  <!-- MODALE ADMIN Login -->
   <div id="modal-admin" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="admin-title">
     <div class="modal-card modal-card-small">
       <div class="modal-header">
@@ -105,27 +101,27 @@
     </div>
   </div>
 
-  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
-
-  <script src="app-v5.js"></script>
+  <!-- MODALE EDITION EVENEMENT -->
   <div id="modal-edit-event" class="modal" hidden>
-  <div class="modal-card">
-    <button class="modal-close" data-close aria-label="Fermer">✕</button>
-    <h3>Éditer événement</h3>
-    <form id="form-edit-event">
-      <input type="hidden" name="id" id="edit-event-id">
-      <label>Titre<input name="titre" id="edit-event-titre" required></label>
-      <label>Date<input name="date" type="date" id="edit-event-date" required></label>
-      <label>Heure<input name="heure" type="time" id="edit-event-heure"></label>
-      <label>Lieu<input name="lieu" id="edit-event-lieu"></label>
-      <label>Max inscrits<input name="max_participants" type="number" id="edit-event-max"></label>
-      <label>Description<textarea name="description" id="edit-event-description" rows="2"></textarea></label>
-      <div style="margin-top:1em;">
-        <button type="submit" class="btn btn-primary">Enregistrer</button>
-      </div>
-    </form>
+    <div class="modal-card">
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+      <h3>Éditer événement</h3>
+      <form id="form-edit-event">
+        <input type="hidden" name="id" id="edit-event-id">
+        <label>Titre<input name="titre" id="edit-event-titre" required></label>
+        <label>Date<input name="date" type="date" id="edit-event-date" required></label>
+        <label>Heure<input name="heure" type="time" id="edit-event-heure"></label>
+        <label>Lieu<input name="lieu" id="edit-event-lieu"></label>
+        <label>Max inscrits<input name="max_participants" type="number" id="edit-event-max"></label>
+        <label>Description<textarea name="description" id="edit-event-description" rows="2"></textarea></label>
+        <div style="margin-top:1em;">
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
-*/
+
+  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+  <script src="app.js"></script>
 </body>
 </html>
