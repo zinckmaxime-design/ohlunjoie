@@ -52,7 +52,7 @@
 
   <div id="modal-backdrop" class="modal-backdrop" hidden></div>
 
- <!-- MODALE INSCRIPTION – Version classique compacte -->
+<!-- MODALE INSCRIPTION – Cases à cocher alignées (pro) -->
 <div id="modal-inscription" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="insc-title">
   <div class="modal-card">
     <button class="modal-close" data-close aria-label="Fermer">✕</button>
@@ -66,11 +66,13 @@
       <label>Heure d'arrivée<input name="heure_arrivee" type="time"></label>
       <label>Heure de départ<input name="heure_depart" type="time"></label>
       <label class="full-width">Commentaire<textarea name="commentaire" rows="2"></textarea></label>
-      <fieldset class="full-width participations" style="margin-top:10px;">
+      <fieldset class="full-width participations" style="margin-top:10px; border:1px dashed #ddd; border-radius:8px; padding:10px 16px 6px;">
         <legend>Participations (min 1 requis)</legend>
-        <label style="margin-right:16px;"><input type="checkbox" name="preparation_salle"> Préparation salle</label>
-        <label style="margin-right:16px;"><input type="checkbox" name="partie_evenement"> Partie soirée</label>
-        <label><input type="checkbox" name="evenement_entier"> Soirée entière</label>
+        <div style="display: flex; gap: 32px; align-items: center; flex-wrap: wrap;">
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="preparation_salle"> Préparation salle</label>
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="partie_evenement"> Partie soirée</label>
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="evenement_entier"> Soirée entière</label>
+        </div>
       </fieldset>
       <input type="hidden" name="event_id" id="insc-event-id">
       <div class="form-notice full-width">
