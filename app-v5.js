@@ -671,38 +671,6 @@ function scheduleAutoArchive() {
 }
 scheduleAutoArchive();
 
-// Fonction d'ouverture de l'édition
-function adminEditEvent(eventId) {
-  // Cherche les infos de l'événement à modifier
-  supabase.from('events').select('*').eq('id', eventId).single().then(({ data }) => {
-    if (!data) return toast('Erreur chargement event');
-    openEventEditModal(data);
-  });
-}
-
-// Insère ce code HTML pour la modale d'édition à la fin de ton index.html (hors des balises <main> mais avant </body>)
-/*
-<div id="modal-edit-event" class="modal" hidden>
-  <div class="modal-card">
-    <button class="modal-close" data-close aria-label="Fermer">✕</button>
-    <h3>Éditer événement</h3>
-    <form id="form-edit-event">
-      <input type="hidden" name="id" id="edit-event-id">
-      <label>Titre<input name="titre" id="edit-event-titre" required></label>
-      <label>Date<input name="date" type="date" id="edit-event-date" required></label>
-      <label>Heure<input name="heure" type="time" id="edit-event-heure"></label>
-      <label>Lieu<input name="lieu" id="edit-event-lieu"></label>
-      <label>Max inscrits<input name="max_participants" type="number" id="edit-event-max"></label>
-      <label>Description<textarea name="description" id="edit-event-description" rows="2"></textarea></label>
-      <div style="margin-top:1em;">
-        <button type="submit" class="btn btn-primary">Enregistrer</button>
-      </div>
-    </form>
-  </div>
-</div>
-*/
-
-// Ajoute ceci dans ton JS :
 function openEventEditModal(ev) {
   document.getElementById('modal-edit-event').hidden = false;
   document.getElementById('edit-event-id').value = ev.id;
@@ -728,4 +696,3 @@ document.getElementById('form-edit-event').onsubmit = async function(e) {
   toast('Événement modifié !');
   document.getElementById('modal-edit-event').hidden = true;
   loadAdminEvents(); // Recharge la liste
-};
