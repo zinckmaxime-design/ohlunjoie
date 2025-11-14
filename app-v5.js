@@ -452,42 +452,6 @@ async function loadAdminVolunteers() {
   renderList();
 }
 
-
-// ADMINS
-async function loadAdminUsers() {
-  if (!adminPermissions.admins?.view) {
-    $('#module-admins').innerHTML = '<p>❌ Accès refusé</p>';
-    return;
-  }
-  
-  const host = $('#module-admins');
-  host.innerHTML = '<p>Chargement des administrateurs...</p>';
-  
-  const { data: admins } = await supabase.from('admins').select('*').order('created_at');
-  
-  let html = `<button class="btn btn-primary" onclick="adminCreateUser()">+ Nouvel Admin</button>
-    <table>
-      <thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Actif</th><th>Dernière Visite</th><th>Actions</th></tr></thead>
-      <tbody>`;
-  
-  admins.forEach(a => {
-    html += `<tr>
-      <td>${a.prenom} ${a.nom}</td>
-      <td>${a.email}</td>
-      <td>${a.role}</td>
-      <td>${a.is_active ? '✅' : '❌'}</td>
-      <td>${a.last_login ? new Date(a.last_login).toLocaleDateString('fr-FR') : '-'}</td>
-      <td>
-        <button class="btn-small" onclick="adminEditUser(${a.id})">✏️</button>
-        <button class="btn-small btn-danger" onclick="adminDeleteUser(${a.id})">🗑️</button>
-      </td>
-    </tr>`;
-  });
-  
-  html += '</tbody></table>';
-  host.innerHTML = html;
-}
-
 // ASSOCIATION
 async function loadAdminAssociation() {
   const host = $('#module-association');
