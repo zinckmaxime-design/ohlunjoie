@@ -445,7 +445,16 @@ async function saveAssociationConfig() {
 }
 
 // STUBS (à compléter)
-function adminCreateEvent() { toast('Créer événement - À développer'); }
+function adminCreateEvent() {
+  // Réinitialise le formulaire
+  document.getElementById('form-create-event').reset();
+  // Définit la date par défaut à aujourd'hui
+  const today = new Date().toISOString().split('T')[0];
+  document.querySelector('#form-create-event [name="date"]').value = today;
+  // Ouvre la modale
+  modal.open('#modal-create-event');
+}
+
 function adminDeleteEvent(id) { toast('Supprimer événement ' + id); }
 function adminCreateUser() { toast('Créer admin - À développer'); }
 function adminEditUser(id) { toast('Éditer admin ' + id); }
