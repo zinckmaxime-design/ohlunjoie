@@ -682,7 +682,7 @@ async function loadAdminAssociation() {
   
   const { data: config } = await supabase.from('site_config').select('*').limit(1).single();
   
-  const logoData = config?.logo_url ? `<img src="${config.logo_url}" alt="Logo" style="max-width:150px;border-radius:8px;margin-bottom:1em;">` : '';
+  const logoDisplay = config?.logo_url ? `<img src="${config.logo_url}" alt="Logo" style="max-width:150px;height:auto;border-radius:8px;margin-bottom:1em;">` : '';
   
   host.innerHTML = `
     <div class="config-panel">
@@ -692,17 +692,16 @@ async function loadAdminAssociation() {
         <div class="config-group">
           <label class="config-label">
             <span class="label-title">🖼️ Logo de l'association</span>
-            <span class="label-desc">Upload une image (PNG, JPG, max 2MB)</span>
+            <span class="label-desc">Upload une image (PNG, JPG)</span>
             <input type="file" id="logo-upload" accept="image/png,image/jpeg" style="margin-top:0.5em;padding:0.5em;border:1px solid #ddd;border-radius:6px;width:100%;cursor:pointer;">
-            ${logoData}
             <div id="logo-preview" style="margin-top:1em;"></div>
+            ${logoDisplay}
           </label>
         </div>
 
         <div class="config-group">
           <label class="config-label">
             <span class="label-title">📛 Nom de l'association</span>
-            <span class="label-desc">Ex: Ohlun'Joie, La Main Tendue, etc.</span>
             <input id="name-input" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
           </label>
         </div>
@@ -710,7 +709,6 @@ async function loadAdminAssociation() {
         <div class="config-group">
           <label class="config-label">
             <span class="label-title">📝 Texte d'introduction (Site Public)</span>
-            <span class="label-desc">Affiché sur la page publique des événements</span>
             <textarea id="intro-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
           </label>
         </div>
@@ -718,13 +716,12 @@ async function loadAdminAssociation() {
         <div class="config-group">
           <label class="config-label">
             <span class="label-title">👥 Description pour les bénévoles</span>
-            <span class="label-desc">Texte encourageant pour les volontaires</span>
             <textarea id="desc-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
           </label>
         </div>
 
         <div class="config-actions">
-          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">💾 Enregistrer les modifications</button>
+          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">💾 Enregistrer</button>
           <button class="btn btn-secondary" onclick="resetAssociationForm()">↺ Réinitialiser</button>
         </div>
       </div>
@@ -732,20 +729,18 @@ async function loadAdminAssociation() {
       <div class="config-section info-section">
         <h3>ℹ️ Aperçu Public</h3>
         <div class="preview-box">
-          <div id="preview-logo" style="text-align:center;margin-bottom:1em;min-height:80px;">
-            ${logoData || '<span style="font-size:3em;">🤝</span>'}
+          <div id="preview-logo" style="text-align:center;margin-bottom:1em;min-height:80px;display:flex;align-items:center;justify-content:center;">
+            ${logoDisplay || '<span style="font-size:3em;">🤝</span>'}
           </div>
           <div id="preview-name" style="font-size:1.3em;font-weight:bold;text-align:center;margin-bottom:0.5em;">${config?.association_name || 'Ohlun\'Joie'}</div>
-          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Notre association rassemble des bénévoles passionnés...'}</div>
+          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || ''}</div>
         </div>
       </div>
     </div>
   `;
 
-  // Gestion upload d'image
+  // Gestion upload image
   const logoUpload = $('#logo-upload');
-  const logoPreview = $('#logo-preview');
-  
   if (logoUpload) {
     logoUpload.addEventListener('change', async function(e) {
       const file = e.target.files[0];
@@ -758,13 +753,14 @@ async function loadAdminAssociation() {
       
       const reader = new FileReader();
       reader.onload = (event) => {
-        logoPreview.innerHTML = `
+        const base64 = event.target.result;
+        document.getElementById('logo-preview').innerHTML = `
           <div style="border:2px dashed #0d7377;border-radius:8px;padding:1em;text-align:center;">
-            <img src="${event.target.result}" alt="Preview" style="max-width:100%;max-height:150px;border-radius:6px;">
-            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">Aperçu de l'image</p>
+            <img src="${base64}" alt="Preview" style="max-width:100%;max-height:150px;border-radius:6px;">
+            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">✅ Image prête à être enregistrée</p>
           </div>
         `;
-        logoUpload.dataset.imageData = event.target.result;
+        logoUpload.dataset.imageBase64 = base64;
       };
       reader.readAsDataURL(file);
     });
@@ -775,61 +771,47 @@ async function saveAssociationConfig() {
   const name = $('#name-input')?.value.trim();
   const intro = $('#intro-input')?.value.trim();
   const desc = $('#desc-input')?.value.trim();
-  const logoUpload = $('#logo-upload');
+  const logoBase64 = $('#logo-upload')?.dataset.imageBase64 || null;
   
   if (!name) {
-    toast('⚠️ Le nom de l\'association est requis');
+    toast('⚠️ Le nom est requis');
     return;
-  }
-  
-  let logoUrl = null;
-  
-  // Si une image a été uploadée
-  if (logoUpload?.dataset.imageData) {
-    try {
-      const base64 = logoUpload.dataset.imageData;
-      // Créer un fichier depuis la base64
-      const arr = base64.split(',');
-      const mime = arr[0].match(/:(.*?);/)[1];
-      const str = atob(arr[1]);
-      const n = str.length;
-      const u8arr = new Uint8Array(n);
-      for (let i = 0; i < n; i++) u8arr[i] = str.charCodeAt(i);
-      const file = new File([u8arr], `logo-${Date.now()}.jpg`, { type: mime });
-      
-      // Upload vers Supabase
-      const { data, error } = await supabase.storage
-        .from('logos')
-        .upload(file.name, file, { upsert: true });
-      
-      if (error) throw error;
-      
-      logoUrl = supabase.storage.from('logos').getPublicUrl(data.path).data.publicUrl;
-    } catch (err) {
-      console.error('Erreur upload:', err);
-      toast('⚠️ Erreur lors de l\'upload (stockage non configuré? garde l\'emoji)');
-    }
   }
   
   const { data: config } = await supabase.from('site_config').select('id').limit(1).single();
   
-  let updateData = { association_name: name, intro_text: intro, association_description: desc };
-  if (logoUrl) updateData.logo_url = logoUrl;
+  const updateData = { 
+    association_name: name, 
+    intro_text: intro, 
+    association_description: desc
+  };
   
-  if (config) {
-    await supabase.from('site_config').update(updateData).eq('id', config.id);
-  } else {
-    await supabase.from('site_config').insert(updateData);
+  if (logoBase64) {
+    updateData.logo_url = logoBase64;
   }
   
-  loadSiteConfig();
-  loadAdminAssociation();
-  toast('✅ Configuration enregistrée avec succès');
+  try {
+    if (config) {
+      await supabase.from('site_config').update(updateData).eq('id', config.id);
+    } else {
+      await supabase.from('site_config').insert(updateData);
+    }
+    
+    loadSiteConfig();
+    loadAdminAssociation();
+    toast('✅ Configuration enregistrée');
+  } catch (err) {
+    console.error(err);
+    toast('❌ Erreur');
+  }
 }
 
 function resetAssociationForm() {
-  location.reload();
+  if (confirm('Êtes-vous sûr?')) {
+    loadAdminAssociation();
+  }
 }
+
 
 
 // EVENT STUBS
