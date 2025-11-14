@@ -261,81 +261,73 @@
     </div>
     <form id="form-admin-user" class="form-admin-user">
       <input type="hidden" id="admin-user-id">
-      <label>
-        <span>Prénom</span>
-        <input id="admin-user-prenom" required>
-      </label>
-      <label>
-        <span>Nom</span>
-        <input id="admin-user-nom" required>
-      </label>
-      <label>
-        <span>Email</span>
-        <input id="admin-user-email" required type="email">
-      </label>
-      <label>
-        <span>Rôle</span>
-        <select id="admin-user-role" required>
-          <option value="">Choisir...</option>
-          <option value="admin">Admin</option>
-          <option value="super_admin">Super Admin</option>
-        </select>
-      </label>
-      <label>
-        <span>Mot de passe</span>
-        <input id="admin-user-pass" required type="password">
-      </label>
+      <div class="form-row-admin">
+        <label>
+          <span>Prénom</span>
+          <input id="admin-user-prenom" required>
+        </label>
+        <label>
+          <span>Nom</span>
+          <input id="admin-user-nom" required>
+        </label>
+        <label>
+          <span>Email</span>
+          <input id="admin-user-email" required type="email">
+        </label>
+      </div>
+      <div class="form-row-admin">
+        <label>
+          <span>Rôle</span>
+          <select id="admin-user-role" required>
+            <option value="">Choisir...</option>
+            <option value="admin">Admin</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
+        </label>
+        <label>
+          <span>Mot de passe</span>
+          <input id="admin-user-pass" required type="password">
+        </label>
+      </div>
       <div class="roles-matrix">
-        <b>Droits par onglet</b><br>
+        <div class="roles-matrix-title"><b>Droits par onglet</b></div>
         <table>
-          <thead><tr>
-            <th>Module</th>
-            <th>Consultation</th>
-            <th>Modification</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Consultation</th>
+              <th>Modification</th>
+            </tr>
+          </thead>
           <tbody>
-          <div class="roles-matrix">
-  <b>Droits par onglet</b><br>
-  <table>
-    <thead>
-      <tr>
-        <th>Module</th>
-        <th>Consultation</th>
-        <th>Modification</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Dashboard</td>
-        <td><input type="checkbox" class="mod-view" data-module="dashboard"></td>
-        <td><input type="checkbox" class="mod-edit" data-module="dashboard"></td></tr>
-      <tr><td>Événements</td>
-        <td><input type="checkbox" class="mod-view" data-module="events"></td>
-        <td><input type="checkbox" class="mod-edit" data-module="events"></td></tr>
-      <tr><td>Inscriptions</td>
-        <td><input type="checkbox" class="mod-view" data-module="inscriptions"></td>
-        <td><input type="checkbox" class="mod-edit" data-module="inscriptions"></td></tr>
-      <tr><td>Bénévoles</td>
-        <td><input type="checkbox" class="mod-view" data-module="volunteers"></td>
-        <td><input type="checkbox" class="mod-edit" data-module="volunteers"></td></tr>
-      <tr><td>Admins</td>
-        <td><input type="checkbox" class="mod-view" data-module="admins"></td>
-        <td><input type="checkbox" class="mod-edit" data-module="admins"></td></tr>
-      <tr><td>Association</td>
-        <td><input type="checkbox" class="mod-view" data-module="association"></td>
-        <td><input type="checkbox" class="mod-edit" data-module="association"></td></tr>
-    </tbody>
-  </table>
-</div>
-
+            <tr><td>Dashboard</td>
+              <td><input type="checkbox" class="mod-view" data-module="dashboard"></td>
+              <td><input type="checkbox" class="mod-edit" data-module="dashboard"></td></tr>
+            <tr><td>Événements</td>
+              <td><input type="checkbox" class="mod-view" data-module="events"></td>
+              <td><input type="checkbox" class="mod-edit" data-module="events"></td></tr>
+            <tr><td>Inscriptions</td>
+              <td><input type="checkbox" class="mod-view" data-module="inscriptions"></td>
+              <td><input type="checkbox" class="mod-edit" data-module="inscriptions"></td></tr>
+            <tr><td>Bénévoles</td>
+              <td><input type="checkbox" class="mod-view" data-module="volunteers"></td>
+              <td><input type="checkbox" class="mod-edit" data-module="volunteers"></td></tr>
+            <tr><td>Admins</td>
+              <td><input type="checkbox" class="mod-view" data-module="admins"></td>
+              <td><input type="checkbox" class="mod-edit" data-module="admins"></td></tr>
+            <tr><td>Association</td>
+              <td><input type="checkbox" class="mod-view" data-module="association"></td>
+              <td><input type="checkbox" class="mod-edit" data-module="association"></td></tr>
           </tbody>
         </table>
       </div>
-      <div style="margin:1em 0 0 0;">
-        <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+      <div style="margin:1em 0 0 0; text-align:right">
+        <button type="submit" class="btn btn-primary btn-large">💾 Enregistrer</button>
       </div>
     </form>
   </div>
 </div>
+
 
 
 </body>
