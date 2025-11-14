@@ -677,6 +677,21 @@ function adminCreateUser() {
 
 // ASSOCIATION
 // ASSOCIATION - VERSION CORRIGÉE ET FONCTIONNELLE
+// Initialiser la config au démarrage si elle n'existe pas
+async function initSiteConfig() {
+  const { data: configs } = await supabase.from('site_config').select('id').limit(1);
+  if (!configs || configs.length === 0) {
+    await supabase.from('site_config').insert([{
+      association_name: 'Ohlun\'Joie',
+      intro_text: 'Notre association rassemble des bénévoles passionnés...',
+      association_description: 'Association locale de bénévolat',
+      logo_url: null
+    }]);
+    console.log('✅ Config initiale créée');
+  }
+}
+initSiteConfig();
+
 async function loadAdminAssociation() {
   const host = $('#module-association');
   
