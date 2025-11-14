@@ -815,11 +815,9 @@ async function saveConfigData() {
     
     toast('✅ Enregistré !');
     
-    // ✅ CECI EST LA CLÉE : RECHARGE LE HEADER AUSSI
-    await loadSiteConfig();
-    
+    // FORCE LE RELOAD COMPLET DE LA PAGE
     await new Promise(r => setTimeout(r, 500));
-    loadAdminAssociation();
+    location.reload();
     
   } catch (err) {
     console.error('❌ ERREUR:', err);
@@ -827,7 +825,8 @@ async function saveConfigData() {
   }
 }
 
-console.log('✅ saveConfigData MISE À JOUR');
+console.log('✅ saveConfigData AVEC RELOAD');
+
 
 
 
