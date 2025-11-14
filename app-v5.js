@@ -782,13 +782,24 @@ async function loadAdminAssociation() {
 }
 
 // SAUVEGARDER LA CONFIGURATION
+// SAUVEGARDER LA CONFIGURATION - VERSION CORRIGÉE
 async function saveAssociationConfig() {
   console.log('🔄 Tentative d\'enregistrement...');
   
-  const name = $('#name-input')?.value?.trim();
-  const intro = $('#intro-input')?.value?.trim();
-  const desc = $('#desc-input')?.value?.trim();
-  const logoBase64 = $('#logo-upload')?.dataset.imageBase64 || null;
+  const nameInput = document.getElementById('name-input');
+  const introInput = document.getElementById('intro-input');
+  const descInput = document.getElementById('desc-input');
+  const logoUpload = document.getElementById('logo-upload');
+  
+  if (!nameInput || !introInput || !descInput) {
+    toast('⚠️ Formulaire non trouvé - recharge la page');
+    return;
+  }
+  
+  const name = nameInput.value?.trim();
+  const intro = introInput.value?.trim();
+  const desc = descInput.value?.trim();
+  const logoBase64 = logoUpload?.dataset.imageBase64 || null;
   
   if (!name) {
     toast('⚠️ Le nom est requis');
@@ -796,8 +807,18 @@ async function saveAssociationConfig() {
   }
   
   // Récupérer la config existante
-  const { data: configs } = await supabase.from('site_config').select('id').limit(1);
-  const config = configs && configs[0];
+  const { data: configs, error: fetchError } = await supabase
+    .from('site_config')
+    .select('id')
+    .limit(1);
+  
+  if (fetchError) {
+    console.error('Erreur fetch:', fetchError);
+    toast('❌ Erreur lecture base');
+    return;
+  }
+  
+  const config = configs && configs.length > 0 ? configs[0] : null;
   
   const updateData = { 
     association_name: name, 
@@ -808,41 +829,62 @@ async function saveAssociationConfig() {
   // Si une nouvelle image a été uploadée, la stocker
   if (logoBase64) {
     updateData.logo_url = logoBase64;
+    console.log('📸 Image à enregistrer (longueur base64:', logoBase64.length, ')');
   }
   
   console.log('💾 Données à enregistrer:', updateData);
   
   try {
     if (config) {
-      console.log('🔄 Mise à jour config existante...');
+      console.log('🔄 Mise à jour config existante (ID:', config.id, ')...');
       const { error } = await supabase
         .from('site_config')
         .update(updateData)
         .eq('id', config.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur update:', error);
+        throw error;
+      }
     } else {
       console.log('➕ Création nouvelle config...');
       const { error } = await supabase
         .from('site_config')
         .insert([updateData]);
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur insert:', error);
+        throw error;
+      }
     }
     
     console.log('✅ Succès!');
     toast('✅ Configuration enregistrée avec succès');
     
-    // Recharger et afficher l'aperçu mis à jour
+    // Réinitialiser l'upload après succès
+    if (logoUpload) {
+      logoUpload.value = '';
+      delete logoUpload.dataset.imageBase64;
+    }
+    
+    // Recharger après 1 seconde
     setTimeout(() => {
       loadAdminAssociation();
-    }, 500);
+    }, 1000);
     
   } catch (err) {
-    console.error('❌ Erreur:', err);
-    toast('❌ Erreur lors de la sauvegarde: ' + err.message);
+    console.error('❌ Erreur complète:', err);
+    toast('❌ Erreur: ' + (err.message || 'Erreur inconnue'));
   }
 }
+
+// RÉINITIALISER LE FORMULAIRE
+function resetAssociationForm() {
+  if (confirm('Êtes-vous sûr? Les changements non sauvegardés seront perdus.')) {
+    loadAdminAssociation();
+  }
+}
+
 
 // RÉINITIALISER LE FORMULAIRE
 function resetAssociationForm() {
