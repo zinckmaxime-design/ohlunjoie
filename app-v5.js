@@ -751,3 +751,104 @@ document.getElementById('form-create-event').onsubmit = async function(e) {
   e.target.reset();
   loadAdminEvents();
 };
+async function filterInscriptions() {
+  const eventId = $('#event-filter')?.value;
+  const list = $('#inscriptions-list');
+
+  let query = supabase.from('inscriptions').select('*');
+  if (eventId) query = query.eq('event_id', eventId);
+
+  const { data: inscs } = await query.order('date_inscription', { ascending: false });
+
+  let html = `
+    <table class="insc-table-admin">
+      <thead>
+        <tr>
+          <th data-sort="prenom">PRÉNOM</th>
+          <th data-sort="nom">NOM</th>
+          <th data-sort="email">EMAIL</th>
+          <th data-sort="telephone">TÉL</th>
+          <th data-sort="heure_arrivee">ARRIVÉE</th>
+          <th data-sort="heure_depart">DÉPART</th>
+          <th data-sort="participation">PARTICIPATIONS</th>
+          <th data-sort="commentaire">COMMENTAIRE</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  inscs.forEach((i, idx) => {
+    const parts = [];
+    if (i.preparation_salle) parts.push('Prépa');
+    if (i.partie_evenement) parts.push('Partie');
+    if (i.evenement_entier) parts.push('Entier');
+    html += `<tr>
+      <td>${i.prenom}</td>
+      <td>${i.nom}</td>
+      <td>${i.email}</td>
+      <td>${i.telephone}</td>
+      <td>${i.heure_arrivee || '-'}</td>
+      <td>${i.heure_depart || '-'}</td>
+      <td>${parts.join(', ')}</td>
+      <td>${i.commentaire || '-'}</td>
+      <td><button class="btn-see-details" data-idx="${idx}">Voir +</button></td>
+    </tr>
+    <tr class="insc-details-row" style="display:none;">
+      <td colspan="9">
+        <div class="details-panel">
+          <strong>Prénom :</strong> ${i.prenom}<br>
+          <strong>Nom :</strong> ${i.nom}<br>
+          <strong>Email :</strong> ${i.email}<br>
+          <strong>Tél :</strong> ${i.telephone}<br>
+          <strong>Heure arrivée :</strong> ${i.heure_arrivee || '-'}<br>
+          <strong>Heure départ :</strong> ${i.heure_depart || '-'}<br>
+          <strong>Participations :</strong> ${parts.join(', ') || '-'}<br>
+          <strong>Commentaire :</strong> ${i.commentaire || '-'}<br>
+        </div>
+      </td>
+    </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  list.innerHTML = html;
+
+  // Détails déroulants
+  document.querySelectorAll('.btn-see-details').forEach(btn => {
+    btn.onclick = function() {
+      const detailsRow = btn.closest('tr').nextElementSibling;
+      detailsRow.style.display = detailsRow.style.display === 'table-row' ? 'none' : 'table-row';
+      btn.textContent = detailsRow.style.display === 'table-row' ? 'Fermer' : 'Voir +';
+    };
+  });
+
+  // Tri des colonnes
+  document.querySelectorAll('.insc-table-admin th[data-sort]').forEach((th, colIdx) => {
+    th.style.cursor = 'pointer';
+    th.onclick = function() {
+      const tbody = th.closest('table').querySelector('tbody');
+      let rows = Array.from(tbody.querySelectorAll('tr')).filter((_,idx) => idx%2 === 0);
+      let detailsRows = Array.from(tbody.querySelectorAll('tr')).filter((_,idx) => idx%2 === 1);
+
+      const asc = !th.classList.toggle('sorted-asc');
+      th.classList.remove('sorted-desc');
+      if(!asc) th.classList.add('sorted-desc');
+
+      rows.sort((a, b) => {
+        const tdA = a.children[colIdx].textContent.trim().toLowerCase();
+        const tdB = b.children[colIdx].textContent.trim().toLowerCase();
+        return asc
+          ? tdA.localeCompare(tdB, 'fr')
+          : tdB.localeCompare(tdA, 'fr');
+      });
+
+      // Réordonne le tbody : chaque ligne suivie directement de son details
+      tbody.innerHTML = '';
+      rows.forEach((tr, idx) => {
+        tbody.appendChild(tr);
+        tbody.appendChild(detailsRows[idx]);
+      });
+    };
+  });
+}
