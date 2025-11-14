@@ -548,7 +548,16 @@ function adminCreateEvent() {
 }
 
 function adminDeleteEvent(id) { toast('Supprimer événement ' + id); }
-function adminCreateUser() { toast('Créer admin - À développer'); }
+function adminCreateUser() {
+  // Ouvre la modale ou affiche le vrai formulaire
+  document.getElementById('form-admin-user').reset();
+  document.getElementById('admin-user-id').value = '';
+  // Décoche tous modules/permissions
+  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('admin-user-mod-title').textContent = 'Nouvel Admin';
+  modal.open('#modal-admin-user');
+}
+
 function adminEditUser(id) { toast('Éditer admin ' + id); }
 function adminDeleteUser(id) { toast('Supprimer admin ' + id); }
 
