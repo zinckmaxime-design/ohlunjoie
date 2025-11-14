@@ -756,7 +756,7 @@ async function filterInscriptions() {
   const list = $('#inscriptions-list');
   let selectedEventData = null;
 
-  // Si un événement est sélectionné, affiche l'entête style carte
+  // Récupérer infos de l'événement sélectionné
   if (eventId) {
     const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single();
     selectedEventData = event;
@@ -765,6 +765,14 @@ async function filterInscriptions() {
   let query = supabase.from('inscriptions').select('*');
   if (eventId) query = query.eq('event_id', eventId);
   const { data: inscs } = await query.order('date_inscription', { ascending: false });
+
+  // Comptage pour les totaux par type
+  let countPrep = 0, countEntier = 0, countPartie = 0;
+  inscs.forEach(i => {
+    if (i.preparation_salle) countPrep++;
+    if (i.evenement_entier) countEntier++;
+    if (i.partie_evenement) countPartie++;
+  });
 
   let html = '';
   if (selectedEventData) {
@@ -777,6 +785,11 @@ async function filterInscriptions() {
           ${selectedEventData.lieu ? '• ' + selectedEventData.lieu : ''}
         </div>
         <div class="event-detail-desc">${selectedEventData.description || ''}</div>
+        <div class="event-detail-totals">
+          <b>Préparation&nbsp;:</b> ${countPrep} &nbsp;|&nbsp; 
+          <b>Soirée entière&nbsp;:</b> ${countEntier} &nbsp;|&nbsp; 
+          <b>Partie de la soirée&nbsp;:</b> ${countPartie}
+        </div>
       </div>
     `;
   }
@@ -802,6 +815,13 @@ async function filterInscriptions() {
     if (i.preparation_salle) parts.push('Prépa');
     if (i.partie_evenement) parts.push('Partie');
     if (i.evenement_entier) parts.push('Entier');
+
+    // "Autres infos" : tout ce qui n'est pas affiché en direct ni dans details principaux
+    const autres = [];
+    if (i.email) autres.push('Email&nbsp;:&nbsp;' + i.email);
+    if (i.telephone) autres.push('Tél&nbsp;:&nbsp;' + i.telephone);
+    // comment dire si le champs commentaire est déjà affiché
+    // => ne pas doubler ici, car déjà dans colonne
     html += `<tr>
       <td>${i.heure_arrivee || '-'}</td>
       <td>${i.heure_depart || '-'}</td>
@@ -819,12 +839,8 @@ async function filterInscriptions() {
           <strong>Prénom :</strong> ${i.prenom}<br>
           <strong>Nom :</strong> ${i.nom}<br>
           <strong>Participations :</strong> ${parts.join(', ') || '-'}<br>
-          <hr>
-          <div style="color:#444; font-size: 0.97em;"><b>Autres infos :</b><br>
-            Email : ${i.email || '-'}<br>
-            Tél : ${i.telephone || '-'}<br>
-            Commentaire : ${i.commentaire || '-'}
-          </div>
+          ${autres.length > 0 ? '<hr><b>Autres infos :</b><br>' + autres.join('<br>') : ''}
+          ${i.commentaire ? '<br><b>Commentaire :</b> ' + i.commentaire : ''}
         </div>
       </td>
     </tr>
@@ -834,7 +850,7 @@ async function filterInscriptions() {
   html += '</tbody></table>';
   list.innerHTML = html;
 
-  // Ouvre/ferme le détail
+  // Voir + déroulant
   document.querySelectorAll('.btn-see-details').forEach(btn => {
     btn.onclick = function() {
       const detailsRow = btn.closest('tr').nextElementSibling;
@@ -843,7 +859,7 @@ async function filterInscriptions() {
     };
   });
 
-  // Tri des colonnes
+  // Tri
   document.querySelectorAll('.insc-table-admin th[data-sort]').forEach((th, colIdx) => {
     th.style.cursor = 'pointer';
     th.onclick = function() {
