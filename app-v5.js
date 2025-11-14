@@ -676,52 +676,161 @@ function adminCreateUser() {
 }
 
 // ASSOCIATION
+// ASSOCIATION - VERSION AMÉLIORÉE
 async function loadAdminAssociation() {
   const host = $('#module-association');
   
   const { data: config } = await supabase.from('site_config').select('*').limit(1).single();
   
+  const logoData = config?.logo_url ? `<img src="${config.logo_url}" alt="Logo" style="max-width:150px;border-radius:8px;margin-bottom:1em;">` : '';
+  
   host.innerHTML = `
-    <div class="config-form">
-      <h3>Paramètres de l'association</h3>
-      <label>
-        <span>Logo (Emoji)</span>
-        <input id="logo-input" value="${config?.logo_emoji || '🤝'}" maxlength="2">
-      </label>
-      <label>
-        <span>Nom de l'association</span>
-        <input id="name-input" value="${config?.association_name || 'Ohlun\'Joie'}">
-      </label>
-      <label>
-        <span>Texte d'introduction (site public)</span>
-        <textarea id="intro-input" rows="4">${config?.intro_text || ''}</textarea>
-      </label>
-      <label>
-        <span>Description pour les bénévoles</span>
-        <textarea id="desc-input" rows="4">${config?.association_description || ''}</textarea>
-      </label>
-      <button class="btn btn-primary" onclick="saveAssociationConfig()">💾 Enregistrer</button>
+    <div class="config-panel">
+      <div class="config-section">
+        <h3>📋 Configuration de l'association</h3>
+        
+        <div class="config-group">
+          <label class="config-label">
+            <span class="label-title">🖼️ Logo de l'association</span>
+            <span class="label-desc">Upload une image (PNG, JPG, max 2MB)</span>
+            <input type="file" id="logo-upload" accept="image/png,image/jpeg" style="margin-top:0.5em;padding:0.5em;border:1px solid #ddd;border-radius:6px;width:100%;cursor:pointer;">
+            ${logoData}
+            <div id="logo-preview" style="margin-top:1em;"></div>
+          </label>
+        </div>
+
+        <div class="config-group">
+          <label class="config-label">
+            <span class="label-title">📛 Nom de l'association</span>
+            <span class="label-desc">Ex: Ohlun'Joie, La Main Tendue, etc.</span>
+            <input id="name-input" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
+          </label>
+        </div>
+
+        <div class="config-group">
+          <label class="config-label">
+            <span class="label-title">📝 Texte d'introduction (Site Public)</span>
+            <span class="label-desc">Affiché sur la page publique des événements</span>
+            <textarea id="intro-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
+          </label>
+        </div>
+
+        <div class="config-group">
+          <label class="config-label">
+            <span class="label-title">👥 Description pour les bénévoles</span>
+            <span class="label-desc">Texte encourageant pour les volontaires</span>
+            <textarea id="desc-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
+          </label>
+        </div>
+
+        <div class="config-actions">
+          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">💾 Enregistrer les modifications</button>
+          <button class="btn btn-secondary" onclick="resetAssociationForm()">↺ Réinitialiser</button>
+        </div>
+      </div>
+
+      <div class="config-section info-section">
+        <h3>ℹ️ Aperçu Public</h3>
+        <div class="preview-box">
+          <div id="preview-logo" style="text-align:center;margin-bottom:1em;min-height:80px;">
+            ${logoData || '<span style="font-size:3em;">🤝</span>'}
+          </div>
+          <div id="preview-name" style="font-size:1.3em;font-weight:bold;text-align:center;margin-bottom:0.5em;">${config?.association_name || 'Ohlun\'Joie'}</div>
+          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Notre association rassemble des bénévoles passionnés...'}</div>
+        </div>
+      </div>
     </div>
   `;
+
+  // Gestion upload d'image
+  const logoUpload = $('#logo-upload');
+  const logoPreview = $('#logo-preview');
+  
+  if (logoUpload) {
+    logoUpload.addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      if (file.size > 2 * 1024 * 1024) {
+        toast('❌ Image trop grande (max 2MB)');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        logoPreview.innerHTML = `
+          <div style="border:2px dashed #0d7377;border-radius:8px;padding:1em;text-align:center;">
+            <img src="${event.target.result}" alt="Preview" style="max-width:100%;max-height:150px;border-radius:6px;">
+            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">Aperçu de l'image</p>
+          </div>
+        `;
+        logoUpload.dataset.imageData = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
 async function saveAssociationConfig() {
-  const logo = $('#logo-input')?.value || '🤝';
-  const name = $('#name-input')?.value;
-  const intro = $('#intro-input')?.value;
-  const desc = $('#desc-input')?.value;
+  const name = $('#name-input')?.value.trim();
+  const intro = $('#intro-input')?.value.trim();
+  const desc = $('#desc-input')?.value.trim();
+  const logoUpload = $('#logo-upload');
+  
+  if (!name) {
+    toast('⚠️ Le nom de l\'association est requis');
+    return;
+  }
+  
+  let logoUrl = null;
+  
+  // Si une image a été uploadée
+  if (logoUpload?.dataset.imageData) {
+    try {
+      const base64 = logoUpload.dataset.imageData;
+      // Créer un fichier depuis la base64
+      const arr = base64.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const str = atob(arr[1]);
+      const n = str.length;
+      const u8arr = new Uint8Array(n);
+      for (let i = 0; i < n; i++) u8arr[i] = str.charCodeAt(i);
+      const file = new File([u8arr], `logo-${Date.now()}.jpg`, { type: mime });
+      
+      // Upload vers Supabase
+      const { data, error } = await supabase.storage
+        .from('logos')
+        .upload(file.name, file, { upsert: true });
+      
+      if (error) throw error;
+      
+      logoUrl = supabase.storage.from('logos').getPublicUrl(data.path).data.publicUrl;
+    } catch (err) {
+      console.error('Erreur upload:', err);
+      toast('⚠️ Erreur lors de l\'upload (stockage non configuré? garde l\'emoji)');
+    }
+  }
   
   const { data: config } = await supabase.from('site_config').select('id').limit(1).single();
   
+  let updateData = { association_name: name, intro_text: intro, association_description: desc };
+  if (logoUrl) updateData.logo_url = logoUrl;
+  
   if (config) {
-    await supabase.from('site_config').update({ logo_emoji: logo, association_name: name, intro_text: intro, association_description: desc }).eq('id', config.id);
+    await supabase.from('site_config').update(updateData).eq('id', config.id);
   } else {
-    await supabase.from('site_config').insert({ logo_emoji: logo, association_name: name, intro_text: intro, association_description: desc });
+    await supabase.from('site_config').insert(updateData);
   }
   
   loadSiteConfig();
-  toast('✅ Configuration enregistrée');
+  loadAdminAssociation();
+  toast('✅ Configuration enregistrée avec succès');
 }
+
+function resetAssociationForm() {
+  location.reload();
+}
+
 
 // EVENT STUBS
 function adminCreateEvent() {
