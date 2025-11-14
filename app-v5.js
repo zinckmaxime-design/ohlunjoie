@@ -779,13 +779,14 @@ async function loadAdminAssociation() {
 }
 
 async function saveConfigData() {
-  console.log('💾 Sauvegarde en cours...');
+  console.log('💾 SAUVEGARDE EN COURS...');
   
   const name = document.getElementById('config-name')?.value?.trim();
   const intro = document.getElementById('config-intro')?.value?.trim();
   const desc = document.getElementById('config-desc')?.value?.trim();
   const logoUpload = document.getElementById('logo-upload');
-  const logoBase64 = logoUpload?.dataset.imageBase64 || null;
+  
+  console.log('📝 Données:', { name, intro, desc, hasImage: !!logoUpload?.dataset.imageBase64 });
   
   if (!name) {
     toast('⚠️ Le nom est requis');
@@ -802,12 +803,14 @@ async function saveConfigData() {
       association_description: desc
     };
     
-    if (logoBase64) {
-      updateData.logo_url = logoBase64;
+    // IMPORTANT: Si image, l'ajouter
+    if (logoUpload?.dataset.imageBase64) {
+      updateData.logo_url = logoUpload.dataset.imageBase64;
+      console.log('📸 Image à enregistrer');
     }
     
     if (config) {
-      console.log('🔄 UPDATE config ID:', config.id);
+      console.log('🔄 UPDATE ID:', config.id, updateData);
       const { error } = await supabase
         .from('site_config')
         .update(updateData)
@@ -815,7 +818,7 @@ async function saveConfigData() {
       
       if (error) throw error;
     } else {
-      console.log('➕ INSERT nouvelle config');
+      console.log('➕ INSERT');
       const { error } = await supabase
         .from('site_config')
         .insert([updateData]);
@@ -823,23 +826,21 @@ async function saveConfigData() {
       if (error) throw error;
     }
     
-    console.log('✅ Succès!');
-    toast('✅ Enregistré avec succès');
+    console.log('✅ ENREGISTRÉ');
+    toast('✅ Enregistré !');
     
-    if (logoUpload) {
-      logoUpload.value = '';
-      delete logoUpload.dataset.imageBase64;
-    }
-    
-    setTimeout(() => {
-      loadAdminAssociation();
-    }, 1000);
+    // RAFRAÎCHIR
+    await new Promise(r => setTimeout(r, 500));
+    loadAdminAssociation();
     
   } catch (err) {
-    console.error('❌ Erreur sauvegarde:', err);
+    console.error('❌ ERREUR:', err);
     toast('❌ Erreur: ' + err.message);
   }
 }
+
+console.log('✅ saveConfigData REMPLACÉE');
+
 
 // EVENT STUBS
 function adminCreateEvent() {
