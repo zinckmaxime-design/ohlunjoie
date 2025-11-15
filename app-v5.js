@@ -192,51 +192,40 @@ async function trackPageView() {
 }
 trackPageView();
 
-// ✅ OUVERTURE MODALE ADMIN - CORRECTED
-$('#admin-toggle').addEventListener('click', () => {
-  $('#modal-admin').hidden = false;
-  $('#modal-backdrop').hidden = false;
-});
+// ADMIN LOGIN
+$('#admin-toggle').onclick = () => modal.open('#modal-admin');
 
-// ✅ FERMETURE MODALE - Tous les boutons [data-close]
-$$('[data-close]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    $$('.modal').forEach(m => m.hidden = true);
-    $('#modal-backdrop').hidden = true;
-  });
-});
-
-// ✅ FERMETURE SUR LE BACKDROP
-$('#modal-backdrop').addEventListener('click', () => {
-  $$('.modal').forEach(m => m.hidden = true);
-  $('#modal-backdrop').hidden = true;
-});
-
-// ✅ CONNEXION ADMIN
 $('#admin-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = $('#admin-email').value;
-  const password = $('#admin-password').value;
+  const email = $('#admin-email').value.trim();
+  const pass = $('#admin-password').value;
   
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    
-    isAdmin = true;
+  const { data: admin } = await supabase.from('admins').select('*').eq('email', email).eq('is_active', true).single();
+  
+  if (admin && admin.password_hash === pass) {
     sessionStorage.setItem('isAdmin', '1');
+    sessionStorage.setItem('adminId', admin.id);
+    sessionStorage.setItem('adminEmail', admin.email);
+    isAdmin = true;
+    adminUser = admin;
     
-    // Ferme modale et affiche dashboard
-    $('#modal-admin').hidden = true;
-    $('#modal-backdrop').hidden = true;
+    const { data: perms } = await supabase.from('admin_roles').select('*').eq('admin_id', admin.id);
+    adminPermissions = {};
+    perms.forEach(p => {
+      adminPermissions[p.module] = { view: p.can_view, edit: p.can_edit, delete: p.can_delete };
+    });
     
-    toast('✅ Connecté !');
-    // Affiche admin dashboard ici si tu le veux
+    await supabase.from('admins').update({ last_login: new Date().toISOString() }).eq('id', admin.id);
     
-  } catch (err) {
-    toast('❌ Email ou mot de passe incorrect');
+    modal.closeAll();
+    $('#admin-email').value = '';
+    $('#admin-password').value = '';
+    mountAdmin();
+    toast('✅ Connecté');
+  } else {
+    toast('❌ Identifiants invalides');
   }
 });
-
 
 // ADMIN UI
 function unmountAdmin() {
@@ -1182,6 +1171,11 @@ function setActiveView(which) {
   const targetTab = $('#view-' + which);
   if (targetTab) targetTab.classList.add('active');
 }
+
+// Assigne les clics sur les onglets
+document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
+document.getElementById('view-list').onclick = () => setActiveView('list');
+document.getElementById('view-cards').onclick = () => setActiveView('cards');
 
 console.log('✅ Onglets Liste et Cartes RÉACTIVÉS');
 
