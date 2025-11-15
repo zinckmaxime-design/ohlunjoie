@@ -1172,11 +1172,6 @@ function setActiveView(which) {
   if (targetTab) targetTab.classList.add('active');
 }
 
-// Assigne les clics sur les onglets
-document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
-document.getElementById('view-list').onclick = () => setActiveView('list');
-document.getElementById('view-cards').onclick = () => setActiveView('cards');
-
 console.log('✅ Onglets Liste et Cartes RÉACTIVÉS');
 
 $('#view-timeline').onclick = () => setActiveView('timeline');
