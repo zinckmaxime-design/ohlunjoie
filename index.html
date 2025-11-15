@@ -16,6 +16,12 @@
         <span class="brand-name">Ohlun'Joie</span>
       </div>
       <div class="header-actions">
+        <div class="view-switch" id="public-tabs">
+          <button id="view-timeline" class="tab active" aria-label="Vue Timeline">Timeline</button>
+          <button id="view-list" class="tab" aria-label="Vue Liste">Liste</button>
+          <button id="view-cards" class="tab" aria-label="Vue Cartes">Cartes</button>
+        </div>
+        <button id="theme-toggle" class="icon-btn" aria-label="Mode sombre" title="Changer de thème">🌙</button>
         <button id="admin-toggle" class="icon-btn" aria-label="Administration" title="Administration">🔑</button>
       </div>
     </div>
@@ -30,11 +36,11 @@
 
     <section id="public-section">
       <div id="timeline-view" class="view active"></div>
+      <div id="list-view" class="view"></div>
+      <div id="cards-view" class="view"></div>
     </section>
 
     <section id="admin-section" hidden aria-hidden="true"></section>
-
-
   </main>
 
   <footer class="site-footer">
@@ -290,24 +296,6 @@
       </div>
     </form>
   </div>
-</div>
-<button class="admin-tab" data-tab="messages">💬 Messages</button>
-
-<!-- Contenu de l'onglet -->
-<div id="tab-messages" class="admin-tab-content">
-  <h3>Messages de contact</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>De</th>
-        <th>Email</th>
-        <th>Sujet</th>
-        <th>Date</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="messages-list"></tbody>
-  </table>
 </div>
 
 
