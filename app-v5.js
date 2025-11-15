@@ -55,57 +55,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 let adminUser = null;
 let adminPermissions = {};
 
-// ✅ INIT THEME - Auto jour/nuit 19h-8h
+// ✅ INIT THEME - FORCE AUTO (pas de sauvegarde)
 (function initTheme() {
-  function detectTheme() {
-    // Vérifier si l'utilisateur a un préférence sauvegardée
-    const saved = localStorage.getItem('theme');
-    if (saved && saved !== 'auto') return saved;
-    
-    // Auto mode: détectez l'heure
+  function getThemeForNow() {
     const hour = new Date().getHours();
-    const isDarkHour = (hour >= 19 || hour < 8); // Dark de 19h à 8h
-    
-    return isDarkHour ? 'dark' : 'light';
+    return (hour >= 19 || hour < 8) ? 'dark' : 'light';
   }
   
-  const theme = detectTheme();
+  // Set initial theme
+  const theme = getThemeForNow();
   document.documentElement.setAttribute('data-theme', theme);
-  console.log('🌙 Thème auto:', theme, '(' + new Date().getHours() + 'h)');
+  console.log('🌙 Auto-theme:', theme, '('+new Date().getHours()+'h)');
   
-  // Mettre à jour le bouton
+  // Update button
   const btn = document.getElementById('theme-toggle');
   if (btn) {
     btn.textContent = theme === 'dark' ? '☀️' : '🌙';
     
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Toggle juste pour l'affichage, pas de sauvegarde
       const current = document.documentElement.getAttribute('data-theme') || 'light';
       const newTheme = current === 'dark' ? 'light' : 'dark';
-      
       document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
       btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-      console.log('🌙 Thème changé:', newTheme);
+      console.log('🌙 Toggle manuel:', newTheme);
     });
   }
   
-  // Vérifier l'heure toutes les minutes pour AUTO-SWITCH si c'était en AUTO
+  // Check every 60s et force le bon thème si l'heure a changé
   setInterval(() => {
-    const autoTheme = detectTheme();
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const correctTheme = getThemeForNow();
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
     
-    if (autoTheme !== currentTheme) {
-      const saved = localStorage.getItem('theme');
-      if (!saved || saved === 'auto') {
-        // Si pas de préférence OR si "auto", on rechange
-        document.documentElement.setAttribute('data-theme', autoTheme);
-        if (btn) btn.textContent = autoTheme === 'dark' ? '☀️' : '🌙';
-        console.log('🌙 Auto-switch:', autoTheme);
-      }
+    if (correctTheme !== current) {
+      document.documentElement.setAttribute('data-theme', correctTheme);
+      if (btn) btn.textContent = correctTheme === 'dark' ? '☀️' : '🌙';
+      console.log('🌙 Auto-correction:', correctTheme);
     }
-  }, 60000); // Tous les 60 secondes
+  }, 60000);
 })();
-
 
 // MODALES
 const modal = {
