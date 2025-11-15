@@ -1310,3 +1310,67 @@ if (isAdmin) {
 } else {
   unmountAdmin();
 }
+// 📧 GESTION DU FORMULAIRE DE CONTACT
+(function initContactForm() {
+  const form = document.getElementById('contact-form');
+  const resultDiv = document.getElementById('contact-result');
+  
+  if (!form) return;
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const nom = formData.get('nom');
+    const email = formData.get('email');
+    const sujet = formData.get('sujet');
+    const message = formData.get('message');
+    
+    // Validation basique
+    if (!nom || !email || !sujet || !message) {
+      showResult('Tous les champs sont obligatoires', 'error');
+      return;
+    }
+    
+    try {
+      // Envoyer via EmailJS (gratuit, simple)
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          service_id: 'service_ohlunjoie',
+          template_id: 'template_contact',
+          user_id: 'YOUR_PUBLIC_KEY_HERE', // ← À remplacer
+          template_params: {
+            to_email: 'ohlunjoie@gmail.com',
+            from_name: nom,
+            from_email: email,
+            subject: sujet,
+            message: message,
+            reply_to: email
+          }
+        })
+      });
+      
+      if (response.ok) {
+        showResult('✅ Message envoyé avec succès ! Merci de nous avoir contactés.', 'success');
+        form.reset();
+      } else {
+        showResult('❌ Erreur lors de l\'envoi. Veuillez réessayer.', 'error');
+      }
+    } catch (err) {
+      console.error('Erreur:', err);
+      showResult('❌ Erreur réseau. Veuillez réessayer plus tard.', 'error');
+    }
+  });
+  
+  function showResult(msg, type) {
+    resultDiv.textContent = msg;
+    resultDiv.className = 'contact-result ' + type;
+    setTimeout(() => {
+      if (type === 'success') resultDiv.className = 'contact-result';
+    }, 5000);
+  }
+})();
