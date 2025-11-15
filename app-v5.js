@@ -60,10 +60,10 @@ document.addEventListener('click', (e) => {
 async function loadSiteConfig() {
   const { data } = await supabase.from('site_config').select('*').limit(1).single();
   if (data) {
-    // ✅ EMOJI - SUPPRIMER COMPLÈTEMENT S'IL Y A UNE IMAGE
+    // ✅ EMOJI - MASQUER
     const logoEmoji = document.getElementById('logo-emoji');
-    if (data.logo_url && logoEmoji) {
-      logoEmoji.remove(); // ❌ Supprime l'emoji du DOM
+    if (logoEmoji) {
+      logoEmoji.style.display = 'none'; // ❌ Caché
     }
     
     // ✅ NOM
@@ -78,12 +78,11 @@ async function loadSiteConfig() {
       if (!headerImg) {
         headerImg = document.createElement('img');
         headerImg.id = 'header-logo-image';
-        headerImg.style.cssText = 'max-width:100px;max-height:100px;margin-right:1.5em;border-radius:12px;object-fit:contain;';
+        headerImg.style.cssText = 'max-width:90px;max-height:90px;margin-right:1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
         
-        // Insérer au début du brand
-        const brand = document.querySelector('.brand');
-        if (brand) {
-          brand.insertBefore(headerImg, brand.firstChild);
+        // Insérer après l'emoji (qui est masqué)
+        if (logoEmoji && logoEmoji.parentNode) {
+          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
         }
       }
       headerImg.src = data.logo_url;
@@ -100,7 +99,8 @@ async function loadSiteConfig() {
   }
 }
 
-console.log('✅ loadSiteConfig - EMOJI SUPPRIMÉ, IMAGE SEULE');
+console.log('✅ loadSiteConfig - IMAGE SEULE (emoji caché)');
+
 
 
 // ENREGISTRE VISITE
