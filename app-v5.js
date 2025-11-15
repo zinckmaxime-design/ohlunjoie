@@ -1155,6 +1155,19 @@ async function loadPublicAsync() {
     updateNextEvent(events);
   }
 }
+// Attendre que le DOM soit prêt avant de charger
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ DOM chargé');
+  loadPublic();
+  loadSiteConfig();
+  
+  if (isAdmin) {
+    adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
+    mountAdmin();
+  } else {
+    unmountAdmin();
+  }
+});
 
 loadPublicAsync();
 loadSiteConfig();
