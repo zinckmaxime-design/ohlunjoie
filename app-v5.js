@@ -829,8 +829,8 @@ async function loadAdminAssociation() {
 }
 
 // SAUVEGARDER LA CONFIGURATION - VERSION CORRIGÉE ET FINALE
-async function saveAssociationConfig() {
-  console.log('🔄 Tentative d\'enregistrement...');
+aasync function saveAssociationConfig() {
+  console.log('🔄 Sauvegarde en cours...');
   
   const nameInput = document.getElementById('name-input');
   const introInput = document.getElementById('intro-input');
@@ -874,17 +874,12 @@ async function saveAssociationConfig() {
       if (error) throw error;
     }
     
-    toast('✅ Configuration enregistrée');
+    toast('✅ Enregistré !');
     
-    // ✅ RECHARGE LE HEADER MAINTENANT
-    console.log('🔄 Rechargement du header...');
-    await loadSiteConfig();
-    
-    // ✅ ET RECHARGE LE FORMULAIRE
+    // 🔴 FORCE LE RELOAD COMPLET DE LA PAGE (seule solution)
     setTimeout(() => {
-      console.log('🔄 Rechargement du formulaire...');
-      loadAdminAssociation();
-    }, 300);
+      location.reload();
+    }, 500);
     
   } catch (err) {
     console.error('❌ Erreur:', err);
@@ -892,55 +887,7 @@ async function saveAssociationConfig() {
   }
 }
 
-console.log('✅ saveAssociationConfig CORRIGÉE');
-
-// Ajoute une IMAGE dans le header
-async function loadSiteConfig() {
-  const { data } = await supabase.from('site_config').select('*').limit(1).single();
-  if (data) {
-    // ✅ EMOJI
-    const logoEmoji = document.getElementById('logo-emoji');
-    if (logoEmoji) {
-      logoEmoji.textContent = data.logo_emoji || '🤝';
-    }
-    
-    // ✅ NOM
-    const brandName = document.querySelector('.brand-name');
-    if (brandName) {
-      brandName.textContent = data.association_name || 'Ohlun\'Joie';
-    }
-    
-    // ✅ IMAGE - Crée dynamiquement si elle existe
-    if (data.logo_url) {
-      let headerImg = document.getElementById('header-logo-image');
-      if (!headerImg) {
-        // Créer l'image si elle n'existe pas
-        headerImg = document.createElement('img');
-        headerImg.id = 'header-logo-image';
-        headerImg.style.cssText = 'max-width:60px;max-height:60px;margin:0 1em;border-radius:8px;object-fit:contain;';
-        
-        // Insérer après l'emoji
-        const logoEmoji = document.getElementById('logo-emoji');
-        if (logoEmoji && logoEmoji.parentNode) {
-          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
-        }
-      }
-      headerImg.src = data.logo_url;
-      headerImg.alt = 'Logo';
-    }
-    
-    // ✅ INTRO
-    const introText = document.getElementById('intro-text');
-    if (introText) {
-      introText.textContent = data.intro_text || '';
-    }
-    
-    // ✅ TITRE PAGE
-    document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
-  }
-}
-
-console.log('✅ loadSiteConfig AVEC IMAGE');
+console.log('✅ saveAssociationConfig FINALE');
 
 
 // RÉINITIALISER LE FORMULAIRE
