@@ -57,13 +57,15 @@ document.addEventListener('click', (e) => {
 });
 
 // CHARGE CONFIG SITE - VERSION CORRIGÉE (METS À JOUR LE NOM ET L'IMAGE AUSSI)
+// CHARGE CONFIG SITE - VERSION FINALE (SANS EMOJI)
 async function loadSiteConfig() {
   const { data } = await supabase.from('site_config').select('*').limit(1).single();
   if (data) {
-    // ✅ EMOJI - MASQUER
+    // ✅ EMOJI - MASQUER SI IMAGE
     const logoEmoji = document.getElementById('logo-emoji');
     if (logoEmoji) {
-      logoEmoji.style.display = 'none'; // ❌ Caché
+      logoEmoji.style.display = data.logo_url ? 'none' : 'inline';
+      if (!data.logo_url) logoEmoji.textContent = data.logo_emoji || '🤝';
     }
     
     // ✅ NOM
@@ -72,15 +74,13 @@ async function loadSiteConfig() {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // ✅ IMAGE SEULE
+    // ✅ IMAGE
     if (data.logo_url) {
       let headerImg = document.getElementById('header-logo-image');
       if (!headerImg) {
         headerImg = document.createElement('img');
         headerImg.id = 'header-logo-image';
         headerImg.style.cssText = 'max-width:90px;max-height:90px;margin-right:1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
-        
-        // Insérer après l'emoji (qui est masqué)
         if (logoEmoji && logoEmoji.parentNode) {
           logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
         }
@@ -90,16 +90,10 @@ async function loadSiteConfig() {
     }
     
     // ✅ INTRO
-    const introText = document.getElementById('intro-text');
-    if (introText) {
-      introText.textContent = data.intro_text || '';
-    }
-    
+    $('#intro-text').textContent = data.intro_text || '';
     document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
   }
 }
-
-console.log('✅ loadSiteConfig - IMAGE SEULE (emoji caché)');
 
 
 
