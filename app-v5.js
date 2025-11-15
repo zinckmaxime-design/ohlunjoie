@@ -192,40 +192,51 @@ async function trackPageView() {
 }
 trackPageView();
 
-// ADMIN LOGIN
-$('#admin-toggle').onclick = () => modal.open('#modal-admin');
+// ✅ OUVERTURE MODALE ADMIN - CORRECTED
+$('#admin-toggle').addEventListener('click', () => {
+  $('#modal-admin').hidden = false;
+  $('#modal-backdrop').hidden = false;
+});
 
+// ✅ FERMETURE MODALE - Tous les boutons [data-close]
+$$('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.modal').forEach(m => m.hidden = true);
+    $('#modal-backdrop').hidden = true;
+  });
+});
+
+// ✅ FERMETURE SUR LE BACKDROP
+$('#modal-backdrop').addEventListener('click', () => {
+  $$('.modal').forEach(m => m.hidden = true);
+  $('#modal-backdrop').hidden = true;
+});
+
+// ✅ CONNEXION ADMIN
 $('#admin-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = $('#admin-email').value.trim();
-  const pass = $('#admin-password').value;
+  const email = $('#admin-email').value;
+  const password = $('#admin-password').value;
   
-  const { data: admin } = await supabase.from('admins').select('*').eq('email', email).eq('is_active', true).single();
-  
-  if (admin && admin.password_hash === pass) {
-    sessionStorage.setItem('isAdmin', '1');
-    sessionStorage.setItem('adminId', admin.id);
-    sessionStorage.setItem('adminEmail', admin.email);
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    
     isAdmin = true;
-    adminUser = admin;
+    sessionStorage.setItem('isAdmin', '1');
     
-    const { data: perms } = await supabase.from('admin_roles').select('*').eq('admin_id', admin.id);
-    adminPermissions = {};
-    perms.forEach(p => {
-      adminPermissions[p.module] = { view: p.can_view, edit: p.can_edit, delete: p.can_delete };
-    });
+    // Ferme modale et affiche dashboard
+    $('#modal-admin').hidden = true;
+    $('#modal-backdrop').hidden = true;
     
-    await supabase.from('admins').update({ last_login: new Date().toISOString() }).eq('id', admin.id);
+    toast('✅ Connecté !');
+    // Affiche admin dashboard ici si tu le veux
     
-    modal.closeAll();
-    $('#admin-email').value = '';
-    $('#admin-password').value = '';
-    mountAdmin();
-    toast('✅ Connecté');
-  } else {
-    toast('❌ Identifiants invalides');
+  } catch (err) {
+    toast('❌ Email ou mot de passe incorrect');
   }
 });
+
 
 // ADMIN UI
 function unmountAdmin() {
