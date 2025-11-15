@@ -2340,3 +2340,37 @@ h1, h2, h3, h4, h5, h6 {
 .muted {
   color: var(--text-secondary);
 }
+/* ✅ FIX HEADER ET FOOTER EN DARK MODE */
+
+header {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+footer {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-top: 1px solid var(--border-color);
+}
+
+header h1, header h2, header h3,
+footer h1, footer h2, footer h3 {
+  color: var(--text-primary);
+}
+
+header a, footer a {
+  color: var(--button-bg);
+}
+
+header button, footer button {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+/* Icons visibles */
+header .logo-emoji,
+#theme-toggle,
+#search-toggle {
+  color: var(--text-primary);
+}
