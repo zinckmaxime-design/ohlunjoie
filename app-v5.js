@@ -1145,13 +1145,18 @@ function updateNextEvent(events) {
   badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
 
-// ✅ Attendre que Supabase soit bien connecté
-Promise.all([
-  new Promise(r => setTimeout(r, 500))
-]).then(() => {
-  loadPublic();
-  loadSiteConfig();
-});
+// ✅ CORRECTION - Attendre vraiment les événements avant affichage
+async function loadPublicFixed() {
+  const events = await fetchPublicEvents();
+  renderTimeline(events);
+  renderList(events);
+  renderCards(events);
+  updateNextEvent(events);
+}
+
+loadPublicFixed();
+loadSiteConfig();
+
 
 
 $('#insc-form').addEventListener('submit', async (e) => {
