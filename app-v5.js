@@ -1255,6 +1255,7 @@ function setupViewSwitchers() {
 }
 
 // Appelle la fonction au démarrage
-setupViewSwitchers();}
+setupViewSwitchers();
+}
 
 
