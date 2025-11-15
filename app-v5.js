@@ -61,11 +61,15 @@ document.addEventListener('click', (e) => {
 async function loadSiteConfig() {
   const { data } = await supabase.from('site_config').select('*').limit(1).single();
   if (data) {
-    // ✅ EMOJI - MASQUER SI IMAGE
+    // ✅ EMOJI - masquer si image
     const logoEmoji = document.getElementById('logo-emoji');
     if (logoEmoji) {
-      logoEmoji.style.display = data.logo_url ? 'none' : 'inline';
-      if (!data.logo_url) logoEmoji.textContent = data.logo_emoji || '🤝';
+      if (data.logo_url) {
+        logoEmoji.style.display = 'none';
+      } else {
+        logoEmoji.style.display = 'inline';
+        logoEmoji.textContent = data.logo_emoji || '🤝';
+      }
     }
     
     // ✅ NOM
@@ -74,15 +78,21 @@ async function loadSiteConfig() {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // ✅ IMAGE
+    // ✅ IMAGE - INSERT AU BON ENDROIT
     if (data.logo_url) {
       let headerImg = document.getElementById('header-logo-image');
       if (!headerImg) {
         headerImg = document.createElement('img');
         headerImg.id = 'header-logo-image';
-        headerImg.style.cssText = 'max-width:90px;max-height:90px;margin-right:1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
-        if (logoEmoji && logoEmoji.parentNode) {
-          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
+        headerImg.style.cssText = 'max-width:90px;max-height:90px;margin:0 1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
+        
+        // Chercher le container du brand
+        const brandContainer = document.querySelector('.container.header-inner');
+        if (brandContainer) {
+          const brand = brandContainer.querySelector('.brand');
+          if (brand) {
+            brand.appendChild(headerImg); // Ajoute à la fin du brand
+          }
         }
       }
       headerImg.src = data.logo_url;
@@ -90,12 +100,16 @@ async function loadSiteConfig() {
     }
     
     // ✅ INTRO
-    $('#intro-text').textContent = data.intro_text || '';
+    const introText = document.getElementById('intro-text');
+    if (introText) {
+      introText.textContent = data.intro_text || '';
+    }
+    
     document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
   }
 }
 
-
+console.log('✅ loadSiteConfig CORRIGÉE');
 
 // ENREGISTRE VISITE
 async function trackPageView() {
