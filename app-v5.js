@@ -1222,6 +1222,40 @@ if (isAdmin) {
   mountAdmin();
 } else {
   unmountAdmin();
+  // ✅ RÉACTIVE LES ONGLETS LISTE ET CARTES (AJOUT FINAL)
+function setupViewSwitchers() {
+  const timelineBtn = document.getElementById('view-timeline');
+  const listBtn = document.getElementById('view-list');
+  const cardsBtn = document.getElementById('view-cards');
+  
+  if (timelineBtn) timelineBtn.onclick = () => {
+    $$('.view').forEach(v => v.classList.remove('active'));
+    $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
+    const timelineView = document.getElementById('timeline-view');
+    if (timelineView) timelineView.classList.add('active');
+    timelineBtn.classList.add('active');
+  };
+  
+  if (listBtn) listBtn.onclick = () => {
+    $$('.view').forEach(v => v.classList.remove('active'));
+    $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
+    const listView = document.getElementById('list-view');
+    if (listView) listView.classList.add('active');
+    listBtn.classList.add('active');
+  };
+  
+  if (cardsBtn) cardsBtn.onclick = () => {
+    $$('.view').forEach(v => v.classList.remove('active'));
+    $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
+    const cardsView = document.getElementById('cards-view');
+    if (cardsView) cardsView.classList.add('active');
+    cardsBtn.classList.add('active');
+  };
+}
+
+// Appelle la fonction au démarrage
+setupViewSwitchers();
+
 }
 
 
