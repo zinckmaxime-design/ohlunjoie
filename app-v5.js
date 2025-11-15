@@ -1398,3 +1398,24 @@ document.getElementById('contact-form')?.addEventListener('submit', async (e) =>
     document.getElementById('contact-msg').textContent = '❌ Erreur : ' + err.message;
   }
 });
+async function loadMessages() {
+  const { data, error } = await supabase
+    .from('contact_messages')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (!error && data) {
+    document.getElementById('messages-list').innerHTML = data.map(msg => `
+      <tr class="${msg.is_read ? '' : 'unread'}">
+        <td>${msg.nom}</td>
+        <td>${msg.email}</td>
+        <td>${msg.sujet}</td>
+        <td>${new Date(msg.created_at).toLocaleDateString('fr-FR')}</td>
+        <td>
+          <button onclick="viewMessage(${msg.id})">Lire</button>
+          <button onclick="deleteMessage(${msg.id})">Supprimer</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+}
