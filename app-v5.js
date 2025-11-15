@@ -60,29 +60,31 @@ document.addEventListener('click', (e) => {
 async function loadSiteConfig() {
   const { data } = await supabase.from('site_config').select('*').limit(1).single();
   if (data) {
-    // Mise à jour du LOGO (emoji ET image)
-    $('#logo-emoji').textContent = data.logo_emoji || '🤝';
-    
-    // ✅ MISE À JOUR DE L'IMAGE DU HEADER
-    const logoImg = document.querySelector('.header-logo-img');
-    if (logoImg && data.logo_url) {
-      logoImg.src = data.logo_url;
-      logoImg.style.display = 'inline';
+    // ✅ EMOJI LOGO (c'est bon)
+    const logoEmoji = document.getElementById('logo-emoji');
+    if (logoEmoji) {
+      logoEmoji.textContent = data.logo_emoji || '🤝';
     }
     
-    // Mise à jour du NOM (CECI ÉTAIT MANQUANT !)
-    const headerTitle = document.querySelector('.header-title');
-    if (headerTitle) {
-      headerTitle.textContent = data.association_name || 'Ohlun\'Joie';
+    // ✅ NOM - LE VRAI SÉLECTEUR
+    const brandName = document.querySelector('.brand-name');
+    if (brandName) {
+      brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // Mise à jour de l'intro
-    $('#intro-text').textContent = data.intro_text || '';
+    // ✅ INTRO
+    const introText = document.getElementById('intro-text');
+    if (introText) {
+      introText.textContent = data.intro_text || '';
+    }
     
-    // Mise à jour du titre de la page
+    // ✅ TITRE PAGE
     document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
   }
 }
+
+console.log('✅ loadSiteConfig CORRIGÉE');
+
 loadSiteConfig();
 
 // ENREGISTRE VISITE
