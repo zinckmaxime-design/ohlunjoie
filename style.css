@@ -2235,3 +2235,108 @@ button:disabled, .btn[disabled] {
   --text-color: #000000;
   /* etc */
 }
+/* ✅ THEME MODE - CSS à AJOUTER dans style.css */
+
+/* Variables CSS pour les thèmes */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --text-primary: #000000;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --card-bg: #ffffff;
+  --button-bg: #008B8B;
+  --button-text: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2a2a2a;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --border-color: #404040;
+  --card-bg: #242424;
+  --button-bg: #005f5f;
+  --button-text: #ffffff;
+}
+
+/* Appliquer les thèmes */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+main {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.card {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+input, textarea, select {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+button {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+/* Bouton Thème - le rendre visible */
+#theme-toggle {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  transition: transform 0.2s;
+}
+
+#theme-toggle:hover {
+  transform: scale(1.1);
+}
+
+/* Autres éléments */
+table {
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+table th {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+table tr:hover {
+  background-color: var(--bg-secondary);
+}
+
+a {
+  color: var(--button-bg);
+}
+
+/* Modal et overlay */
+#modal-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+}
+
+/* Headers et sections */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+}
+
+.muted {
+  color: var(--text-secondary);
+}
