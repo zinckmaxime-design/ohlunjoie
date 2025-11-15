@@ -1223,41 +1223,5 @@ if (isAdmin) {
 } else {
   unmountAdmin();
 }
-// ✅ RÉACTIVE COMPLÈTEMENT LES ONGLETS
-function setupViewSwitchers() {
-  const timelineBtn = document.getElementById('view-timeline');
-  const listBtn = document.getElementById('view-list');
-  const cardsBtn = document.getElementById('view-cards');
-  
-  console.log('🔍 Timeline:', timelineBtn);
-  console.log('🔍 List:', listBtn);
-  console.log('🔍 Cards:', cardsBtn);
-  
-  if (timelineBtn) timelineBtn.onclick = () => {
-    $$('.view').forEach(v => v.classList.remove('active'));
-    $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
-    $('#timeline-view')?.classList.add('active');
-    timelineBtn.classList.add('active');
-    console.log('✅ Timeline activée');
-  };
-  
-  if (listBtn) listBtn.onclick = () => {
-    $$('.view').forEach(v => v.classList.remove('active'));
-    $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
-    $('#list-view')?.classList.add('active');
-    listBtn.classList.add('active');
-    console.log('✅ List activée');
-  };
-  
-  if (cardsBtn) cardsBtn.onclick = () => {
-    $$('.view').forEach(v => v.classList.remove('active'));
-    $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
-    $('#cards-view')?.classList.add('active');
-    cardsBtn.classList.add('active');
-    console.log('✅ Cards activée');
-  };
-}
 
-setupViewSwitchers();
-console.log('✅ ONGLETS RÉACTIVÉS');
 
