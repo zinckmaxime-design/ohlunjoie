@@ -34,40 +34,19 @@
 
     <section id="admin-section" hidden aria-hidden="true"></section>
 
-    <!-- 📧 SECTION CONTACT -->
-<section id="contact-section" class="contact-section">
-  <div class="contact-container">
-    <h2>📧 Nous contacter</h2>
-    <p>Une question ? Un message ? N'hésitez pas à nous écrire !</p>
-    
-    <form id="contact-form" class="contact-form">
-      <div class="form-row-2col">
-        <label>
-          <span>Votre nom *</span>
-          <input type="text" name="nom" required placeholder="Dupont">
-        </label>
-        <label>
-          <span>Votre email *</span>
-          <input type="email" name="email" required placeholder="contact@example.com">
-        </label>
-      </div>
-      
-      <label class="full-width">
-        <span>Sujet *</span>
-        <input type="text" name="sujet" required placeholder="ex: Question sur l'association">
-      </label>
-      
-      <label class="full-width">
-        <span>Message *</span>
-        <textarea name="message" required rows="5" placeholder="Votre message..."></textarea>
-      </label>
-      
-      <button type="submit" class="btn btn-primary btn-large">Envoyer le message</button>
-    </form>
-    
-    <div id="contact-result" class="contact-result"></div>
-  </div>
+<!-- 📧 FORMULAIRE CONTACT SIMPLE -->
+<section class="contact-simple">
+  <h2>💬 Nous contacter</h2>
+  <form id="contact-form">
+    <input type="text" name="nom" placeholder="Votre nom" required>
+    <input type="email" name="email" placeholder="Votre email" required>
+    <input type="text" name="sujet" placeholder="Sujet" required>
+    <textarea name="message" placeholder="Votre message..." rows="5" required></textarea>
+    <button type="submit">Envoyer</button>
+  </form>
+  <div id="contact-msg"></div>
 </section>
+
 
   </main>
 
