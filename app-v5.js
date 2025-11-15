@@ -1,4 +1,4 @@
-// OHLUN'JOIE V5 - VERSION FINALE CORRIGÉE - AFFICHAGE ÉVÉNEMENTS AU DÉMARRAGE
+// OHLUN'JOIE V5 - APP COMPLÈTE + BACKOFFICE 6 MODULES - VERSION FINALE CORRIGÉE
 // =====================================================
 
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
@@ -56,19 +56,20 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
 
-// ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE
+// ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
+// ✅ SOLUTION FINALE - AFFICHE L'IMAGE EN CSS BACKGROUND
 async function loadSiteConfig() {
   try {
     const { data } = await supabase.from('site_config').select('*').limit(1).single();
     if (!data) return;
     
-    // NOM
+    // 1️⃣ NOM
     const brandName = document.querySelector('.brand-name');
     if (brandName) {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // EMOJI - masquer si image
+    // 2️⃣ EMOJI - masquer si image
     const logoEmoji = document.getElementById('logo-emoji');
     if (logoEmoji) {
       logoEmoji.style.display = data.logo_url ? 'none' : 'inline';
@@ -77,7 +78,7 @@ async function loadSiteConfig() {
       }
     }
     
-    // IMAGE - EN CSS BACKGROUND
+    // 3️⃣ IMAGE - EN CSS BACKGROUND (plus stable)
     if (data.logo_url) {
       let headerLogo = document.getElementById('header-logo-bg');
       if (!headerLogo) {
@@ -98,10 +99,12 @@ async function loadSiteConfig() {
           logoEmoji.parentNode.insertBefore(headerLogo, logoEmoji.nextSibling);
         }
       }
+      // ✅ UTILISER LE CSS BACKGROUND AVEC DATA URL
       headerLogo.style.backgroundImage = `url('${data.logo_url}')`;
+      console.log('✅ Image affichée en CSS background');
     }
     
-    // INTRO
+    // 4️⃣ INTRO
     const introText = document.getElementById('intro-text');
     if (introText) {
       introText.textContent = data.intro_text || '';
@@ -112,6 +115,14 @@ async function loadSiteConfig() {
     console.error('Erreur loadSiteConfig:', err);
   }
 }
+
+loadSiteConfig();
+console.log('✅ loadSiteConfig V2 - CSS BACKGROUND CHARGÉE');
+
+
+// Appelle la fonction maintenant
+loadSiteConfig();
+console.log('✅ loadSiteConfig CHARGÉE - Image persiste après Ctrl+F5');
 
 // ENREGISTRE VISITE
 async function trackPageView() {
@@ -648,7 +659,7 @@ document.getElementById('form-admin-user').onsubmit = async function(e) {
           can_delete: false
         }))
       );
-      toast('��� Admin modifié avec succès');
+      toast('✅ Admin modifié avec succès');
     }
     
     modal.closeAll();
@@ -710,7 +721,7 @@ function adminCreateUser() {
   modal.open('#modal-admin-user');
 }
 
-// ASSOCIATION
+// ✅ ASSOCIATION - VERSION FINALE CORRIGÉE
 async function initSiteConfig() {
   const { data: configs } = await supabase.from('site_config').select('id').limit(1);
   if (!configs || configs.length === 0) {
@@ -720,6 +731,7 @@ async function initSiteConfig() {
       association_description: 'Association locale de bénévolat',
       logo_url: null
     }]);
+    console.log('✅ Config initiale créée');
   }
 }
 initSiteConfig();
@@ -788,6 +800,7 @@ async function loadAdminAssociation() {
     </div>
   `;
 
+  // GESTION UPLOAD IMAGE
   const logoUpload = $('#logo-upload');
   if (logoUpload) {
     logoUpload.addEventListener('change', function(e) {
@@ -803,6 +816,7 @@ async function loadAdminAssociation() {
       reader.onload = (event) => {
         const base64 = event.target.result;
         
+        // Afficher l'aperçu
         const previewDiv = document.getElementById('logo-preview');
         previewDiv.innerHTML = `
           <div style="border:2px dashed #0d7377;border-radius:8px;padding:1em;text-align:center;">
@@ -811,11 +825,13 @@ async function loadAdminAssociation() {
           </div>
         `;
         
+        // Mettre à jour aussi l'aperçu public
         const previewLogo = document.getElementById('preview-logo');
         if (previewLogo) {
           previewLogo.innerHTML = `<img src="${base64}" alt="Logo Preview" style="max-width:150px;height:auto;border-radius:8px;">`;
         }
         
+        // Stocker en base64 dans un attribut data
         logoUpload.dataset.imageBase64 = base64;
         toast('✅ Image uploadée (aperçu mis à jour)');
       };
@@ -824,15 +840,23 @@ async function loadAdminAssociation() {
   }
 }
 
+// ✅ SAUVEGARDER LA CONFIGURATION - VERSION FINALE AVEC AUTO-RELOAD
 async function saveAssociationConfig() {
+  console.log('🔄 Sauvegarde en cours...');
+  
   const nameInput = document.getElementById('name-input');
   const introInput = document.getElementById('intro-input');
   const descInput = document.getElementById('desc-input');
   const logoUpload = document.getElementById('logo-upload');
   
-  const name = nameInput?.value?.trim();
-  const intro = introInput?.value?.trim();
-  const desc = descInput?.value?.trim();
+  if (!nameInput || !introInput || !descInput) {
+    toast('⚠️ Formulaire non trouvé');
+    return;
+  }
+  
+  const name = nameInput.value?.trim();
+  const intro = introInput.value?.trim();
+  const desc = descInput.value?.trim();
   const logoBase64 = logoUpload?.dataset.imageBase64 || null;
   
   if (!name) {
@@ -841,7 +865,7 @@ async function saveAssociationConfig() {
   }
   
   const { data: configs } = await supabase.from('site_config').select('id').limit(1);
-  const config = configs?.[0];
+  const config = configs && configs.length > 0 ? configs[0] : null;
   
   const updateData = { 
     association_name: name, 
@@ -855,16 +879,22 @@ async function saveAssociationConfig() {
   
   try {
     if (config) {
-      await supabase.from('site_config').update(updateData).eq('id', config.id);
+      const { error } = await supabase.from('site_config').update(updateData).eq('id', config.id);
+      if (error) throw error;
     } else {
-      await supabase.from('site_config').insert([updateData]);
+      const { error } = await supabase.from('site_config').insert([updateData]);
+      if (error) throw error;
     }
     
-    toast('✅ Enregistré !');
+    toast('✅ Configuration enregistrée !');
+    
+    // ✅ MET À JOUR LE HEADER IMMÉDIATEMENT (pas de reload)
     await loadSiteConfig();
+    
+    // ✅ RECHARGE LE FORMULAIRE ADMIN (pour voir l'image)
     setTimeout(() => {
       loadAdminAssociation();
-    }, 100);
+    }, 500);
     
   } catch (err) {
     console.error('❌ Erreur:', err);
@@ -872,11 +902,7 @@ async function saveAssociationConfig() {
   }
 }
 
-function resetAssociationForm() {
-  if (confirm('Êtes-vous sûr? Les changements non sauvegardés seront perdus.')) {
-    loadAdminAssociation();
-  }
-}
+console.log('✅ saveAssociationConfig CORRIGÉE - SANS RELOAD');
 
 // EVENT STUBS
 function adminCreateEvent() {
@@ -908,6 +934,7 @@ function adminDeleteEvent(id) {
   });
 }
 
+// EVENT FORM HANDLERS
 document.getElementById('form-edit-event').onsubmit = async function(e) {
   e.preventDefault();
   const id = document.getElementById('edit-event-id').value;
@@ -1073,13 +1100,25 @@ function renderCards(events) {
   root.appendChild(grid);
 }
 
-// ✅ RÉACTIVE LES ONGLETS
+// ✅ RÉACTIVE LES ONGLETS LISTE ET CARTES
 function setActiveView(which) {
+  console.log('🔄 Changement vers:', which);
+  
   $$('.view').forEach(v => v.classList.remove('active'));
-  $('#' + which + '-view').classList.add('active');
+  const targetView = $('#' + which + '-view');
+  if (targetView) targetView.classList.add('active');
+  
   $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
-  $('#view-' + which).classList.add('active');
+  const targetTab = $('#view-' + which);
+  if (targetTab) targetTab.classList.add('active');
 }
+
+// Assigne les clics sur les onglets
+document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
+document.getElementById('view-list').onclick = () => setActiveView('list');
+document.getElementById('view-cards').onclick = () => setActiveView('cards');
+
+console.log('✅ Onglets Liste et Cartes RÉACTIVÉS');
 
 $('#view-timeline').onclick = () => setActiveView('timeline');
 $('#view-list').onclick = () => setActiveView('list');
@@ -1106,21 +1145,11 @@ function updateNextEvent(events) {
   badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
 
-// ✅ FONCTION ASYNC POUR CHARGER LES ÉVÉNEMENTS AU DÉMARRAGE
-async function loadPublicAsync() {
-  const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
-  
-  if (events && events.length > 0) {
-    renderTimeline(events);
-    renderList(events);
-    renderCards(events);
-    updateNextEvent(events);
-  }
-}
-
-// ✅ APPEL AU DÉMARRAGE
 loadPublicAsync();
 loadSiteConfig();
+
+
+
 
 $('#insc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1169,7 +1198,20 @@ $('#insc-form').addEventListener('submit', async (e) => {
   toast('✅ Inscription enregistrée !');
   modal.closeAll();
   e.target.reset();
-  loadPublic();
+  async function loadPublicAsync() {
+  const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
+  
+  if (events && events.length > 0) {
+    renderTimeline(events);
+    renderList(events);
+    renderCards(events);
+    updateNextEvent(events);
+  }
+}
+
+loadPublicAsync();
+loadSiteConfig();
+;
 });
 
 function scheduleAutoArchive() {
