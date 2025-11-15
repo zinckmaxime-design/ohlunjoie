@@ -1145,8 +1145,20 @@ function updateNextEvent(events) {
   badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
 
+// ✅ AFFICHE LES ÉVÉNEMENTS AU DÉMARRAGE
+async function loadPublicAsync() {
+  const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
+  if (events && events.length > 0) {
+    renderTimeline(events);
+    renderList(events);
+    renderCards(events);
+    updateNextEvent(events);
+  }
+}
+
 loadPublicAsync();
 loadSiteConfig();
+
 
 
 
@@ -1198,21 +1210,8 @@ $('#insc-form').addEventListener('submit', async (e) => {
   toast('✅ Inscription enregistrée !');
   modal.closeAll();
   e.target.reset();
-  async function loadPublicAsync() {
-  const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
-  
-  if (events && events.length > 0) {
-    renderTimeline(events);
-    renderList(events);
-    renderCards(events);
-    updateNextEvent(events);
-  }
-}
-
-loadPublicAsync();
-loadSiteConfig();
-;
 });
+
 
 function scheduleAutoArchive() {
   setInterval(async () => {
