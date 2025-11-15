@@ -1145,17 +1145,21 @@ function updateNextEvent(events) {
   badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
 
-// ✅ CORRECTION - Attendre vraiment les événements avant affichage
-async function loadPublicFixed() {
-  const events = await fetchPublicEvents();
-  renderTimeline(events);
-  renderList(events);
-  renderCards(events);
-  updateNextEvent(events);
+// ✅ CORRECTION FINALE - Charger les événements au démarrage
+async function loadPublicAsync() {
+  const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
+  if (events && events.length > 0) {
+    renderTimeline(events);
+    renderList(events);
+    renderCards(events);
+    updateNextEvent(events);
+    console.log('✅ Événements affichés au démarrage');
+  }
 }
 
-loadPublicFixed();
+loadPublicAsync();
 loadSiteConfig();
+
 
 
 
