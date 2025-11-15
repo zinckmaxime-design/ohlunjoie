@@ -1,4 +1,4 @@
-// OHLUN'JOIE V5 - APP COMPLÈTE + BACKOFFICE 6 MODULES - VERSION CORRIGÉE
+// OHLUN'JOIE V5 - APP COMPLÈTE + BACKOFFICE 6 MODULES - VERSION FINALE CORRIGÉE
 // =====================================================
 
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
@@ -56,12 +56,11 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
 
-// CHARGE CONFIG SITE - VERSION CORRIGÉE (METS À JOUR LE NOM ET L'IMAGE AUSSI)
-// CHARGE CONFIG SITE - VERSION FINALE (SANS EMOJI)
+// ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
 async function loadSiteConfig() {
   const { data } = await supabase.from('site_config').select('*').limit(1).single();
   if (data) {
-    // ✅ EMOJI - masquer si image
+    // ✅ EMOJI - masquer si image existe
     const logoEmoji = document.getElementById('logo-emoji');
     if (logoEmoji) {
       if (data.logo_url) {
@@ -78,7 +77,7 @@ async function loadSiteConfig() {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // ✅ IMAGE - INSERT AU BON ENDROIT
+    // ✅ IMAGE
     if (data.logo_url) {
       let headerImg = document.getElementById('header-logo-image');
       if (!headerImg) {
@@ -86,13 +85,9 @@ async function loadSiteConfig() {
         headerImg.id = 'header-logo-image';
         headerImg.style.cssText = 'max-width:90px;max-height:90px;margin:0 1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
         
-        // Chercher le container du brand
-        const brandContainer = document.querySelector('.container.header-inner');
-        if (brandContainer) {
-          const brand = brandContainer.querySelector('.brand');
-          if (brand) {
-            brand.appendChild(headerImg); // Ajoute à la fin du brand
-          }
+        const logoEmoji = document.getElementById('logo-emoji');
+        if (logoEmoji && logoEmoji.parentNode) {
+          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
         }
       }
       headerImg.src = data.logo_url;
@@ -108,8 +103,6 @@ async function loadSiteConfig() {
     document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
   }
 }
-
-console.log('✅ loadSiteConfig CORRIGÉE');
 
 // ENREGISTRE VISITE
 async function trackPageView() {
@@ -391,7 +384,6 @@ async function filterInscriptions() {
       </thead>
       <tbody>
   `;
-
   inscs.forEach((i, idx) => {
     const parts = [];
     if (i.preparation_salle) parts.push('Prépa');
@@ -709,7 +701,7 @@ function adminCreateUser() {
   modal.open('#modal-admin-user');
 }
 
-// ASSOCIATION - VERSION CORRIGÉE ET FONCTIONNELLE
+// ✅ ASSOCIATION - VERSION FINALE CORRIGÉE
 async function initSiteConfig() {
   const { data: configs } = await supabase.from('site_config').select('id').limit(1);
   if (!configs || configs.length === 0) {
@@ -828,9 +820,9 @@ async function loadAdminAssociation() {
   }
 }
 
-// SAUVEGARDER LA CONFIGURATION - VERSION CORRIGÉE ET FINALE
+// ✅ SAUVEGARDER LA CONFIGURATION - VERSION FINALE AVEC AUTO-RELOAD
 async function saveAssociationConfig() {
-  console.log('🔄 Tentative d\'enregistrement...');
+  console.log('🔄 Sauvegarde en cours...');
   
   const nameInput = document.getElementById('name-input');
   const introInput = document.getElementById('intro-input');
@@ -874,17 +866,12 @@ async function saveAssociationConfig() {
       if (error) throw error;
     }
     
-    toast('✅ Configuration enregistrée');
+    toast('✅ Enregistré ! Rechargement...');
     
-    // ✅ RECHARGE LE HEADER MAINTENANT
-    console.log('🔄 Rechargement du header...');
-    await loadSiteConfig();
-    
-    // ✅ ET RECHARGE LE FORMULAIRE
+    // ✅ FORCE LE RELOAD COMPLET DE LA PAGE (la SEULE solution stable)
     setTimeout(() => {
-      console.log('🔄 Rechargement du formulaire...');
-      loadAdminAssociation();
-    }, 300);
+      location.reload();
+    }, 500);
     
   } catch (err) {
     console.error('❌ Erreur:', err);
@@ -892,58 +879,6 @@ async function saveAssociationConfig() {
   }
 }
 
-console.log('✅ saveAssociationConfig CORRIGÉE');
-
-// Ajoute une IMAGE dans le header
-async function loadSiteConfig() {
-  const { data } = await supabase.from('site_config').select('*').limit(1).single();
-  if (data) {
-    // ✅ EMOJI
-    const logoEmoji = document.getElementById('logo-emoji');
-    if (logoEmoji) {
-      logoEmoji.textContent = data.logo_emoji || '🤝';
-    }
-    
-    // ✅ NOM
-    const brandName = document.querySelector('.brand-name');
-    if (brandName) {
-      brandName.textContent = data.association_name || 'Ohlun\'Joie';
-    }
-    
-    // ✅ IMAGE - Crée dynamiquement si elle existe
-    if (data.logo_url) {
-      let headerImg = document.getElementById('header-logo-image');
-      if (!headerImg) {
-        // Créer l'image si elle n'existe pas
-        headerImg = document.createElement('img');
-        headerImg.id = 'header-logo-image';
-        headerImg.style.cssText = 'max-width:60px;max-height:60px;margin:0 1em;border-radius:8px;object-fit:contain;';
-        
-        // Insérer après l'emoji
-        const logoEmoji = document.getElementById('logo-emoji');
-        if (logoEmoji && logoEmoji.parentNode) {
-          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
-        }
-      }
-      headerImg.src = data.logo_url;
-      headerImg.alt = 'Logo';
-    }
-    
-    // ✅ INTRO
-    const introText = document.getElementById('intro-text');
-    if (introText) {
-      introText.textContent = data.intro_text || '';
-    }
-    
-    // ✅ TITRE PAGE
-    document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
-  }
-}
-
-console.log('✅ loadSiteConfig AVEC IMAGE');
-
-
-// RÉINITIALISER LE FORMULAIRE
 function resetAssociationForm() {
   if (confirm('Êtes-vous sûr? Les changements non sauvegardés seront perdus.')) {
     loadAdminAssociation();
@@ -1179,6 +1114,7 @@ function updateNextEvent(events) {
 }
 
 loadPublic();
+loadSiteConfig();
 
 $('#insc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
