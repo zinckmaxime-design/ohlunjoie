@@ -1100,12 +1100,25 @@ function renderCards(events) {
   root.appendChild(grid);
 }
 
+// ✅ RÉACTIVE LES ONGLETS LISTE ET CARTES
 function setActiveView(which) {
+  console.log('🔄 Changement vers:', which);
+  
   $$('.view').forEach(v => v.classList.remove('active'));
-  $('#' + which + '-view').classList.add('active');
+  const targetView = $('#' + which + '-view');
+  if (targetView) targetView.classList.add('active');
+  
   $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
-  $('#view-' + which).classList.add('active');
+  const targetTab = $('#view-' + which);
+  if (targetTab) targetTab.classList.add('active');
 }
+
+// Assigne les clics sur les onglets
+document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
+document.getElementById('view-list').onclick = () => setActiveView('list');
+document.getElementById('view-cards').onclick = () => setActiveView('cards');
+
+console.log('✅ Onglets Liste et Cartes RÉACTIVÉS');
 
 $('#view-timeline').onclick = () => setActiveView('timeline');
 $('#view-list').onclick = () => setActiveView('list');
