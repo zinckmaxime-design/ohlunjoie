@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 let adminUser = null;
 let adminPermissions = {};
 
-// THEME: Auto 19h-8h + manuel
+// ✅ INIT THEME - Jour/Nuit
 (function initTheme() {
   function detectTheme() {
     const saved = localStorage.getItem('theme');
@@ -63,16 +63,26 @@ let adminPermissions = {};
     const hour = new Date().getHours();
     return (hour >= 19 || hour < 8) ? 'dark' : 'light';
   }
+  
   const theme = detectTheme();
-  document.documentElement.dataset.theme = theme;
-  $('#theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
-  $('#theme-toggle').onclick = () => {
-    const newTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = newTheme;
-    localStorage.setItem('theme', newTheme);
-    $('#theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
-  };
+  document.documentElement.setAttribute('data-theme', theme);
+  console.log('🌙 Theme:', theme);
+  
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    btn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const newTheme = current === 'dark' ? 'light' : 'dark';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+      console.log('🌙 Theme changé:', newTheme);
+    });
+  }
 })();
+
 
 // MODALES
 const modal = {
