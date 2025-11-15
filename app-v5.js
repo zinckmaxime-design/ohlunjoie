@@ -1,4 +1,4 @@
-// OHLUN'JOIE V5 - APP COMPLÈTE + BACKOFFICE 6 MODULES
+// OHLUN'JOIE V5 - APP COMPLÈTE + BACKOFFICE 6 MODULES - VERSION CORRIGÉE
 // =====================================================
 
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
@@ -56,13 +56,31 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
 
-// CHARGE CONFIG SITE
+// CHARGE CONFIG SITE - VERSION CORRIGÉE (METS À JOUR LE NOM ET L'IMAGE AUSSI)
 async function loadSiteConfig() {
   const { data } = await supabase.from('site_config').select('*').limit(1).single();
   if (data) {
+    // Mise à jour du LOGO (emoji ET image)
     $('#logo-emoji').textContent = data.logo_emoji || '🤝';
+    
+    // ✅ MISE À JOUR DE L'IMAGE DU HEADER
+    const logoImg = document.querySelector('.header-logo-img');
+    if (logoImg && data.logo_url) {
+      logoImg.src = data.logo_url;
+      logoImg.style.display = 'inline';
+    }
+    
+    // Mise à jour du NOM (CECI ÉTAIT MANQUANT !)
+    const headerTitle = document.querySelector('.header-title');
+    if (headerTitle) {
+      headerTitle.textContent = data.association_name || 'Ohlun\'Joie';
+    }
+    
+    // Mise à jour de l'intro
     $('#intro-text').textContent = data.intro_text || '';
-    document.title = data.association_name + ' — Événements';
+    
+    // Mise à jour du titre de la page
+    document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
   }
 }
 loadSiteConfig();
@@ -353,7 +371,6 @@ async function filterInscriptions() {
     if (i.preparation_salle) parts.push('Prépa');
     if (i.partie_evenement) parts.push('Partie');
     if (i.evenement_entier) parts.push('Entier');
-
     const autres = [];
     if (i.email) autres.push('Email&nbsp;:&nbsp;' + i.email);
     if (i.telephone) autres.push('Tél&nbsp;:&nbsp;' + i.telephone);
@@ -512,10 +529,7 @@ async function loadAdminVolunteers() {
   renderList();
 }
 
-// ============================================================
-// ADMINS - GESTION COMPLÈTE (Création/Édition/Suppression)
-// ============================================================
-
+// ADMINS
 async function openEditAdmin(adminData, droits) {
   document.getElementById('admin-user-id').value = adminData?.id || '';
   document.getElementById('admin-user-prenom').value = adminData?.prenom || '';
@@ -669,9 +683,20 @@ function adminCreateUser() {
   modal.open('#modal-admin-user');
 }
 
-// ============================================================
 // ASSOCIATION - VERSION CORRIGÉE ET FONCTIONNELLE
-// ============================================================
+async function initSiteConfig() {
+  const { data: configs } = await supabase.from('site_config').select('id').limit(1);
+  if (!configs || configs.length === 0) {
+    await supabase.from('site_config').insert([{
+      association_name: 'Ohlun\'Joie',
+      intro_text: 'Notre association rassemble des bénévoles passionnés...',
+      association_description: 'Association locale de bénévolat',
+      logo_url: null
+    }]);
+    console.log('✅ Config initiale créée');
+  }
+}
+initSiteConfig();
 
 async function loadAdminAssociation() {
   const host = $('#module-association');
@@ -698,7 +723,7 @@ async function loadAdminAssociation() {
           <label class="config-label">
             <span class="label-title">📛 Nom de l'association</span>
             <span class="label-desc">Ex: Ohlun'Joie, La Main Tendue, etc.</span>
-            <input id="config-name" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
+            <input id="name-input" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
           </label>
         </div>
 
@@ -706,7 +731,7 @@ async function loadAdminAssociation() {
           <label class="config-label">
             <span class="label-title">📝 Texte d'introduction (Site Public)</span>
             <span class="label-desc">Affiché sur la page publique des événements</span>
-            <textarea id="config-intro" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
+            <textarea id="intro-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
           </label>
         </div>
 
@@ -714,13 +739,13 @@ async function loadAdminAssociation() {
           <label class="config-label">
             <span class="label-title">👥 Description pour les bénévoles</span>
             <span class="label-desc">Texte encourageant pour les volontaires</span>
-            <textarea id="config-desc" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
+            <textarea id="desc-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
           </label>
         </div>
 
         <div class="config-actions">
-          <button class="btn btn-primary btn-large" id="btn-save-config">💾 Enregistrer les modifications</button>
-          <button class="btn btn-secondary" id="btn-reset-config">↺ Réinitialiser</button>
+          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">💾 Enregistrer les modifications</button>
+          <button class="btn btn-secondary" onclick="resetAssociationForm()">↺ Réinitialiser</button>
         </div>
       </div>
 
@@ -731,22 +756,14 @@ async function loadAdminAssociation() {
             ${logoDisplay ? logoDisplay : '<span style="font-size:3em;">🤝</span>'}
           </div>
           <div id="preview-name" style="font-size:1.3em;font-weight:bold;text-align:center;margin-bottom:0.5em;">${config?.association_name || 'Ohlun\'Joie'}</div>
-          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Votre texte...'}</div>
+          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Votre texte d\'introduction...'}</div>
         </div>
       </div>
     </div>
   `;
 
-  setTimeout(() => {
-    document.getElementById('btn-save-config').onclick = saveConfigData;
-    document.getElementById('btn-reset-config').onclick = () => {
-      if (confirm('Réinitialiser le formulaire?')) {
-        loadAdminAssociation();
-      }
-    };
-  }, 100);
-
-  const logoUpload = document.getElementById('logo-upload');
+  // GESTION UPLOAD IMAGE
+  const logoUpload = $('#logo-upload');
   if (logoUpload) {
     logoUpload.addEventListener('change', function(e) {
       const file = e.target.files[0];
@@ -761,74 +778,134 @@ async function loadAdminAssociation() {
       reader.onload = (event) => {
         const base64 = event.target.result;
         
-        document.getElementById('logo-preview').innerHTML = `
+        // Afficher l'aperçu
+        const previewDiv = document.getElementById('logo-preview');
+        previewDiv.innerHTML = `
           <div style="border:2px dashed #0d7377;border-radius:8px;padding:1em;text-align:center;">
             <img src="${base64}" alt="Preview" style="max-width:100%;max-height:150px;border-radius:6px;">
-            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">✅ Prête à enregistrer</p>
+            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">✅ Image sélectionnée</p>
           </div>
         `;
         
-        document.getElementById('preview-logo').innerHTML = `<img src="${base64}" alt="Logo" style="max-width:150px;height:auto;border-radius:8px;">`;
+        // Mettre à jour aussi l'aperçu public
+        const previewLogo = document.getElementById('preview-logo');
+        if (previewLogo) {
+          previewLogo.innerHTML = `<img src="${base64}" alt="Logo Preview" style="max-width:150px;height:auto;border-radius:8px;">`;
+        }
         
+        // Stocker en base64 dans un attribut data
         logoUpload.dataset.imageBase64 = base64;
-        toast('✅ Image sélectionnée');
+        toast('✅ Image uploadée (aperçu mis à jour)');
       };
       reader.readAsDataURL(file);
     });
   }
 }
 
-async function saveConfigData() {
-  console.log('💾 SAUVEGARDE EN COURS...');
+// SAUVEGARDER LA CONFIGURATION - VERSION CORRIGÉE ET FINALE
+async function saveAssociationConfig() {
+  console.log('🔄 Tentative d\'enregistrement...');
   
-  const name = document.getElementById('config-name')?.value?.trim();
-  const intro = document.getElementById('config-intro')?.value?.trim();
-  const desc = document.getElementById('config-desc')?.value?.trim();
+  const nameInput = document.getElementById('name-input');
+  const introInput = document.getElementById('intro-input');
+  const descInput = document.getElementById('desc-input');
   const logoUpload = document.getElementById('logo-upload');
+  
+  if (!nameInput || !introInput || !descInput) {
+    toast('⚠️ Formulaire non trouvé - recharge la page');
+    return;
+  }
+  
+  const name = nameInput.value?.trim();
+  const intro = introInput.value?.trim();
+  const desc = descInput.value?.trim();
+  const logoBase64 = logoUpload?.dataset.imageBase64 || null;
   
   if (!name) {
     toast('⚠️ Le nom est requis');
     return;
   }
   
+  // Récupérer la config existante
+  const { data: configs, error: fetchError } = await supabase
+    .from('site_config')
+    .select('id')
+    .limit(1);
+  
+  if (fetchError) {
+    console.error('Erreur fetch:', fetchError);
+    toast('❌ Erreur lecture base');
+    return;
+  }
+  
+  const config = configs && configs.length > 0 ? configs[0] : null;
+  
+  const updateData = { 
+    association_name: name, 
+    intro_text: intro, 
+    association_description: desc
+  };
+  
+  // Si une nouvelle image a été uploadée, la stocker
+  if (logoBase64) {
+    updateData.logo_url = logoBase64;
+    console.log('📸 Image à enregistrer (longueur base64:', logoBase64.length, ')');
+  }
+  
+  console.log('💾 Données à enregistrer:', updateData);
+  
   try {
-    const { data: configs } = await supabase.from('site_config').select('id').limit(1);
-    const config = configs && configs.length > 0 ? configs[0] : null;
-    
-    const updateData = { 
-      association_name: name, 
-      intro_text: intro, 
-      association_description: desc
-    };
-    
-    if (logoUpload?.dataset.imageBase64) {
-      updateData.logo_url = logoUpload.dataset.imageBase64;
-    }
-    
     if (config) {
-      const { error } = await supabase.from('site_config').update(updateData).eq('id', config.id);
-      if (error) throw error;
+      console.log('🔄 Mise à jour config existante (ID:', config.id, ')...');
+      const { error } = await supabase
+        .from('site_config')
+        .update(updateData)
+        .eq('id', config.id);
+      
+      if (error) {
+        console.error('❌ Erreur update:', error);
+        throw error;
+      }
     } else {
-      const { error } = await supabase.from('site_config').insert([updateData]);
-      if (error) throw error;
+      console.log('➕ Création nouvelle config...');
+      const { error } = await supabase
+        .from('site_config')
+        .insert([updateData]);
+      
+      if (error) {
+        console.error('❌ Erreur insert:', error);
+        throw error;
+      }
     }
     
-    toast('✅ Enregistré !');
+    console.log('✅ Succès!');
+    toast('✅ Configuration enregistrée avec succès');
     
-    // FORCE LE RELOAD COMPLET DE LA PAGE
-    await new Promise(r => setTimeout(r, 500));
-    location.reload();
+    // Réinitialiser l'upload après succès
+    if (logoUpload) {
+      logoUpload.value = '';
+      delete logoUpload.dataset.imageBase64;
+    }
+    
+    // Recharger les deux : loadSiteConfig POUR LE HEADER et loadAdminAssociation POUR LE FORMULAIRE
+    await loadSiteConfig();
+    
+    setTimeout(() => {
+      loadAdminAssociation();
+    }, 500);
     
   } catch (err) {
-    console.error('❌ ERREUR:', err);
-    toast('❌ Erreur: ' + err.message);
+    console.error('❌ Erreur complète:', err);
+    toast('❌ Erreur: ' + (err.message || 'Erreur inconnue'));
   }
 }
 
-console.log('✅ saveConfigData AVEC RELOAD');
-
-
-
+// RÉINITIALISER LE FORMULAIRE
+function resetAssociationForm() {
+  if (confirm('Êtes-vous sûr? Les changements non sauvegardés seront perdus.')) {
+    loadAdminAssociation();
+  }
+}
 
 // EVENT STUBS
 function adminCreateEvent() {
