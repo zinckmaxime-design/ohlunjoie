@@ -15,6 +15,43 @@ const toast = (msg) => {
 };
 
 let isAdmin = sessionStorage.getItem('isAdmin') === '1';
+// ✅ CORRECTIF - INIT ÉVÉNEMENTS AU DÉMARRAGE
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 DOM Chargé');
+
+  async function initPublic() {
+    try {
+      const { data: events } = await supabase
+        .from('events')
+        .select('*')
+        .eq('visible', true)
+        .eq('archived', false)
+        .order('date', { ascending: true });
+      
+      console.log('✅ ' + (events?.length || 0) + ' événements trouvés');
+      
+      if (events && events.length > 0) {
+        if (typeof renderTimeline !== 'undefined') renderTimeline(events);
+        if (typeof renderList !== 'undefined') renderList(events);
+        if (typeof renderCards !== 'undefined') renderCards(events);
+        if (typeof updateNextEvent !== 'undefined') updateNextEvent(events);
+      }
+    } catch (error) {
+      console.error('❌ Erreur:', error);
+    }
+  }
+
+  if (typeof loadSiteConfig !== 'undefined') await loadSiteConfig();
+  await initPublic();
+  
+  if (isAdmin && typeof mountAdmin !== 'undefined') {
+    adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
+    mountAdmin();
+  } else if (typeof unmountAdmin !== 'undefined') {
+    unmountAdmin();
+  }
+});
+
 let adminUser = null;
 let adminPermissions = {};
 
