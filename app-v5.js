@@ -1223,3 +1223,4 @@ if (isAdmin) {
 } else {
   unmountAdmin();
 }
+location.reload();
