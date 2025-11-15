@@ -1145,8 +1145,14 @@ function updateNextEvent(events) {
   badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
 
-loadPublic();
-loadSiteConfig();
+// ✅ Attendre que Supabase soit bien connecté
+Promise.all([
+  new Promise(r => setTimeout(r, 500))
+]).then(() => {
+  loadPublic();
+  loadSiteConfig();
+});
+
 
 $('#insc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1223,11 +1229,3 @@ if (isAdmin) {
 } else {
   unmountAdmin();
 }
-
-// ✅ FIX - Attendre que Supabase soit prêt
-setTimeout(() => {
-  loadPublic();
-  loadSiteConfig();
-}, 500);
-
-
