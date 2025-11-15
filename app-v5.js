@@ -60,15 +60,10 @@ document.addEventListener('click', (e) => {
 async function loadSiteConfig() {
   const { data } = await supabase.from('site_config').select('*').limit(1).single();
   if (data) {
-    // ✅ EMOJI - MASQUER SI IMAGE EXISTE
+    // ✅ EMOJI - SUPPRIMER COMPLÈTEMENT S'IL Y A UNE IMAGE
     const logoEmoji = document.getElementById('logo-emoji');
-    if (logoEmoji) {
-      if (data.logo_url) {
-        logoEmoji.style.display = 'none'; // Masquer l'emoji
-      } else {
-        logoEmoji.style.display = 'inline';
-        logoEmoji.textContent = data.logo_emoji || '🤝';
-      }
+    if (data.logo_url && logoEmoji) {
+      logoEmoji.remove(); // ❌ Supprime l'emoji du DOM
     }
     
     // ✅ NOM
@@ -77,23 +72,22 @@ async function loadSiteConfig() {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // ✅ IMAGE - PLUS GRANDE
+    // ✅ IMAGE SEULE
     if (data.logo_url) {
       let headerImg = document.getElementById('header-logo-image');
       if (!headerImg) {
         headerImg = document.createElement('img');
         headerImg.id = 'header-logo-image';
-        headerImg.style.cssText = 'max-width:80px;max-height:80px;margin:0 1.5em;border-radius:12px;object-fit:contain;';
+        headerImg.style.cssText = 'max-width:100px;max-height:100px;margin-right:1.5em;border-radius:12px;object-fit:contain;';
         
-        const logoEmoji = document.getElementById('logo-emoji');
-        if (logoEmoji && logoEmoji.parentNode) {
-          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
+        // Insérer au début du brand
+        const brand = document.querySelector('.brand');
+        if (brand) {
+          brand.insertBefore(headerImg, brand.firstChild);
         }
       }
       headerImg.src = data.logo_url;
       headerImg.alt = 'Logo';
-    } else if (logoEmoji) {
-      logoEmoji.style.display = 'inline';
     }
     
     // ✅ INTRO
@@ -102,12 +96,12 @@ async function loadSiteConfig() {
       introText.textContent = data.intro_text || '';
     }
     
-    // ✅ TITRE PAGE
     document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
   }
 }
 
-console.log('✅ loadSiteConfig V2 - Image plus grande + emoji caché');
+console.log('✅ loadSiteConfig - EMOJI SUPPRIMÉ, IMAGE SEULE');
+
 
 // ENREGISTRE VISITE
 async function trackPageView() {
