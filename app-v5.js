@@ -57,27 +57,28 @@ document.addEventListener('click', (e) => {
 });
 
 // ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
+// ✅ VERSION FINALE - L'IMAGE PERSISTE APRÈS CTRL+F5
 async function loadSiteConfig() {
-  const { data } = await supabase.from('site_config').select('*').limit(1).single();
-  if (data) {
-    // ✅ EMOJI - masquer si image existe
-    const logoEmoji = document.getElementById('logo-emoji');
-    if (logoEmoji) {
-      if (data.logo_url) {
-        logoEmoji.style.display = 'none';
-      } else {
-        logoEmoji.style.display = 'inline';
-        logoEmoji.textContent = data.logo_emoji || '🤝';
-      }
-    }
+  try {
+    const { data } = await supabase.from('site_config').select('*').limit(1).single();
+    if (!data) return;
     
-    // ✅ NOM
+    // 1️⃣ NOM - mises à jour
     const brandName = document.querySelector('.brand-name');
     if (brandName) {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // ✅ IMAGE
+    // 2️⃣ EMOJI - masquer si image existe
+    const logoEmoji = document.getElementById('logo-emoji');
+    if (logoEmoji) {
+      logoEmoji.style.display = data.logo_url ? 'none' : 'inline';
+      if (!data.logo_url) {
+        logoEmoji.textContent = data.logo_emoji || '🤝';
+      }
+    }
+    
+    // 3️⃣ IMAGE - CHARGER DEPUIS SUPABASE À CHAQUE RELOAD
     if (data.logo_url) {
       let headerImg = document.getElementById('header-logo-image');
       if (!headerImg) {
@@ -85,24 +86,31 @@ async function loadSiteConfig() {
         headerImg.id = 'header-logo-image';
         headerImg.style.cssText = 'max-width:90px;max-height:90px;margin:0 1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
         
-        const logoEmoji = document.getElementById('logo-emoji');
-        if (logoEmoji && logoEmoji.parentNode) {
+        if (logoEmoji?.parentNode) {
           logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
         }
       }
-      headerImg.src = data.logo_url;
+      // ✅ FORCER LE RELOAD DE L'IMAGE AVEC UN TIMESTAMP
+      headerImg.src = data.logo_url + '?t=' + Date.now();
       headerImg.alt = 'Logo';
+      console.log('✅ Image chargée depuis la base de données');
     }
     
-    // ✅ INTRO
+    // 4️⃣ INTRO
     const introText = document.getElementById('intro-text');
     if (introText) {
       introText.textContent = data.intro_text || '';
     }
     
     document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
+  } catch (err) {
+    console.error('Erreur loadSiteConfig:', err);
   }
 }
+
+// Appelle la fonction maintenant
+loadSiteConfig();
+console.log('✅ loadSiteConfig CHARGÉE - Image persiste après Ctrl+F5');
 
 // ENREGISTRE VISITE
 async function trackPageView() {
