@@ -866,11 +866,14 @@ async function saveAssociationConfig() {
       if (error) throw error;
     }
     
-    toast('✅ Enregistré ! Rechargement...');
+    toast('✅ Configuration enregistrée !');
     
-    // ✅ FORCE LE RELOAD COMPLET DE LA PAGE (la SEULE solution stable)
+    // ✅ MET À JOUR LE HEADER IMMÉDIATEMENT (pas de reload)
+    await loadSiteConfig();
+    
+    // ✅ RECHARGE LE FORMULAIRE ADMIN (pour voir l'image)
     setTimeout(() => {
-      location.reload();
+      loadAdminAssociation();
     }, 500);
     
   } catch (err) {
@@ -879,11 +882,7 @@ async function saveAssociationConfig() {
   }
 }
 
-function resetAssociationForm() {
-  if (confirm('Êtes-vous sûr? Les changements non sauvegardés seront perdus.')) {
-    loadAdminAssociation();
-  }
-}
+console.log('✅ saveAssociationConfig CORRIGÉE - SANS RELOAD');
 
 // EVENT STUBS
 function adminCreateEvent() {
