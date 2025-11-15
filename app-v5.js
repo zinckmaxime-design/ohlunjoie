@@ -1374,3 +1374,27 @@ if (isAdmin) {
     }, 5000);
   }
 })();
+// Formulaire contact → Supabase
+document.getElementById('contact-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const formData = new FormData(e.target);
+  
+  try {
+    const { data, error } = await supabase
+      .from('contact_messages')
+      .insert([{
+        nom: formData.get('nom'),
+        email: formData.get('email'),
+        sujet: formData.get('sujet'),
+        message: formData.get('message')
+      }]);
+    
+    if (error) throw error;
+    
+    document.getElementById('contact-msg').textContent = '✅ Message envoyé ! Merci.';
+    e.target.reset();
+  } catch (err) {
+    document.getElementById('contact-msg').textContent = '❌ Erreur : ' + err.message;
+  }
+});
