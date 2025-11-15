@@ -57,19 +57,19 @@ document.addEventListener('click', (e) => {
 });
 
 // ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
-// ✅ VERSION FINALE - L'IMAGE PERSISTE APRÈS CTRL+F5
+// ✅ SOLUTION FINALE - AFFICHE L'IMAGE EN CSS BACKGROUND
 async function loadSiteConfig() {
   try {
     const { data } = await supabase.from('site_config').select('*').limit(1).single();
     if (!data) return;
     
-    // 1️⃣ NOM - mises à jour
+    // 1️⃣ NOM
     const brandName = document.querySelector('.brand-name');
     if (brandName) {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // 2️⃣ EMOJI - masquer si image existe
+    // 2️⃣ EMOJI - masquer si image
     const logoEmoji = document.getElementById('logo-emoji');
     if (logoEmoji) {
       logoEmoji.style.display = data.logo_url ? 'none' : 'inline';
@@ -78,22 +78,30 @@ async function loadSiteConfig() {
       }
     }
     
-    // 3️⃣ IMAGE - CHARGER DEPUIS SUPABASE À CHAQUE RELOAD
+    // 3️⃣ IMAGE - EN CSS BACKGROUND (plus stable)
     if (data.logo_url) {
-      let headerImg = document.getElementById('header-logo-image');
-      if (!headerImg) {
-        headerImg = document.createElement('img');
-        headerImg.id = 'header-logo-image';
-        headerImg.style.cssText = 'max-width:90px;max-height:90px;margin:0 1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
+      let headerLogo = document.getElementById('header-logo-bg');
+      if (!headerLogo) {
+        headerLogo = document.createElement('div');
+        headerLogo.id = 'header-logo-bg';
+        headerLogo.style.cssText = `
+          width: 90px;
+          height: 90px;
+          margin: 0 1.5em;
+          border-radius: 12px;
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+          flex-shrink: 0;
+        `;
         
         if (logoEmoji?.parentNode) {
-          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
+          logoEmoji.parentNode.insertBefore(headerLogo, logoEmoji.nextSibling);
         }
       }
-      // ✅ FORCER LE RELOAD DE L'IMAGE AVEC UN TIMESTAMP
-      headerImg.src = data.logo_url + '?t=' + Date.now();
-      headerImg.alt = 'Logo';
-      console.log('✅ Image chargée depuis la base de données');
+      // ✅ UTILISER LE CSS BACKGROUND AVEC DATA URL
+      headerLogo.style.backgroundImage = `url('${data.logo_url}')`;
+      console.log('✅ Image affichée en CSS background');
     }
     
     // 4️⃣ INTRO
@@ -107,6 +115,10 @@ async function loadSiteConfig() {
     console.error('Erreur loadSiteConfig:', err);
   }
 }
+
+loadSiteConfig();
+console.log('✅ loadSiteConfig V2 - CSS BACKGROUND CHARGÉE');
+
 
 // Appelle la fonction maintenant
 loadSiteConfig();
