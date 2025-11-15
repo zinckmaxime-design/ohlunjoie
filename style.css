@@ -2374,3 +2374,62 @@ header .logo-emoji,
 #search-toggle {
   color: var(--text-primary);
 }
+/* ✅ HEADER ÉLÉGANT AVEC GRADIENT */
+
+header {
+  background: linear-gradient(135deg, #008B8B 0%, #20B2AA 100%);
+  color: #ffffff;
+  border-bottom: 3px solid #006666;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 139, 139, 0.15);
+}
+
+header h1, header h2, header h3,
+header p, header span,
+.brand-name {
+  color: #ffffff !important;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+header a {
+  color: #ffffff;
+  text-decoration: none;
+  transition: opacity 0.3s;
+}
+
+header a:hover {
+  opacity: 0.8;
+}
+
+header button {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+header button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Logo et texte */
+#header-logo-bg,
+.logo-emoji {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Footer */
+footer {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-top: 1px solid var(--border-color);
+}
+
+footer a {
+  color: var(--button-bg);
+}
