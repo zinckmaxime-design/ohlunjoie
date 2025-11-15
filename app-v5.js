@@ -1222,7 +1222,8 @@ if (isAdmin) {
   mountAdmin();
 } else {
   unmountAdmin();
-  // ✅ RÉACTIVE LES ONGLETS LISTE ET CARTES (AJOUT FINAL)
+}
+// ✅ RÉACTIVE LES ONGLETS LISTE ET CARTES (AJOUT FINAL)
 function setupViewSwitchers() {
   const timelineBtn = document.getElementById('view-timeline');
   const listBtn = document.getElementById('view-list');
@@ -1254,8 +1255,6 @@ function setupViewSwitchers() {
 }
 
 // Appelle la fonction au démarrage
-setupViewSwitchers();
-
-}
+setupViewSwitchers();}
 
 
