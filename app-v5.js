@@ -1224,5 +1224,10 @@ if (isAdmin) {
   unmountAdmin();
 }
 
+// ✅ FIX - Attendre que Supabase soit prêt
+setTimeout(() => {
+  loadPublic();
+  loadSiteConfig();
+}, 500);
 
 
