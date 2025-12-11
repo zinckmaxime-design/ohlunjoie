@@ -33,9 +33,10 @@ if (window.supabase && typeof window.supabase.createClient === 'function') {
       { id: 2, titre: 'Tournoi de badminton', date: '2025-11-26', heure: null, lieu: 'Gymnase municipal', max_participants: 24, description: '', visible: false, archived: false },
       { id: 3, titre: 'Atelier cuisine conviviale', date: '2025-11-15', heure: null, lieu: 'Salle des fêtes', max_participants: 20, description: '', visible: true, archived: false }
     ],
-    inscriptions: []
+    inscriptions: [],
+    contact_messages: []
   };
-  const idCounters = { events: memory.events.length + 1, inscriptions: 1 };
+  const idCounters = { events: memory.events.length + 1, inscriptions: 1, contact_messages: 1 };
   supabase = {
     from(table) {
       // Query context holds table name and filters to apply
@@ -156,6 +157,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof setupInscriptionForm === 'function') {
     setupInscriptionForm();
   }
+
+  // Attache le formulaire de contact s'il est présent
+  if (typeof setupContactForm === 'function') {
+    setupContactForm();
+  }
   
   if (isAdmin && typeof mountAdmin !== 'undefined') {
     adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
@@ -196,7 +202,8 @@ if (window.location.protocol === 'file:') {
     inscriptions: { view: true, edit: true, delete: true },
     volunteers: { view: true, edit: true, delete: true },
     admins: { view: true, edit: true, delete: true },
-    association: { view: true, edit: true, delete: true }
+    association: { view: true, edit: true, delete: true },
+    messages: { view: true, edit: true, delete: true }
   };
   // If the DOM has already loaded, mount the admin interface immediately.
   // Otherwise, it will be mounted during DOMContentLoaded based on isAdmin.
@@ -403,6 +410,7 @@ function mountAdmin() {
       <button class="admin-tab" data-module="volunteers">👥 Bénévoles</button>
       <button class="admin-tab" data-module="admins">👨‍💼 Admins</button>
       <button class="admin-tab" data-module="association">⚙️ Association</button>
+      <button class="admin-tab" data-module="messages">📨 Messages</button>
     </div>
     <div class="admin-content">
       <div class="admin-module active" id="module-dashboard"></div>
@@ -411,6 +419,7 @@ function mountAdmin() {
       <div class="admin-module" id="module-volunteers"></div>
       <div class="admin-module" id="module-admins"></div>
       <div class="admin-module" id="module-association"></div>
+      <div class="admin-module" id="module-messages"></div>
     </div>
   `;
   
@@ -446,6 +455,7 @@ function switchAdminTab(module) {
   else if (module === 'volunteers') loadAdminVolunteers();
   else if (module === 'admins') loadAdminUsers();
   else if (module === 'association') loadAdminAssociation();
+  else if (module === 'messages') loadAdminMessages();
 }
 
 // DASHBOARD
@@ -657,6 +667,7 @@ async function filterInscriptions() {
       <td data-label="Commentaire">${i.commentaire || '-'}</td>
       <td data-label="Actions">
         <button class="btn-see-details" data-idx="${idx}">Voir +</button>
+        <button class="btn-small" onclick="adminEditInscription(${i.id})" title="Modifier">✏️</button>
         <button class="btn-small btn-danger" onclick="adminDeleteInscription(${i.id})" title="Supprimer">🗑️</button>
       </td>
     </tr>
@@ -725,6 +736,83 @@ async function adminDeleteInscription(id) {
     toast('❌ Erreur lors de la suppression');
   }
 }
+
+// ADMIN: MODIFIER UNE INSCRIPTION
+async function adminEditInscription(id) {
+  // Récupérer l'inscription par ID et pré-remplir le formulaire
+  try {
+    const { data: insc } = await supabase.from('inscriptions').select('*').eq('id', id).single();
+    if (!insc) {
+      toast('❌ Inscription introuvable');
+      return;
+    }
+    document.getElementById('edit-insc-id').value = insc.id;
+    document.getElementById('edit-insc-prenom').value = insc.prenom || '';
+    document.getElementById('edit-insc-nom').value = insc.nom || '';
+    document.getElementById('edit-insc-email').value = insc.email || '';
+    document.getElementById('edit-insc-telephone').value = insc.telephone || '';
+    document.getElementById('edit-insc-arrivee').value = insc.heure_arrivee || '';
+    document.getElementById('edit-insc-depart').value = insc.heure_depart || '';
+    document.getElementById('edit-insc-commentaire').value = insc.commentaire || '';
+    document.getElementById('edit-insc-prepa').checked = !!insc.preparation_salle;
+    document.getElementById('edit-insc-partie').checked = !!insc.partie_evenement;
+    document.getElementById('edit-insc-entier').checked = !!insc.evenement_entier;
+    modal.open('#modal-edit-inscription');
+  } catch (err) {
+    console.error(err);
+    toast('❌ Erreur lors du chargement de l\'inscription');
+  }
+}
+
+// Soumission du formulaire d'édition d'inscription
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('edit-insc-form');
+  if (form) {
+    form.onsubmit = async function(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-insc-id').value;
+      const prenom = document.getElementById('edit-insc-prenom').value.trim();
+      const nom = document.getElementById('edit-insc-nom').value.trim();
+      const email = document.getElementById('edit-insc-email').value.trim();
+      const telephone = document.getElementById('edit-insc-telephone').value.trim();
+      const heure_arrivee = document.getElementById('edit-insc-arrivee').value || null;
+      const heure_depart = document.getElementById('edit-insc-depart').value || null;
+      const commentaire = document.getElementById('edit-insc-commentaire').value.trim() || '';
+      const preparation_salle = document.getElementById('edit-insc-prepa').checked;
+      const partie_evenement = document.getElementById('edit-insc-partie').checked;
+      const evenement_entier = document.getElementById('edit-insc-entier').checked;
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      const telOk = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(telephone);
+      if (!prenom || !nom || !emailOk || !telOk) {
+        toast('⚠️ Vérifie les champs requis');
+        return;
+      }
+      try {
+        await supabase.from('inscriptions').update({
+          prenom,
+          nom,
+          email,
+          telephone,
+          heure_arrivee,
+          heure_depart,
+          commentaire,
+          preparation_salle,
+          partie_evenement,
+          evenement_entier
+        }).eq('id', id);
+        toast('✅ Inscription modifiée');
+        modal.closeAll();
+        // Rafraîchir les listes
+        if (typeof filterInscriptions === 'function') filterInscriptions();
+        if (typeof loadAdminVolunteers === 'function') loadAdminVolunteers();
+        if (typeof loadPublicAsync === 'function') loadPublicAsync();
+      } catch (err) {
+        console.error(err);
+        toast('❌ Erreur lors de la mise à jour');
+      }
+    };
+  }
+});
 
 // BÉNÉVOLES
 async function loadAdminVolunteers() {
@@ -861,6 +949,60 @@ async function adminDeleteVolunteer(email) {
     console.error(err);
     toast('❌ Erreur lors de la suppression du bénévole');
   }
+}
+
+// ADMIN: CHARGER LES MESSAGES DE CONTACT
+async function loadAdminMessages() {
+  const host = $('#module-messages');
+  host.innerHTML = '<p>Chargement des messages...</p>';
+  try {
+    const { data: messages } = await supabase.from('contact_messages').select('*').order('date', { ascending: false });
+    let html = '<table class="table-admin messages-table-admin"><thead><tr>' +
+      '<th>Date</th><th>Nom</th><th>Email</th><th>Message</th><th>Lu</th><th>Actions</th></tr></thead><tbody>';
+    messages.forEach(msg => {
+      const date = msg.date ? new Date(msg.date).toLocaleString('fr-FR') : '-';
+      html += `<tr>
+        <td>${date}</td>
+        <td>${msg.nom || ''}</td>
+        <td>${msg.email || ''}</td>
+        <td>${msg.message || ''}</td>
+        <td>${msg.lu ? '✅' : '❌'}</td>
+        <td>
+          <button class="btn-small" onclick="adminToggleMessageRead(${msg.id}, ${msg.lu ? 1 : 0})">${msg.lu ? 'Marquer non lu' : 'Marquer lu'}</button>
+          <button class="btn-small btn-danger" onclick="adminDeleteMessage(${msg.id})">🗑️</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    host.innerHTML = html;
+  } catch (err) {
+    console.error(err);
+    host.innerHTML = '<p>Erreur de chargement des messages</p>';
+  }
+}
+
+// Marquer un message comme lu/non lu
+function adminToggleMessageRead(id, current) {
+  const newVal = !Boolean(current);
+  supabase.from('contact_messages').update({ lu: newVal }).eq('id', id).then(() => {
+    toast(`Message ${newVal ? 'marqué comme lu' : 'marqué comme non lu'}`);
+    loadAdminMessages();
+  }).catch(err => {
+    console.error(err);
+    toast('Erreur mise à jour message');
+  });
+}
+
+// Supprimer un message de contact
+function adminDeleteMessage(id) {
+  if (!confirm('Supprimer ce message ?')) return;
+  supabase.from('contact_messages').delete().eq('id', id).then(() => {
+    toast('Message supprimé');
+    loadAdminMessages();
+  }).catch(err => {
+    console.error(err);
+    toast('Erreur suppression message');
+  });
 }
 
 // ADMINS
@@ -1620,6 +1762,45 @@ function setupInscriptionForm() {
     // Refresh the public view so the counters and participant lists update immediately
     if (typeof loadPublicAsync === 'function') {
       loadPublicAsync();
+    }
+  };
+}
+
+// Configurer le formulaire de contact public.  Ce formulaire envoie
+// un message dans la table `contact_messages` qui sera consulté via
+// l’interface d’administration.  Après envoi, un toast s’affiche et le
+// formulaire est réinitialisé.
+function setupContactForm() {
+  const form = document.getElementById('contact-form');
+  if (!form) return;
+  form.onsubmit = async function(e) {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const nom = fd.get('nom')?.trim();
+    const email = fd.get('email')?.trim();
+    const message = fd.get('message')?.trim();
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '');
+    if (!nom || !emailOk || !message) {
+      toast('⚠️ Veuillez remplir tous les champs correctement');
+      return;
+    }
+    try {
+      await supabase.from('contact_messages').insert({
+        nom,
+        email,
+        message,
+        date: new Date().toISOString(),
+        lu: false
+      });
+      toast('✅ Message envoyé !');
+      form.reset();
+      // Si la partie admin des messages est ouverte, rafraîchir la liste
+      if (typeof loadAdminMessages === 'function') {
+        loadAdminMessages();
+      }
+    } catch (err) {
+      console.error(err);
+      toast('❌ Erreur lors de l\'envoi du message');
     }
   };
 }
