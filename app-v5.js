@@ -284,8 +284,9 @@ async function loadSiteConfig() {
         headerLogo = document.createElement('div');
         headerLogo.id = 'header-logo-bg';
         headerLogo.style.cssText = `
-          width: 90px;
-          height: 90px;
+          /* Augmenter la taille du logo dans l'en-tête */
+          width: 110px;
+          height: 110px;
           margin: 0 1.5em;
           border-radius: 12px;
           background-size: contain;
@@ -513,7 +514,7 @@ async function loadAdminEvents() {
     const { count } = await supabase.from('inscriptions').select('id', { count: 'exact', head: true }).eq('event_id', ev.id);
     html += `<tr>
       <td>${ev.titre}</td>
-      <td>${ev.date}</td>
+      <td>${formatDateFr(ev.date)}</td>
       <td>${ev.lieu}</td>
       <td>${ev.max_participants}</td>
       <td>${count || 0}</td>
@@ -539,7 +540,10 @@ async function loadAdminInscriptions() {
   let html = `<select id="event-filter" onchange="filterInscriptions()">
     <option value="">-- Tous les événements --</option>`;
   
-  events.forEach(e => html += `<option value="${e.id}">${e.titre}</option>`);
+  events.forEach(e => {
+    const label = e.titre + (e.date ? ` — ${formatDateFr(e.date)}` : '');
+    html += `<option value="${e.id}">${label}</option>`;
+  });
   html += `</select>
     <div id="inscriptions-list"></div>`;
   
@@ -574,7 +578,7 @@ async function filterInscriptions() {
       <div class="event-detail-admin">
         <div class="event-detail-title">${selectedEventData.image || '📅'} <strong>${selectedEventData.titre}</strong></div>
         <div class="event-detail-meta">
-          ${selectedEventData.date || ''} 
+          ${formatDateFr(selectedEventData.date) || ''} 
           ${selectedEventData.heure ? '• ' + selectedEventData.heure : ''} 
           ${selectedEventData.lieu ? '• ' + selectedEventData.lieu : ''}
         </div>
@@ -598,7 +602,7 @@ async function filterInscriptions() {
           <th data-sort="nom">NOM</th>
           <th data-sort="participation">PARTICIPATIONS</th>
           <th data-sort="commentaire">COMMENTAIRE</th>
-          <th></th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -619,7 +623,10 @@ async function filterInscriptions() {
       <td>${i.nom}</td>
       <td>${parts.join(', ')}</td>
       <td>${i.commentaire || '-'}</td>
-      <td><button class="btn-see-details" data-idx="${idx}">Voir +</button></td>
+      <td>
+        <button class="btn-see-details" data-idx="${idx}">Voir +</button>
+        <button class="btn-small btn-danger" onclick="adminDeleteInscription(${i.id})" title="Supprimer">🗑️</button>
+      </td>
     </tr>
     <tr class="insc-details-row" style="display:none;">
       <td colspan="7">
@@ -647,6 +654,28 @@ async function filterInscriptions() {
       btn.textContent = detailsRow.style.display === 'table-row' ? 'Fermer' : 'Voir +';
     };
   });
+}
+
+// ADMIN: SUPPRIMER UNE INSCRIPTION
+async function adminDeleteInscription(id) {
+  if (!confirm('⚠️ Confirmer la suppression de cette inscription ?')) return;
+  try {
+    await supabase.from('inscriptions').delete().eq('id', id);
+    toast('✅ Inscription supprimée');
+    // Recharge les listes pour refléter le changement
+    if (typeof filterInscriptions === 'function') {
+      filterInscriptions();
+    }
+    if (typeof loadAdminVolunteers === 'function') {
+      loadAdminVolunteers();
+    }
+    if (typeof loadPublicAsync === 'function') {
+      loadPublicAsync();
+    }
+  } catch (err) {
+    console.error(err);
+    toast('❌ Erreur lors de la suppression');
+  }
 }
 
 // BÉNÉVOLES
@@ -719,6 +748,7 @@ async function loadAdminVolunteers() {
             <th data-sort="partie">Partie</th>
             <th data-sort="presence">Présence (%)</th>
             <th data-sort="participations">Nb participations</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -734,6 +764,7 @@ async function loadAdminVolunteers() {
         <td>${v.partie}</td>
         <td>${pct}</td>
         <td>${v.participations}</td>
+        <td><button class="btn-small btn-danger" onclick="adminDeleteVolunteer('${v.email}')" title="Supprimer">🗑️</button></td>
       </tr>`;
     });
     html += '</tbody></table>';
@@ -764,6 +795,24 @@ async function loadAdminVolunteers() {
   host.querySelector('#year-volunteers').onchange = renderList;
   host.querySelector('#search-volunteers').oninput = renderList;
   renderList();
+}
+
+// ADMIN: SUPPRIMER UN BÉNÉVOLE (supprime toutes ses inscriptions)
+async function adminDeleteVolunteer(email) {
+  if (!email) return;
+  if (!confirm('⚠️ Confirmer la suppression de ce bénévole et de toutes ses inscriptions ?')) return;
+  try {
+    // Supprime toutes les inscriptions associées à cet email
+    await supabase.from('inscriptions').delete().eq('email', email);
+    toast('✅ Bénévole supprimé');
+    // Rafraîchir les listes
+    if (typeof loadAdminVolunteers === 'function') loadAdminVolunteers();
+    if (typeof loadAdminInscriptions === 'function') loadAdminInscriptions();
+    if (typeof loadPublicAsync === 'function') loadPublicAsync();
+  } catch (err) {
+    console.error(err);
+    toast('❌ Erreur lors de la suppression du bénévole');
+  }
 }
 
 // ADMINS
@@ -1249,7 +1298,7 @@ async function fetchInscriptionsForEvent(eventId) {
 
 function openInscription(ev) {
   $('#insc-event-title').textContent = `${ev.image || '📅'} ${ev.titre}`;
-  $('#insc-event-meta').textContent = `${ev.date} • ${ev.heure || ''} • ${ev.lieu}`;
+  $('#insc-event-meta').textContent = `${formatDateFr(ev.date)}${ev.heure ? ' • ' + ev.heure : ''}${ev.lieu ? ' • ' + ev.lieu : ''}`;
   $('#insc-event-id').value = ev.id;
   modal.open('#modal-inscription');
 }
@@ -1275,7 +1324,7 @@ function renderTimeline(events) {
       <div class="card-header">
         <div>
           <div class="card-title">${ev.image || '📅'} ${ev.titre}</div>
-          <div class="muted">${ev.date} • ${ev.heure || ''} • ${ev.lieu}</div>
+          <div class="muted">${formatDateFr(ev.date)}${ev.heure ? ' • ' + ev.heure : ''}${ev.lieu ? ' • ' + ev.lieu : ''}</div>
         </div>
         <div class="card-actions"><button class="subscribe-btn"></button></div>
       </div>
@@ -1305,7 +1354,7 @@ function renderList(events) {
     const count = inscriptions.length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${ev.date} ${ev.heure || ''}</td>
+      <td>${formatDateFr(ev.date)}${ev.heure ? ' ' + ev.heure : ''}</td>
       <td>${ev.titre}</td>
       <td>${ev.lieu}</td>
       <td>${count}/${ev.max_participants || ''}</td>
@@ -1333,7 +1382,7 @@ function renderCards(events) {
       <div class="card-header">
         <div>
           <div class="card-title">${ev.image || '📅'} ${ev.titre}</div>
-          <div class="muted">${ev.date} • ${ev.heure || ''} • ${ev.lieu}</div>
+          <div class="muted">${formatDateFr(ev.date)}${ev.heure ? ' • ' + ev.heure : ''}${ev.lieu ? ' • ' + ev.lieu : ''}</div>
         </div>
         <div class="card-actions"><button class="subscribe-btn"></button></div>
       </div>
@@ -1386,11 +1435,24 @@ function updateNextEvent(events) {
     badge.textContent = '';
     return;
   }
-  const firstEvent = events[0];
-  const eventDate = new Date(firstEvent.date + 'T' + (firstEvent.heure || '00:00'));
+  // Trouver le prochain événement à venir (date >= aujourd'hui)
   const today = new Date();
-  const diffDays = Math.max(0, Math.ceil((eventDate - today) / 86400000));
-  badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+  const upcoming = events.find(ev => {
+    const d = new Date(ev.date + 'T00:00');
+    return d >= new Date(today.toDateString());
+  });
+  if (!upcoming) {
+    badge.textContent = 'Aucun événement à venir';
+    return;
+  }
+  const eventDate = new Date(upcoming.date + 'T' + (upcoming.heure || '00:00'));
+  const diffDaysRaw = (eventDate - today) / 86400000;
+  const diffDays = Math.max(0, Math.ceil(diffDaysRaw));
+  if (diffDays === 0) {
+    badge.textContent = 'Prochain événement : aujourd\'hui';
+  } else {
+    badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+  }
 }
 
 // ✅ AFFICHE LES ÉVÉNEMENTS AU DÉMARRAGE
@@ -1464,6 +1526,20 @@ function setupInscriptionForm() {
       return;
     }
 
+    // Check for duplicate inscription for the same event and email address.
+    try {
+      const { data: existingDup, error: dupErr } = await supabase.from('inscriptions')
+        .select('*')
+        .eq('event_id', event_id)
+        .eq('email', email);
+      if (!dupErr && existingDup && existingDup.length > 0) {
+        toast('⚠️ Vous êtes déjà inscrit à cet événement');
+        return;
+      }
+    } catch (ex) {
+      console.warn('duplicate check failed', ex);
+    }
+
     const { error } = await supabase.from('inscriptions').insert({
       event_id,
       prenom,
@@ -1493,6 +1569,10 @@ function setupInscriptionForm() {
         loadAdminVolunteers();
       }
     }
+    // Refresh the public view so the counters and participant lists update immediately
+    if (typeof loadPublicAsync === 'function') {
+      loadPublicAsync();
+    }
   };
 }
 
@@ -1514,6 +1594,19 @@ function scheduleAutoArchive() {
   }, 60000);
 }
 scheduleAutoArchive();
+
+/*
+ * Format an ISO date string (YYYY-MM-DD) as DD/MM/YYYY for French display.
+ * If the input is falsy or not a dash-separated ISO date, return it unchanged.
+ */
+function formatDateFr(dateStr) {
+  if (!dateStr) return '';
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
+  if (year.length !== 4 || month.length !== 2 || day.length !== 2) return dateStr;
+  return `${day}/${month}/${year}`;
+}
 
 // INIT
 if (isAdmin) {
