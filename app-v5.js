@@ -162,6 +162,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof setupContactForm === 'function') {
     setupContactForm();
   }
+
+  // Bouton d'ouverture de la modale de contact
+  const contactBtn = document.getElementById('contact-button');
+  if (contactBtn) {
+    contactBtn.onclick = () => {
+      modal.open('#modal-contact');
+    };
+  }
   
   if (isAdmin && typeof mountAdmin !== 'undefined') {
     adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
@@ -957,24 +965,40 @@ async function loadAdminMessages() {
   host.innerHTML = '<p>Chargement des messages...</p>';
   try {
     const { data: messages } = await supabase.from('contact_messages').select('*').order('date', { ascending: false });
-    let html = '<table class="table-admin messages-table-admin"><thead><tr>' +
-      '<th>Date</th><th>Nom</th><th>Email</th><th>Message</th><th>Lu</th><th>Actions</th></tr></thead><tbody>';
-    messages.forEach(msg => {
-      const date = msg.date ? new Date(msg.date).toLocaleString('fr-FR') : '-';
-      html += `<tr>
-        <td>${date}</td>
-        <td>${msg.nom || ''}</td>
-        <td>${msg.email || ''}</td>
-        <td>${msg.message || ''}</td>
-        <td>${msg.lu ? '✅' : '❌'}</td>
-        <td>
-          <button class="btn-small" onclick="adminToggleMessageRead(${msg.id}, ${msg.lu ? 1 : 0})">${msg.lu ? 'Marquer non lu' : 'Marquer lu'}</button>
-          <button class="btn-small btn-danger" onclick="adminDeleteMessage(${msg.id})">🗑️</button>
-        </td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    host.innerHTML = html;
+    // Conteneur principal avec barre de recherche et liste dynamique
+    host.innerHTML = `<div class="message-filter" style="margin-bottom:0.8em;">
+      <input type="text" id="search-messages" placeholder="Recherche nom, prénom, email ou message..." style="padding:0.5em 1em; border-radius:8px; border:1.5px solid #ddd; width:260px;" />
+    </div>
+    <div id="messages-list"></div>`;
+
+    const allMessages = messages || [];
+    function renderMessages() {
+      const search = (document.getElementById('search-messages').value || '').toLowerCase();
+      const filtered = allMessages.filter(m => {
+        const fields = [m.nom || '', m.prenom || '', m.email || '', m.message || ''];
+        return fields.some(f => f.toLowerCase().includes(search));
+      });
+      let html = '<table class="table-admin messages-table-admin"><thead><tr>' +
+        '<th>Date</th><th>Nom</th><th>Email</th><th>Message</th><th>Lu</th><th>Actions</th></tr></thead><tbody>';
+      filtered.forEach(msg => {
+        const date = msg.date ? new Date(msg.date).toLocaleString('fr-FR') : '-';
+        html += `<tr>
+          <td>${date}</td>
+          <td>${(msg.prenom || '') + ' ' + (msg.nom || '')}</td>
+          <td>${msg.email || ''}</td>
+          <td>${msg.message || ''}</td>
+          <td>${msg.lu ? '✅' : '❌'}</td>
+          <td>
+            <button class="btn-small" onclick="adminToggleMessageRead(${msg.id}, ${msg.lu ? 1 : 0})">${msg.lu ? 'Marquer non lu' : 'Marquer lu'}</button>
+            <button class="btn-small btn-danger" onclick="adminDeleteMessage(${msg.id})">🗑️</button>
+          </td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('messages-list').innerHTML = html;
+    }
+    document.getElementById('search-messages').addEventListener('input', renderMessages);
+    renderMessages();
   } catch (err) {
     console.error(err);
     host.innerHTML = '<p>Erreur de chargement des messages</p>';
@@ -1060,11 +1084,19 @@ document.getElementById('form-admin-user').onsubmit = async function(e) {
   const role = document.getElementById('admin-user-role').value;
   const password = document.getElementById('admin-user-pass').value;
 
-  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
-    module: tr.querySelector('td').innerText.trim().toLowerCase(),
-    can_view: tr.querySelector('.mod-view').checked,
-    can_edit: tr.querySelector('.mod-edit').checked
-  }));
+  // Extraire les droits par module en utilisant les attributs data-module plutôt
+  // que le texte du tableau (qui peut contenir des accents).  Cela évite
+  // l'incohérence entre "Événements" et le code interne "events".
+  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => {
+    const viewEl = tr.querySelector('.mod-view');
+    const editEl = tr.querySelector('.mod-edit');
+    const module = viewEl?.dataset.module;
+    return {
+      module,
+      can_view: !!viewEl?.checked,
+      can_edit: !!editEl?.checked
+    };
+  });
 
   let adminData = { prenom, nom, email, role };
   if (password) adminData.password_hash = password;
@@ -1777,17 +1809,22 @@ function setupContactForm() {
     e.preventDefault();
     const fd = new FormData(form);
     const nom = fd.get('nom')?.trim();
+    const prenom = fd.get('prenom')?.trim();
     const email = fd.get('email')?.trim();
+    const telephone = fd.get('telephone')?.trim();
     const message = fd.get('message')?.trim();
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '');
-    if (!nom || !emailOk || !message) {
+    const telOk = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(telephone || '');
+    if (!nom || !prenom || !emailOk || !telOk || !message) {
       toast('⚠️ Veuillez remplir tous les champs correctement');
       return;
     }
     try {
       await supabase.from('contact_messages').insert({
         nom,
+        prenom,
         email,
+        telephone,
         message,
         date: new Date().toISOString(),
         lu: false
