@@ -168,6 +168,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 let adminUser = null;
 let adminPermissions = {};
 
+// ---- INSCRIPTIONS SORT STATE ----
+// These variables hold the current sort column and direction for the
+// inscriptions table.  Clicking a column header toggles the sort on
+// that field.  Sorting is applied client-side after data is fetched.
+let inscSortField = null;
+let inscSortAsc = true;
+
 //
 // In local/offline usage (when loading the site using the file:// protocol),
 // we don't have access to the real Supabase backend or valid admin credentials.
@@ -513,13 +520,13 @@ async function loadAdminEvents() {
   for (const ev of events) {
     const { count } = await supabase.from('inscriptions').select('id', { count: 'exact', head: true }).eq('event_id', ev.id);
     html += `<tr>
-      <td>${ev.titre}</td>
-      <td>${formatDateFr(ev.date)}</td>
-      <td>${ev.lieu}</td>
-      <td>${ev.max_participants}</td>
-      <td>${count || 0}</td>
-      <td><input type="checkbox" onclick="adminToggleVisible(${ev.id}, ${ev.visible ? 1 : 0})" ${ev.visible ? 'checked' : ''}></td>
-      <td>
+      <td data-label="Titre">${ev.titre}</td>
+      <td data-label="Date">${formatDateFr(ev.date)}</td>
+      <td data-label="Lieu">${ev.lieu}</td>
+      <td data-label="Max">${ev.max_participants}</td>
+      <td data-label="Inscrits">${count || 0}</td>
+      <td data-label="Visible"><input type="checkbox" onclick="adminToggleVisible(${ev.id}, ${ev.visible ? 1 : 0})" ${ev.visible ? 'checked' : ''}></td>
+      <td data-label="Actions">
         <button class="btn-small" onclick="adminEditEvent(${ev.id})">✏️ Edit</button>
         <button class="btn-small btn-danger" onclick="adminDeleteEvent(${ev.id})">🗑️ Del</button>
       </td>
@@ -564,6 +571,31 @@ async function filterInscriptions() {
   let query = supabase.from('inscriptions').select('*');
   if (eventId) query = query.eq('event_id', eventId);
   const { data: inscs } = await query.order('date_inscription', { ascending: false });
+  // Apply client-side sorting based on the currently selected column and direction.
+  if (inscSortField) {
+    inscs.sort((a, b) => {
+      let valA;
+      let valB;
+      if (inscSortField === 'participation') {
+        // For participation, order by number of checked boxes (entier > partie > prépa)
+        const countA = (a.preparation_salle ? 1 : 0) + (a.partie_evenement ? 1 : 0) + (a.evenement_entier ? 1 : 0);
+        const countB = (b.preparation_salle ? 1 : 0) + (b.partie_evenement ? 1 : 0) + (b.evenement_entier ? 1 : 0);
+        valA = countA;
+        valB = countB;
+      } else {
+        valA = a[inscSortField] || '';
+        valB = b[inscSortField] || '';
+      }
+      const aStr = typeof valA === 'string' ? valA.toLowerCase() : valA;
+      const bStr = typeof valB === 'string' ? valB.toLowerCase() : valB;
+      if (aStr === bStr) return 0;
+      if (inscSortAsc) {
+        return aStr > bStr ? 1 : -1;
+      } else {
+        return aStr < bStr ? 1 : -1;
+      }
+    });
+  }
 
   let countPrep = 0, countEntier = 0, countPartie = 0;
   inscs.forEach(i => {
@@ -617,13 +649,13 @@ async function filterInscriptions() {
     if (i.telephone) autres.push('Tél&nbsp;:&nbsp;' + i.telephone);
     
     html += `<tr>
-      <td>${i.heure_arrivee || '-'}</td>
-      <td>${i.heure_depart || '-'}</td>
-      <td>${i.prenom}</td>
-      <td>${i.nom}</td>
-      <td>${parts.join(', ')}</td>
-      <td>${i.commentaire || '-'}</td>
-      <td>
+      <td data-label="Arrivée">${i.heure_arrivee || '-'}</td>
+      <td data-label="Départ">${i.heure_depart || '-'}</td>
+      <td data-label="Prénom">${i.prenom}</td>
+      <td data-label="Nom">${i.nom}</td>
+      <td data-label="Participations">${parts.join(', ')}</td>
+      <td data-label="Commentaire">${i.commentaire || '-'}</td>
+      <td data-label="Actions">
         <button class="btn-see-details" data-idx="${idx}">Voir +</button>
         <button class="btn-small btn-danger" onclick="adminDeleteInscription(${i.id})" title="Supprimer">🗑️</button>
       </td>
@@ -646,6 +678,22 @@ async function filterInscriptions() {
 
   html += '</tbody></table>';
   list.innerHTML = html;
+
+  // Attach sorting click handlers after rendering.  Clicking a header toggles
+  // sort on that field; clicking the same field again reverses direction.
+  list.querySelectorAll('th[data-sort]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.onclick = function() {
+      const field = th.getAttribute('data-sort');
+      if (inscSortField === field) {
+        inscSortAsc = !inscSortAsc;
+      } else {
+        inscSortField = field;
+        inscSortAsc = true;
+      }
+      filterInscriptions();
+    };
+  });
 
   document.querySelectorAll('.btn-see-details').forEach(btn => {
     btn.onclick = function() {
