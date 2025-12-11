@@ -3,7 +3,113 @@
 
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/*
+ * Initialize Supabase safely.  In production the Supabase library is loaded
+ * via an external script in index.html.  However when running the site from
+ * the file system or in an offline environment the global `window.supabase`
+ * object may not exist which causes this script to throw and prevent the
+ * remainder of the code from executing.  To ensure the rest of the UI
+ * continues to work we fall back to a no‑op client that returns empty
+ * results for all queries.  This stub exposes the minimal chainable API
+ * used throughout the app and resolves each method with sensible defaults.
+ */
+let supabase;
+if (window.supabase && typeof window.supabase.createClient === 'function') {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  console.warn('⚠️ Supabase library not found, using stub client.');
+  /*
+   * In offline/local mode we emulate a minimal Supabase client backed by in‑memory
+   * arrays.  This allows us to test creation, update and retrieval of events
+   * and inscriptions without a network connection.  The data persists only
+   * for the lifetime of the page.  Each table has its own auto‑incrementing
+   * identifier.  We implement a basic filter on equality and a simple
+   * ordering.  All methods return promises to mirror the real Supabase API.
+   */
+  const memory = {
+    events: [
+      { id: 1, titre: 'Conférence citoyenne', date: '2025-12-05', heure: '18:30', lieu: 'Mairie', max_participants: 80, description: 'Échanges citoyens sur la vie locale et les projets de développement durable.', visible: true, archived: false },
+      { id: 2, titre: 'Tournoi de badminton', date: '2025-11-26', heure: null, lieu: 'Gymnase municipal', max_participants: 24, description: '', visible: false, archived: false },
+      { id: 3, titre: 'Atelier cuisine conviviale', date: '2025-11-15', heure: null, lieu: 'Salle des fêtes', max_participants: 20, description: '', visible: true, archived: false }
+    ],
+    inscriptions: []
+  };
+  const idCounters = { events: memory.events.length + 1, inscriptions: 1 };
+  supabase = {
+    from(table) {
+      // Query context holds table name and filters to apply
+      const query = { table, filters: [], limitCount: null, orderField: null, orderAsc: true };
+      function applyFilters(rows) {
+        return query.filters.reduce((res, [field, value]) => res.filter(row => row[field] === value), rows);
+      }
+      const stub = {
+        eq(field, value) {
+          query.filters.push([field, value]);
+          return this;
+        },
+        lt(field, value) {
+          // simple less‑than filter, not used extensively
+          query.filters.push([field, value, 'lt']);
+          return this;
+        },
+        order(field, opts = {}) {
+          query.orderField = field;
+          query.orderAsc = opts.ascending !== false;
+          return this;
+        },
+        limit(n) {
+          query.limitCount = n;
+          return this;
+        },
+        single() {
+          // indicates that only a single record is expected; no extra behaviour needed
+          return this;
+        },
+        async select() {
+          let rows = memory[table] ? [...memory[table]] : [];
+          // apply equality filters
+          rows = applyFilters(rows);
+          // apply lt filters
+          rows = rows.filter(row => !query.filters.some(([f, val, op]) => op === 'lt' && !(row[f] < val)));
+          // ordering
+          if (query.orderField) {
+            rows.sort((a, b) => {
+              if (a[query.orderField] < b[query.orderField]) return query.orderAsc ? -1 : 1;
+              if (a[query.orderField] > b[query.orderField]) return query.orderAsc ? 1 : -1;
+              return 0;
+            });
+          }
+          // apply limit
+          if (query.limitCount != null) rows = rows.slice(0, query.limitCount);
+          return { data: rows, error: null };
+        },
+        async insert(record) {
+          if (!memory[table]) memory[table] = [];
+          const id = idCounters[table] || 1;
+          idCounters[table] = id + 1;
+          const newRecord = { id, ...record };
+          memory[table].push(newRecord);
+          return { error: null };
+        },
+        async update(values) {
+          if (!memory[table]) return { error: null };
+          let rows = applyFilters(memory[table]);
+          rows.forEach(row => Object.assign(row, values));
+          return { error: null };
+        },
+        async delete() {
+          if (!memory[table]) return { error: null };
+          // delete rows matching filters
+          const rows = memory[table];
+          memory[table] = rows.filter(row => !query.filters.every(([f, v]) => row[f] === v));
+          return { error: null };
+        }
+      };
+      return stub;
+    }
+  };
+}
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -43,6 +149,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (typeof loadSiteConfig !== 'undefined') await loadSiteConfig();
   await initPublic();
+
+  // Wire up view switch buttons and modal close buttons now that the DOM is ready
+  initViewSwitch();
+  // Attach the inscription form handler now that the DOM and form are present.
+  if (typeof setupInscriptionForm === 'function') {
+    setupInscriptionForm();
+  }
   
   if (isAdmin && typeof mountAdmin !== 'undefined') {
     adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
@@ -54,6 +167,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 let adminUser = null;
 let adminPermissions = {};
+
+//
+// In local/offline usage (when loading the site using the file:// protocol),
+// we don't have access to the real Supabase backend or valid admin credentials.
+// To allow full testing of the administrative interface without relying on
+// authentication, we set `isAdmin` to true and grant full permissions on all
+// admin modules when the site is opened from the local file system.  This
+// override has no effect in production (https://) because the protocol is
+// different.  You can remove or adjust this section as needed.
+if (window.location.protocol === 'file:') {
+  try {
+    sessionStorage.setItem('isAdmin', '1');
+  } catch (err) {
+    // sessionStorage may be unavailable in some contexts; ignore errors
+  }
+  isAdmin = true;
+  adminPermissions = {
+    dashboard: { view: true, edit: true, delete: true },
+    events: { view: true, edit: true, delete: true },
+    inscriptions: { view: true, edit: true, delete: true },
+    volunteers: { view: true, edit: true, delete: true },
+    admins: { view: true, edit: true, delete: true },
+    association: { view: true, edit: true, delete: true }
+  };
+  // If the DOM has already loaded, mount the admin interface immediately.
+  // Otherwise, it will be mounted during DOMContentLoaded based on isAdmin.
+  if (document.readyState !== 'loading' && typeof mountAdmin !== 'undefined') {
+    mountAdmin();
+  }
+}
 
 // ✅ FORCE MODE CLAIR UNIQUEMENT
 (function initTheme() {
@@ -81,6 +224,36 @@ document.addEventListener('click', (e) => {
   if (e.target.matches('[data-close]')) modal.closeAll();
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
+
+// Allow closing any open modal with the Escape key for better UX
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    modal.closeAll();
+  }
+});
+
+// Initialize tab switching once the DOM is fully parsed.  This prevents
+// click handlers from being attached before elements exist and ensures
+// the UI remains interactive even if Supabase fails to load.  We wrap
+// the listeners inside a function so it can be invoked on page load.
+function initViewSwitch() {
+  const timelineBtn = document.getElementById('view-timeline');
+  const listBtn = document.getElementById('view-list');
+  const cardsBtn = document.getElementById('view-cards');
+  if (timelineBtn) {
+    timelineBtn.addEventListener('click', () => setActiveView('timeline'));
+  }
+  if (listBtn) {
+    listBtn.addEventListener('click', () => setActiveView('list'));
+  }
+  if (cardsBtn) {
+    cardsBtn.addEventListener('click', () => setActiveView('cards'));
+  }
+  // Also wire explicit modal close buttons in case event delegation fails
+  $$('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => modal.closeAll());
+  });
+}
 
 // ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
 // ✅ SOLUTION FINALE - AFFICHE L'IMAGE EN CSS BACKGROUND
@@ -344,7 +517,7 @@ async function loadAdminEvents() {
       <td>${ev.lieu}</td>
       <td>${ev.max_participants}</td>
       <td>${count || 0}</td>
-      <td>${ev.visible ? '✅' : '❌'}</td>
+      <td><input type="checkbox" onclick="adminToggleVisible(${ev.id}, ${ev.visible ? 1 : 0})" ${ev.visible ? 'checked' : ''}></td>
       <td>
         <button class="btn-small" onclick="adminEditEvent(${ev.id})">✏️ Edit</button>
         <button class="btn-small btn-danger" onclick="adminDeleteEvent(${ev.id})">🗑️ Del</button>
@@ -932,6 +1105,11 @@ console.log('✅ saveAssociationConfig CORRIGÉE - SANS RELOAD');
 
 // EVENT STUBS
 function adminCreateEvent() {
+  // Ensure form handlers are bound before showing the modal.  On some
+  // browsers the script may load before the modal elements exist; rebinding
+  // here guarantees that the submit handler is attached when the modal
+  // becomes visible.
+  setupAdminEventForms();
   document.getElementById('form-create-event').reset();
   const today = new Date().toISOString().split('T')[0];
   document.querySelector('#form-create-event [name="date"]').value = today;
@@ -941,6 +1119,8 @@ function adminCreateEvent() {
 function adminEditEvent(id) {
   supabase.from('events').select('*').eq('id', id).single().then(({ data }) => {
     if (!data) return toast('Erreur chargement événement');
+    // Bind form handlers before populating fields to avoid default submission
+    setupAdminEventForms();
     document.getElementById('modal-edit-event').hidden = false;
     document.getElementById('edit-event-id').value = data.id;
     document.getElementById('edit-event-titre').value = data.titre || '';
@@ -960,61 +1140,101 @@ function adminDeleteEvent(id) {
   });
 }
 
-// EVENT FORM HANDLERS
-document.getElementById('form-edit-event').onsubmit = async function(e) {
-  e.preventDefault();
-  const id = document.getElementById('edit-event-id').value;
-  const titre = document.getElementById('edit-event-titre').value;
-  const date = document.getElementById('edit-event-date').value;
-  const heure = document.getElementById('edit-event-heure').value;
-  const lieu = document.getElementById('edit-event-lieu').value;
-  const max = Number(document.getElementById('edit-event-max').value);
-  const desc = document.getElementById('edit-event-description').value;
-  await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
-  toast('✅ Événement modifié');
-  document.getElementById('modal-edit-event').hidden = true;
-  loadAdminEvents();
-};
+/**
+ * Toggle the visibility of an event.  This handler is wired to the
+ * checkbox in the admin events table.  When called it inverts the
+ * current visible flag for the specified event and reloads the events
+ * list.  Errors are silently caught and logged.
+ *
+ * @param {number} id The event ID to update
+ * @param {number|boolean} current 1 or 0 indicating the current state
+ */
+function adminToggleVisible(id, current) {
+  const newVal = !Boolean(current);
+  supabase.from('events')
+    .update({ visible: newVal })
+    .eq('id', id)
+    .then(() => {
+      toast(`✅ Visibilité ${newVal ? 'activée' : 'désactivée'}`);
+      loadAdminEvents();
+    })
+    .catch(err => console.error('Erreur mise à jour visibilité:', err));
+}
 
-document.getElementById('form-create-event').onsubmit = async function(e) {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  
-  const titre = fd.get('titre')?.trim();
-  const date = fd.get('date')?.trim();
-  const heure = fd.get('heure')?.trim() || null;
-  const lieu = fd.get('lieu')?.trim();
-  const max_participants = Number(fd.get('max_participants'));
-  const description = fd.get('description')?.trim() || '';
-  const visible = !!fd.get('visible');
-  
-  if (!titre || !date || !lieu || max_participants < 1) {
-    toast('⚠️ Veuillez remplir tous les champs obligatoires');
-    return;
+// EVENT FORM HANDLERS
+//
+// The edit and create event forms live inside modals which are defined **after** the
+// script tag in index.html.  If we attach handlers immediately at parse time
+// the elements don't exist yet and the default form submission (which reloads
+// the page) will occur.  To avoid this, we register a DOMContentLoaded
+// listener and attach the handlers once the DOM is fully built.  If the
+// handlers are already bound (e.g. by previous calls), they will be replaced.
+
+function setupAdminEventForms() {
+  const editForm = document.getElementById('form-edit-event');
+  if (editForm) {
+    editForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-event-id').value;
+      const titre = document.getElementById('edit-event-titre').value;
+      const date = document.getElementById('edit-event-date').value;
+      const heure = document.getElementById('edit-event-heure').value;
+      const lieu = document.getElementById('edit-event-lieu').value;
+      const max = Number(document.getElementById('edit-event-max').value);
+      const desc = document.getElementById('edit-event-description').value;
+      await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
+      toast('✅ Événement modifié');
+      // hide the modal and refresh the list without reloading the whole page
+      document.getElementById('modal-edit-event').hidden = true;
+      loadAdminEvents();
+    };
   }
-  
-  const { error } = await supabase.from('events').insert({
-    titre,
-    date,
-    heure,
-    lieu,
-    max_participants,
-    description,
-    visible,
-    archived: false
-  });
-  
-  if (error) {
-    console.error(error);
-    toast('❌ Erreur lors de la création');
-    return;
+  const createForm = document.getElementById('form-create-event');
+  if (createForm) {
+    createForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const titre = fd.get('titre')?.trim();
+      const date = fd.get('date')?.trim();
+      const heure = fd.get('heure')?.trim() || null;
+      const lieu = fd.get('lieu')?.trim();
+      const max_participants = Number(fd.get('max_participants'));
+      const description = fd.get('description')?.trim() || '';
+      const visible = !!fd.get('visible');
+      if (!titre || !date || !lieu || max_participants < 1) {
+        toast('⚠️ Veuillez remplir tous les champs obligatoires');
+        return;
+      }
+      const { error } = await supabase.from('events').insert({
+        titre,
+        date,
+        heure,
+        lieu,
+        max_participants,
+        description,
+        visible,
+        archived: false
+      });
+      if (error) {
+        console.error(error);
+        toast('❌ Erreur lors de la création');
+        return;
+      }
+      toast('✅ Événement créé avec succès');
+      modal.closeAll();
+      e.target.reset();
+      loadAdminEvents();
+    };
   }
-  
-  toast('✅ Événement créé avec succès');
-  modal.closeAll();
-  e.target.reset();
-  loadAdminEvents();
-};
+}
+
+// Attach handlers after DOM is ready
+document.addEventListener('DOMContentLoaded', setupAdminEventForms);
+
+// Immediately invoke once in case DOMContentLoaded has already fired or the
+// elements already exist at script load time.  Without this the handlers may
+// not bind, causing forms to submit normally and reload the page.
+setupAdminEventForms();
 
 // PUBLIC SECTION
 async function fetchPublicEvents() {
@@ -1139,16 +1359,18 @@ function setActiveView(which) {
   if (targetTab) targetTab.classList.add('active');
 }
 
-// Assigne les clics sur les onglets
-document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
-document.getElementById('view-list').onclick = () => setActiveView('list');
-document.getElementById('view-cards').onclick = () => setActiveView('cards');
+// Les clics sur les onglets sont désormais gérés via initViewSwitch(),
+// afin de s'assurer que les écouteurs ne sont attachés qu'une fois le DOM prêt.  
+// Les lignes ci‑dessous étaient redondantes et provoquaient des handlers
+// multiples ou l'absence d'activation en cas d'erreur supabase.  
+// document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
+// document.getElementById('view-list').onclick = () => setActiveView('list');
+// document.getElementById('view-cards').onclick = () => setActiveView('cards');
+// $('#view-timeline').onclick = () => setActiveView('timeline');
+// $('#view-list').onclick = () => setActiveView('list');
+// $('#view-cards').onclick = () => setActiveView('cards');
 
-console.log('✅ Onglets Liste et Cartes RÉACTIVÉS');
-
-$('#view-timeline').onclick = () => setActiveView('timeline');
-$('#view-list').onclick = () => setActiveView('list');
-$('#view-cards').onclick = () => setActiveView('cards');
+console.log('✅ Onglets Liste et Cartes RÉACTIVÉS via initViewSwitch');
 
 async function loadPublic() {
   const events = await fetchPublicEvents();
@@ -1202,54 +1424,77 @@ loadSiteConfig();
 
 
 
-$('#insc-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const prenom = fd.get('prenom')?.trim();
-  const nom = fd.get('nom')?.trim();
-  const email = fd.get('email')?.trim();
-  const telephone = fd.get('telephone')?.trim();
-  const heure_arrivee = fd.get('heure_arrivee')?.trim() || null;
-  const heure_depart = fd.get('heure_depart')?.trim() || null;
-  const commentaire = fd.get('commentaire')?.trim() || '';
-  const preparation_salle = !!fd.get('preparation_salle');
-  const partie_evenement = !!fd.get('partie_evenement');
-  const evenement_entier = !!fd.get('evenement_entier');
-  const event_id = Number(fd.get('event_id'));
-  
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const telOk = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(telephone);
-  const minOne = preparation_salle || partie_evenement || evenement_entier;
-  
-  if (!prenom || !nom || !emailOk || !telOk || !minOne) {
-    toast('⚠️ Vérifie les champs requis');
-    return;
-  }
-  
-  const { error } = await supabase.from('inscriptions').insert({
-    event_id,
-    prenom,
-    nom,
-    email,
-    telephone,
-    heure_arrivee,
-    heure_depart,
-    commentaire,
-    preparation_salle,
-    partie_evenement,
-    evenement_entier
-  });
-  
-  if (error) {
-    console.error(error);
-    toast('❌ Erreur lors de l\'inscription');
-    return;
-  }
-  
-  toast('✅ Inscription enregistrée !');
-  modal.closeAll();
-  e.target.reset();
-});
+// Removed inline inscription submit handler; replaced by setupInscriptionForm().
+
+/**
+ * Attach submit handler to the participant inscription form.  This function
+ * looks up the form by its id and wires a submit listener that validates
+ * inputs, inserts the record via Supabase, shows feedback and closes the modal.
+ * It stops propagation of the event to prevent duplicate listeners bound
+ * earlier in the code from firing and causing page reloads.
+ */
+function setupInscriptionForm() {
+  const form = document.getElementById('insc-form');
+  if (!form) return;
+  form.onsubmit = async function(e) {
+    // prevent default behaviour and stop other listeners
+    e.preventDefault();
+    if (typeof e.stopImmediatePropagation === 'function') {
+      e.stopImmediatePropagation();
+    }
+    const fd = new FormData(form);
+    const prenom = fd.get('prenom')?.trim();
+    const nom = fd.get('nom')?.trim();
+    const email = fd.get('email')?.trim();
+    const telephone = fd.get('telephone')?.trim();
+    const heure_arrivee = fd.get('heure_arrivee')?.trim() || null;
+    const heure_depart = fd.get('heure_depart')?.trim() || null;
+    const commentaire = fd.get('commentaire')?.trim() || '';
+    const preparation_salle = !!fd.get('preparation_salle');
+    const partie_evenement = !!fd.get('partie_evenement');
+    const evenement_entier = !!fd.get('evenement_entier');
+    const event_id = Number(fd.get('event_id'));
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const telOk = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(telephone);
+    const minOne = preparation_salle || partie_evenement || evenement_entier;
+
+    if (!prenom || !nom || !emailOk || !telOk || !minOne) {
+      toast('⚠️ Vérifie les champs requis');
+      return;
+    }
+
+    const { error } = await supabase.from('inscriptions').insert({
+      event_id,
+      prenom,
+      nom,
+      email,
+      telephone,
+      heure_arrivee,
+      heure_depart,
+      commentaire,
+      preparation_salle,
+      partie_evenement,
+      evenement_entier
+    });
+
+    if (error) {
+      console.error(error);
+      toast('❌ Erreur lors de l\'inscription');
+      return;
+    }
+    toast('✅ Inscription enregistrée !');
+    modal.closeAll();
+    form.reset();
+    // Refresh admin lists if currently in admin mode
+    if (isAdmin && typeof loadAdminInscriptions === 'function') {
+      loadAdminInscriptions();
+      if (typeof loadAdminVolunteers === 'function') {
+        loadAdminVolunteers();
+      }
+    }
+  };
+}
 
 
 function scheduleAutoArchive() {
