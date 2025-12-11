@@ -15,53 +15,13 @@ const toast = (msg) => {
 };
 
 let isAdmin = sessionStorage.getItem('isAdmin') === '1';
-// ✅ CORRECTIF - INIT ÉVÉNEMENTS AU DÉMARRAGE
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 DOM Chargé');
-
-  async function initPublic() {
-    try {
-      const { data: events } = await supabase
-        .from('events')
-        .select('*')
-        .eq('visible', true)
-        .eq('archived', false)
-        .order('date', { ascending: true });
-      
-      console.log('✅ ' + (events?.length || 0) + ' événements trouvés');
-      
-      if (events && events.length > 0) {
-        if (typeof renderTimeline !== 'undefined') renderTimeline(events);
-        if (typeof renderList !== 'undefined') renderList(events);
-        if (typeof renderCards !== 'undefined') renderCards(events);
-        if (typeof updateNextEvent !== 'undefined') updateNextEvent(events);
-      }
-    } catch (error) {
-      console.error('❌ Erreur:', error);
-    }
-  }
-
-  if (typeof loadSiteConfig !== 'undefined') await loadSiteConfig();
-  await initPublic();
-  
-  if (isAdmin && typeof mountAdmin !== 'undefined') {
-    adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
-    mountAdmin();
-  } else if (typeof unmountAdmin !== 'undefined') {
-    unmountAdmin();
-  }
-});
-
 let adminUser = null;
 let adminPermissions = {};
 
 // ✅ FORCE MODE CLAIR UNIQUEMENT
 (function initTheme() {
   document.documentElement.setAttribute('data-theme', 'light');
-  document.documentElement.style.setProperty('--bg-primary', '#ffffff');
-  document.documentElement.style.setProperty('--text-primary', '#000000');
 })();
-
 
 // MODALES
 const modal = {
@@ -82,73 +42,49 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
 
-// ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
-// ✅ SOLUTION FINALE - AFFICHE L'IMAGE EN CSS BACKGROUND
+// ✅ CHARGE CONFIG SITE
 async function loadSiteConfig() {
-  try {
-    const { data } = await supabase.from('site_config').select('*').limit(1).single();
-    if (!data) return;
+  const { data } = await supabase.from('site_config').select('*').limit(1).single();
+  if (data) {
+    const logoEmoji = document.getElementById('logo-emoji');
+    if (logoEmoji) {
+      if (data.logo_url) {
+        logoEmoji.style.display = 'none';
+      } else {
+        logoEmoji.style.display = 'inline';
+        logoEmoji.textContent = data.logo_emoji || '🤝';
+      }
+    }
     
-    // 1️⃣ NOM
     const brandName = document.querySelector('.brand-name');
     if (brandName) {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // 2️⃣ EMOJI - masquer si image
-    const logoEmoji = document.getElementById('logo-emoji');
-    if (logoEmoji) {
-      logoEmoji.style.display = data.logo_url ? 'none' : 'inline';
-      if (!data.logo_url) {
-        logoEmoji.textContent = data.logo_emoji || '🤝';
-      }
-    }
-    
-    // 3️⃣ IMAGE - EN CSS BACKGROUND (plus stable)
     if (data.logo_url) {
-      let headerLogo = document.getElementById('header-logo-bg');
-      if (!headerLogo) {
-        headerLogo = document.createElement('div');
-        headerLogo.id = 'header-logo-bg';
-        headerLogo.style.cssText = `
-          width: 90px;
-          height: 90px;
-          margin: 0 1.5em;
-          border-radius: 12px;
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
-          flex-shrink: 0;
-        `;
+      let headerImg = document.getElementById('header-logo-image');
+      if (!headerImg) {
+        headerImg = document.createElement('img');
+        headerImg.id = 'header-logo-image';
+        headerImg.style.cssText = 'max-width:90px;max-height:90px;margin:0 1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
         
-        if (logoEmoji?.parentNode) {
-          logoEmoji.parentNode.insertBefore(headerLogo, logoEmoji.nextSibling);
+        const logoEmoji = document.getElementById('logo-emoji');
+        if (logoEmoji && logoEmoji.parentNode) {
+          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
         }
       }
-      // ✅ UTILISER LE CSS BACKGROUND AVEC DATA URL
-      headerLogo.style.backgroundImage = `url('${data.logo_url}')`;
-      console.log('✅ Image affichée en CSS background');
+      headerImg.src = data.logo_url;
+      headerImg.alt = 'Logo';
     }
     
-    // 4️⃣ INTRO
     const introText = document.getElementById('intro-text');
     if (introText) {
       introText.textContent = data.intro_text || '';
     }
     
     document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
-  } catch (err) {
-    console.error('Erreur loadSiteConfig:', err);
   }
 }
-
-loadSiteConfig();
-console.log('✅ loadSiteConfig V2 - CSS BACKGROUND CHARGÉE');
-
-
-// Appelle la fonction maintenant
-loadSiteConfig();
-console.log('✅ loadSiteConfig CHARGÉE - Image persiste après Ctrl+F5');
 
 // ENREGISTRE VISITE
 async function trackPageView() {
@@ -638,63 +574,67 @@ async function adminDeleteUser(id) {
   loadAdminUsers();
 }
 
-document.getElementById('form-admin-user').onsubmit = async function(e) {
-  e.preventDefault();
-  
-  const id = document.getElementById('admin-user-id').value.trim();
-  const prenom = document.getElementById('admin-user-prenom').value.trim();
-  const nom = document.getElementById('admin-user-nom').value.trim();
-  const email = document.getElementById('admin-user-email').value.trim();
-  const role = document.getElementById('admin-user-role').value;
-  const password = document.getElementById('admin-user-pass').value;
-
-  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
-    module: tr.querySelector('td').innerText.trim().toLowerCase(),
-    can_view: tr.querySelector('.mod-view').checked,
-    can_edit: tr.querySelector('.mod-edit').checked
-  }));
-
-  let adminData = { prenom, nom, email, role };
-  if (password) adminData.password_hash = password;
-
-  try {
-    if (!id) {
-      const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
-      if (error) throw error;
-      
-      await supabase.from('admin_roles').upsert(
-        droits.map(d => ({
-          admin_id: created.id,
-          module: d.module,
-          can_view: d.can_view,
-          can_edit: d.can_edit,
-          can_delete: false
-        }))
-      );
-      toast('✅ Admin créé avec succès');
-    } else {
-      const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
-      if (updateError) throw updateError;
-      
-      await supabase.from('admin_roles').upsert(
-        droits.map(d => ({
-          admin_id: id,
-          module: d.module,
-          can_view: d.can_view,
-          can_edit: d.can_edit,
-          can_delete: false
-        }))
-      );
-      toast('✅ Admin modifié avec succès');
-    }
+// ✅ FORM-ADMIN-USER - VERSION CORRIGÉE
+const adminFormElement = document.getElementById('form-admin-user');
+if (adminFormElement) {
+  adminFormElement.onsubmit = async function(e) {
+    e.preventDefault();
     
-    modal.closeAll();
-    loadAdminUsers();
-  } catch (error) {
-    console.error(error);
-    toast('❌ Erreur : ' + error.message);
-  }
-};
+    const id = document.getElementById('admin-user-id').value.trim();
+    const prenom = document.getElementById('admin-user-prenom').value.trim();
+    const nom = document.getElementById('admin-user-nom').value.trim();
+    const email = document.getElementById('admin-user-email').value.trim();
+    const role = document.getElementById('admin-user-role').value;
+    const password = document.getElementById('admin-user-pass').value;
+
+    const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => ({
+      module: tr.querySelector('td').innerText.trim().toLowerCase(),
+      can_view: tr.querySelector('.mod-view').checked,
+      can_edit: tr.querySelector('.mod-edit').checked
+    }));
+
+    let adminData = { prenom, nom, email, role };
+    if (password) adminData.password_hash = password;
+
+    try {
+      if (!id) {
+        const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
+        if (error) throw error;
+        
+        await supabase.from('admin_roles').upsert(
+          droits.map(d => ({
+            admin_id: created.id,
+            module: d.module,
+            can_view: d.can_view,
+            can_edit: d.can_edit,
+            can_delete: false
+          }))
+        );
+        toast('✅ Admin créé avec succès');
+      } else {
+        const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
+        if (updateError) throw updateError;
+        
+        await supabase.from('admin_roles').upsert(
+          droits.map(d => ({
+            admin_id: id,
+            module: d.module,
+            can_view: d.can_view,
+            can_edit: d.can_edit,
+            can_delete: false
+          }))
+        );
+        toast('✅ Admin modifié avec succès');
+      }
+      
+      modal.closeAll();
+      loadAdminUsers();
+    } catch (error) {
+      console.error(error);
+      toast('❌ Erreur : ' + error.message);
+    }
+  };
+}
 
 async function loadAdminUsers() {
   if (!adminPermissions.admins?.view) {
@@ -747,7 +687,7 @@ function adminCreateUser() {
   modal.open('#modal-admin-user');
 }
 
-// ✅ ASSOCIATION - VERSION FINALE CORRIGÉE
+// ✅ ASSOCIATION
 async function initSiteConfig() {
   const { data: configs } = await supabase.from('site_config').select('id').limit(1);
   if (!configs || configs.length === 0) {
@@ -757,522 +697,235 @@ async function initSiteConfig() {
       association_description: 'Association locale de bénévolat',
       logo_url: null
     }]);
-    console.log('✅ Config initiale créée');
   }
 }
 initSiteConfig();
 
 async function loadAdminAssociation() {
   const host = $('#module-association');
-  
   const { data: config } = await supabase.from('site_config').select('*').limit(1).single();
-  
-  const logoDisplay = config?.logo_url ? `<img src="${config.logo_url}" alt="Logo" style="max-width:150px;height:auto;border-radius:8px;margin-bottom:1em;">` : '';
+  const logoDisplay = config?.logo_url ? `<img src="${config.logo_url}" alt="Logo" style="max-width:150px;height:auto;">` : '';
   
   host.innerHTML = `
     <div class="config-panel">
       <div class="config-section">
-        <h3>📋 Configuration de l'association</h3>
-        
+        <h3>Configuration de l'association</h3>
         <div class="config-group">
-          <label class="config-label">
-            <span class="label-title">🖼️ Logo de l'association</span>
-            <span class="label-desc">Upload une image (PNG, JPG, max 2MB)</span>
-            <input type="file" id="logo-upload" accept="image/png,image/jpeg" style="margin-top:0.5em;padding:0.5em;border:1px solid #ddd;border-radius:6px;width:100%;cursor:pointer;">
-            <div id="logo-preview" style="margin-top:1em;"></div>
-          </label>
+          <label>Nom: <input id="name-input" type="text" value="${config?.association_name || 'Ohlun\'Joie'}"></label>
         </div>
-
         <div class="config-group">
-          <label class="config-label">
-            <span class="label-title">📛 Nom de l'association</span>
-            <span class="label-desc">Ex: Ohlun'Joie, La Main Tendue, etc.</span>
-            <input id="name-input" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
-          </label>
+          <label>Intro: <textarea id="intro-input">${config?.intro_text || ''}</textarea></label>
         </div>
-
-        <div class="config-group">
-          <label class="config-label">
-            <span class="label-title">📝 Texte d'introduction (Site Public)</span>
-            <span class="label-desc">Affiché sur la page publique des événements</span>
-            <textarea id="intro-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
-          </label>
-        </div>
-
-        <div class="config-group">
-          <label class="config-label">
-            <span class="label-title">👥 Description pour les bénévoles</span>
-            <span class="label-desc">Texte encourageant pour les volontaires</span>
-            <textarea id="desc-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
-          </label>
-        </div>
-
         <div class="config-actions">
-          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">💾 Enregistrer les modifications</button>
-          <button class="btn btn-secondary" onclick="resetAssociationForm()">↺ Réinitialiser</button>
-        </div>
-      </div>
-
-      <div class="config-section info-section">
-        <h3>ℹ️ Aperçu Public</h3>
-        <div class="preview-box">
-          <div id="preview-logo" style="text-align:center;margin-bottom:1em;min-height:100px;display:flex;align-items:center;justify-content:center;">
-            ${logoDisplay ? logoDisplay : '<span style="font-size:3em;">🤝</span>'}
-          </div>
-          <div id="preview-name" style="font-size:1.3em;font-weight:bold;text-align:center;margin-bottom:0.5em;">${config?.association_name || 'Ohlun\'Joie'}</div>
-          <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Votre texte d\'introduction...'}</div>
+          <button class="btn btn-primary" onclick="saveAssociationConfig()">Enregistrer</button>
         </div>
       </div>
     </div>
   `;
-
-  // GESTION UPLOAD IMAGE
-  const logoUpload = $('#logo-upload');
-  if (logoUpload) {
-    logoUpload.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      if (file.size > 2 * 1024 * 1024) {
-        toast('❌ Image trop grande (max 2MB)');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target.result;
-        
-        // Afficher l'aperçu
-        const previewDiv = document.getElementById('logo-preview');
-        previewDiv.innerHTML = `
-          <div style="border:2px dashed #0d7377;border-radius:8px;padding:1em;text-align:center;">
-            <img src="${base64}" alt="Preview" style="max-width:100%;max-height:150px;border-radius:6px;">
-            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">✅ Image sélectionnée</p>
-          </div>
-        `;
-        
-        // Mettre à jour aussi l'aperçu public
-        const previewLogo = document.getElementById('preview-logo');
-        if (previewLogo) {
-          previewLogo.innerHTML = `<img src="${base64}" alt="Logo Preview" style="max-width:150px;height:auto;border-radius:8px;">`;
-        }
-        
-        // Stocker en base64 dans un attribut data
-        logoUpload.dataset.imageBase64 = base64;
-        toast('✅ Image uploadée (aperçu mis à jour)');
-      };
-      reader.readAsDataURL(file);
-    });
-  }
 }
 
-// ✅ SAUVEGARDER LA CONFIGURATION - VERSION FINALE AVEC AUTO-RELOAD
 async function saveAssociationConfig() {
-  console.log('🔄 Sauvegarde en cours...');
-  
   const nameInput = document.getElementById('name-input');
   const introInput = document.getElementById('intro-input');
-  const descInput = document.getElementById('desc-input');
-  const logoUpload = document.getElementById('logo-upload');
-  
-  if (!nameInput || !introInput || !descInput) {
-    toast('⚠️ Formulaire non trouvé');
-    return;
-  }
   
   const name = nameInput.value?.trim();
   const intro = introInput.value?.trim();
-  const desc = descInput.value?.trim();
-  const logoBase64 = logoUpload?.dataset.imageBase64 || null;
-  
-  if (!name) {
-    toast('⚠️ Le nom est requis');
-    return;
-  }
   
   const { data: configs } = await supabase.from('site_config').select('id').limit(1);
   const config = configs && configs.length > 0 ? configs[0] : null;
   
-  const updateData = { 
-    association_name: name, 
-    intro_text: intro, 
-    association_description: desc
-  };
-  
-  if (logoBase64) {
-    updateData.logo_url = logoBase64;
-  }
+  const updateData = { association_name: name, intro_text: intro };
   
   try {
     if (config) {
-      const { error } = await supabase.from('site_config').update(updateData).eq('id', config.id);
-      if (error) throw error;
+      await supabase.from('site_config').update(updateData).eq('id', config.id);
     } else {
-      const { error } = await supabase.from('site_config').insert([updateData]);
-      if (error) throw error;
+      await supabase.from('site_config').insert([updateData]);
     }
     
     toast('✅ Configuration enregistrée !');
-    
-    // ✅ MET À JOUR LE HEADER IMMÉDIATEMENT (pas de reload)
     await loadSiteConfig();
-    
-    // ✅ RECHARGE LE FORMULAIRE ADMIN (pour voir l'image)
-    setTimeout(() => {
-      loadAdminAssociation();
-    }, 500);
-    
   } catch (err) {
-    console.error('❌ Erreur:', err);
     toast('❌ Erreur: ' + err.message);
   }
 }
 
-console.log('✅ saveAssociationConfig CORRIGÉE - SANS RELOAD');
-
-// EVENT STUBS
+// EVENTS
 function adminCreateEvent() {
   document.getElementById('form-create-event').reset();
-  const today = new Date().toISOString().split('T')[0];
-  document.querySelector('#form-create-event [name="date"]').value = today;
   modal.open('#modal-create-event');
 }
 
 function adminEditEvent(id) {
   supabase.from('events').select('*').eq('id', id).single().then(({ data }) => {
-    if (!data) return toast('Erreur chargement événement');
-    document.getElementById('modal-edit-event').hidden = false;
+    if (!data) return toast('Erreur');
     document.getElementById('edit-event-id').value = data.id;
     document.getElementById('edit-event-titre').value = data.titre || '';
     document.getElementById('edit-event-date').value = data.date || '';
-    document.getElementById('edit-event-heure').value = data.heure || '';
     document.getElementById('edit-event-lieu').value = data.lieu || '';
-    document.getElementById('edit-event-max').value = data.max_participants || 0;
-    document.getElementById('edit-event-description').value = data.description || '';
+    modal.open('#modal-edit-event');
   });
 }
 
 function adminDeleteEvent(id) {
-  if (!confirm("Supprimer cet événement ?")) return;
+  if (!confirm("Supprimer ?")) return;
   supabase.from('events').delete().eq('id', id).then(() => {
-    toast('✅ Événement supprimé');
+    toast('✅ Supprimé');
     loadAdminEvents();
   });
 }
 
-// EVENT FORM HANDLERS
-document.getElementById('form-edit-event').onsubmit = async function(e) {
-  e.preventDefault();
-  const id = document.getElementById('edit-event-id').value;
-  const titre = document.getElementById('edit-event-titre').value;
-  const date = document.getElementById('edit-event-date').value;
-  const heure = document.getElementById('edit-event-heure').value;
-  const lieu = document.getElementById('edit-event-lieu').value;
-  const max = Number(document.getElementById('edit-event-max').value);
-  const desc = document.getElementById('edit-event-description').value;
-  await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
-  toast('✅ Événement modifié');
-  document.getElementById('modal-edit-event').hidden = true;
-  loadAdminEvents();
-};
+// ✅ FORM-EDIT-EVENT - VERSION CORRIGÉE
+const editFormElement = document.getElementById('form-edit-event');
+if (editFormElement) {
+  editFormElement.onsubmit = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-event-id').value;
+    const titre = document.getElementById('edit-event-titre').value;
+    const date = document.getElementById('edit-event-date').value;
+    const lieu = document.getElementById('edit-event-lieu').value;
+    await supabase.from('events').update({ titre, date, lieu }).eq('id', id);
+    toast('✅ Modifié');
+    modal.closeAll();
+    loadAdminEvents();
+  };
+}
 
-document.getElementById('form-create-event').onsubmit = async function(e) {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  
-  const titre = fd.get('titre')?.trim();
-  const date = fd.get('date')?.trim();
-  const heure = fd.get('heure')?.trim() || null;
-  const lieu = fd.get('lieu')?.trim();
-  const max_participants = Number(fd.get('max_participants'));
-  const description = fd.get('description')?.trim() || '';
-  const visible = !!fd.get('visible');
-  
-  if (!titre || !date || !lieu || max_participants < 1) {
-    toast('⚠️ Veuillez remplir tous les champs obligatoires');
-    return;
-  }
-  
-  const { error } = await supabase.from('events').insert({
-    titre,
-    date,
-    heure,
-    lieu,
-    max_participants,
-    description,
-    visible,
-    archived: false
-  });
-  
-  if (error) {
-    console.error(error);
-    toast('❌ Erreur lors de la création');
-    return;
-  }
-  
-  toast('✅ Événement créé avec succès');
-  modal.closeAll();
-  e.target.reset();
-  loadAdminEvents();
-};
+// ✅ FORM-CREATE-EVENT - VERSION CORRIGÉE
+const createFormElement = document.getElementById('form-create-event');
+if (createFormElement) {
+  createFormElement.onsubmit = async function(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const titre = fd.get('titre');
+    const date = fd.get('date');
+    const lieu = fd.get('lieu');
+    const max_participants = Number(fd.get('max_participants'));
+    
+    if (!titre || !date || !lieu) {
+      toast('⚠️ Remplissez tous les champs');
+      return;
+    }
+    
+    const { error } = await supabase.from('events').insert({
+      titre, date, lieu, max_participants, visible: true, archived: false
+    });
+    
+    if (error) {
+      toast('❌ Erreur');
+      return;
+    }
+    
+    toast('✅ Créé');
+    modal.closeAll();
+    e.target.reset();
+    loadAdminEvents();
+  };
+}
 
-// PUBLIC SECTION
+// PUBLIC
 async function fetchPublicEvents() {
   const { data } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
   return data || [];
 }
 
-async function fetchInscriptionsForEvent(eventId) {
-  const { data } = await supabase.from('inscriptions').select('prenom, nom').eq('event_id', eventId).order('date_inscription', { ascending: false });
-  return data || [];
-}
-
 function openInscription(ev) {
-  $('#insc-event-title').textContent = `${ev.image || '📅'} ${ev.titre}`;
-  $('#insc-event-meta').textContent = `${ev.date} • ${ev.heure || ''} • ${ev.lieu}`;
   $('#insc-event-id').value = ev.id;
   modal.open('#modal-inscription');
 }
 
-function bindSubscribe(btn, ev) {
-  if (!btn) return;
-  btn.textContent = 'S\'inscrire';
-  btn.classList.add('btn', 'btn-primary');
-  btn.onclick = () => openInscription(ev);
-}
-
+// ✅ TIMELINE + CARTES FIXES
 function renderTimeline(events) {
   const root = $('#timeline-view');
+  if (!root) return;
   root.innerHTML = '';
-  events.forEach(async (ev) => {
-    const inscriptions = await fetchInscriptionsForEvent(ev.id);
-    const count = inscriptions.length;
-    const pct = Math.min(100, Math.round((count / Math.max(1, ev.max_participants)) * 100));
-    
+  events.forEach(ev => {
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
-      <div class="card-header">
-        <div>
-          <div class="card-title">${ev.image || '📅'} ${ev.titre}</div>
-          <div class="muted">${ev.date} • ${ev.heure || ''} • ${ev.lieu}</div>
-        </div>
-        <div class="card-actions"><button class="subscribe-btn"></button></div>
-      </div>
+      <h3>${ev.titre}</h3>
+      <p><strong>📅 ${ev.date || 'TBD'}</strong></p>
+      <p>📍 ${ev.lieu || ''}</p>
       <p>${ev.description || ''}</p>
-      <div class="progress"><span style="width:${pct}%"></span></div>
-      <div class="inscrit-count">${count}/${ev.max_participants} inscrits</div>
-      ${inscriptions.length > 0 ? `<div class="inscrit-list"><strong>Inscrits:</strong> ${inscriptions.map(i => i.prenom + ' ' + i.nom).join(', ')}</div>` : ''}`;
-    bindSubscribe(card.querySelector('.subscribe-btn'), ev);
+      <button class="btn btn-primary subscribe-btn">S'inscrire</button>
+    `;
+    card.querySelector('.subscribe-btn').onclick = () => openInscription(ev);
     root.appendChild(card);
   });
 }
 
 function renderList(events) {
   const root = $('#list-view');
+  if (!root) return;
   root.innerHTML = '';
-  const tableWrap = document.createElement('div');
-  tableWrap.className = 'table-wrap';
   const table = document.createElement('table');
-  table.className = 'table';
+  table.className = 'table-events';
   table.innerHTML = `
     <thead>
-      <tr><th>Date</th><th>Titre</th><th>Lieu</th><th>Places</th><th></th></tr>
+      <tr>
+        <th>Titre</th>
+        <th>Date</th>
+        <th>Lieu</th>
+        <th>Action</th>
+      </tr>
     </thead>
-    <tbody></tbody>`;
-  events.forEach(async (ev) => {
-    const inscriptions = await fetchInscriptionsForEvent(ev.id);
-    const count = inscriptions.length;
+    <tbody></tbody>
+  `;
+  
+  events.forEach(ev => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${ev.date} ${ev.heure || ''}</td>
       <td>${ev.titre}</td>
-      <td>${ev.lieu}</td>
-      <td>${count}/${ev.max_participants || ''}</td>
-      <td><button class="subscribe-btn"></button></td>`;
+      <td>${ev.date || 'TBD'}</td>
+      <td>${ev.lieu || ''}</td>
+      <td><button class="btn btn-primary btn-sm subscribe-btn">S'inscrire</button></td>
+    `;
+    tr.querySelector('.subscribe-btn').onclick = () => openInscription(ev);
     table.querySelector('tbody').appendChild(tr);
-    bindSubscribe(tr.querySelector('.subscribe-btn'), ev);
   });
-  tableWrap.appendChild(table);
-  root.appendChild(tableWrap);
-}
-
-function renderCards(events) {
-  const root = $('#cards-view');
-  root.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.className = 'cards-grid';
-  events.forEach(async (ev) => {
-    const inscriptions = await fetchInscriptionsForEvent(ev.id);
-    const count = inscriptions.length;
-    const pct = Math.min(100, Math.round((count / Math.max(1, ev.max_participants)) * 100));
-    
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="card-header">
-        <div>
-          <div class="card-title">${ev.image || '📅'} ${ev.titre}</div>
-          <div class="muted">${ev.date} • ${ev.heure || ''} • ${ev.lieu}</div>
-        </div>
-        <div class="card-actions"><button class="subscribe-btn"></button></div>
-      </div>
-      <p>${ev.description || ''}</p>
-      <div class="progress"><span style="width:${pct}%"></span></div>
-      <div class="inscrit-count">${count}/${ev.max_participants} inscrits</div>`;
-    bindSubscribe(card.querySelector('.subscribe-btn'), ev);
-    grid.appendChild(card);
-  });
-  root.appendChild(grid);
-}
-
-// ✅ RÉACTIVE LES ONGLETS LISTE ET CARTES
-function setActiveView(which) {
-  console.log('🔄 Changement vers:', which);
   
-  $$('.view').forEach(v => v.classList.remove('active'));
-  const targetView = $('#' + which + '-view');
-  if (targetView) targetView.classList.add('active');
-  
-  $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
-  const targetTab = $('#view-' + which);
-  if (targetTab) targetTab.classList.add('active');
+  root.appendChild(table);
 }
-
-// Assigne les clics sur les onglets
-document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
-document.getElementById('view-list').onclick = () => setActiveView('list');
-document.getElementById('view-cards').onclick = () => setActiveView('cards');
-
-console.log('✅ Onglets Liste et Cartes RÉACTIVÉS');
-
-$('#view-timeline').onclick = () => setActiveView('timeline');
-$('#view-list').onclick = () => setActiveView('list');
-$('#view-cards').onclick = () => setActiveView('cards');
 
 async function loadPublic() {
   const events = await fetchPublicEvents();
   renderTimeline(events);
   renderList(events);
-  renderCards(events);
-  updateNextEvent(events);
 }
 
-function updateNextEvent(events) {
-  const badge = $('#next-event-badge');
-  if (!events.length) {
-    badge.textContent = '';
-    return;
-  }
-  const firstEvent = events[0];
-  const eventDate = new Date(firstEvent.date + 'T' + (firstEvent.heure || '00:00'));
-  const today = new Date();
-  const diffDays = Math.max(0, Math.ceil((eventDate - today) / 86400000));
-  badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
-}
-
-// ✅ AFFICHE LES ÉVÉNEMENTS AU DÉMARRAGE
-async function loadPublicAsync() {
-  const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
-  if (events && events.length > 0) {
-    renderTimeline(events);
-    renderList(events);
-    renderCards(events);
-    updateNextEvent(events);
-  }
-}
-// Attendre que le DOM soit prêt avant de charger
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ DOM chargé');
-  loadPublic();
-  loadSiteConfig();
-  
-  if (isAdmin) {
-    adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
-    mountAdmin();
-  } else {
-    unmountAdmin();
-  }
-});
-
-loadPublicAsync();
+loadPublic();
 loadSiteConfig();
-
-
-
-
 
 $('#insc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
-  const prenom = fd.get('prenom')?.trim();
-  const nom = fd.get('nom')?.trim();
-  const email = fd.get('email')?.trim();
-  const telephone = fd.get('telephone')?.trim();
-  const heure_arrivee = fd.get('heure_arrivee')?.trim() || null;
-  const heure_depart = fd.get('heure_depart')?.trim() || null;
-  const commentaire = fd.get('commentaire')?.trim() || '';
-  const preparation_salle = !!fd.get('preparation_salle');
-  const partie_evenement = !!fd.get('partie_evenement');
-  const evenement_entier = !!fd.get('evenement_entier');
-  const event_id = Number(fd.get('event_id'));
+  const eventId = Number(fd.get('eventid') || fd.get('event_id'));
   
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const telOk = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(telephone);
-  const minOne = preparation_salle || partie_evenement || evenement_entier;
-  
-  if (!prenom || !nom || !emailOk || !telOk || !minOne) {
-    toast('⚠️ Vérifie les champs requis');
+  if (!eventId) {
+    toast('❌ Erreur : Événement non sélectionné');
     return;
   }
   
   const { error } = await supabase.from('inscriptions').insert({
-    event_id,
-    prenom,
-    nom,
-    email,
-    telephone,
-    heure_arrivee,
-    heure_depart,
-    commentaire,
-    preparation_salle,
-    partie_evenement,
-    evenement_entier
+    event_id: eventId,
+    prenom: fd.get('prenom'),
+    nom: fd.get('nom'),
+    email: fd.get('email'),
+    telephone: fd.get('telephone')
   });
   
   if (error) {
-    console.error(error);
-    toast('❌ Erreur lors de l\'inscription');
+    toast('❌ Erreur');
     return;
   }
   
-  toast('✅ Inscription enregistrée !');
+  toast('✅ Inscrit!');
   modal.closeAll();
   e.target.reset();
+  loadPublic();
 });
 
-
-function scheduleAutoArchive() {
-  setInterval(async () => {
-    const now = new Date();
-    if (now.getHours() === 0 && now.getMinutes() === 0) {
-      const today = now.toISOString().split('T')[0];
-      const lastRun = localStorage.getItem('lastArchiveRun');
-      if (lastRun !== today) {
-        await supabase.from('events')
-          .update({ archived: true })
-          .lt('date', today)
-          .eq('archived', false);
-        localStorage.setItem('lastArchiveRun', today);
-      }
-    }
-  }, 60000);
-}
-scheduleAutoArchive();
-
-// INIT
 if (isAdmin) {
-  adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
   mountAdmin();
 } else {
   unmountAdmin();
