@@ -28,15 +28,42 @@ if (window.supabase && typeof window.supabase.createClient === 'function') {
    * ordering.  All methods return promises to mirror the real Supabase API.
    */
   const memory = {
+    // Pré-remplir quelques événements visibles pour la démonstration.
     events: [
       { id: 1, titre: 'Conférence citoyenne', date: '2025-12-05', heure: '18:30', lieu: 'Mairie', max_participants: 80, description: 'Échanges citoyens sur la vie locale et les projets de développement durable.', visible: true, archived: false },
       { id: 2, titre: 'Tournoi de badminton', date: '2025-11-26', heure: null, lieu: 'Gymnase municipal', max_participants: 24, description: '', visible: false, archived: false },
       { id: 3, titre: 'Atelier cuisine conviviale', date: '2025-11-15', heure: null, lieu: 'Salle des fêtes', max_participants: 20, description: '', visible: true, archived: false }
     ],
+    // Inscriptions des participants
     inscriptions: [],
-    contact_messages: []
+    // Messages envoyés via le formulaire de contact
+    contact_messages: [],
+    // Administrateurs du site avec un premier compte par défaut
+    admins: [
+      {
+        id: 1,
+        prenom: 'Maxime',
+        nom: 'Zinck',
+        email: 'zinck.maxime@gmail.com',
+        role: 'super_admin',
+        is_active: true,
+        last_login: new Date().toISOString()
+        ,
+        // Ajout d'un mot de passe pour le stub local afin de permettre la connexion hors‑ligne.
+        // Le champ password_hash est comparé en clair dans la logique de connexion locale.
+        password_hash: 'admin'
+      }
+    ],
+    // Droits par module pour chaque admin
+    admin_roles: []
   };
-  const idCounters = { events: memory.events.length + 1, inscriptions: 1, contact_messages: 1 };
+  const idCounters = {
+    events: memory.events.length + 1,
+    inscriptions: 1,
+    contact_messages: 1,
+    admins: memory.admins.length + 1,
+    admin_roles: 1
+  };
   supabase = {
     from(table) {
       // Query context holds table name and filters to apply
@@ -105,6 +132,33 @@ if (window.supabase && typeof window.supabase.createClient === 'function') {
           const rows = memory[table];
           memory[table] = rows.filter(row => !query.filters.every(([f, v]) => row[f] === v));
           return { error: null };
+        },
+        // Ajout de la méthode upsert pour prendre en charge l'insertion ou la mise à jour d'enregistrements
+        // dans le stub Supabase.  Cette méthode est nécessaire pour gérer les droits admin (admin_roles)
+        // et pour se rapprocher du comportement de Supabase en production.
+        async upsert(values) {
+          if (!memory[table]) memory[table] = [];
+          const records = Array.isArray(values) ? values : [values];
+          for (const rec of records) {
+            let idx = -1;
+            // Pour la table admin_roles, on identifie une entrée par la paire (admin_id, module).
+            if (table === 'admin_roles' && rec.admin_id && rec.module) {
+              idx = memory[table].findIndex(r => r.admin_id === rec.admin_id && r.module === rec.module);
+            } else if (rec.id) {
+              idx = memory[table].findIndex(r => r.id === rec.id);
+            }
+            if (idx >= 0) {
+              memory[table][idx] = { ...memory[table][idx], ...rec };
+            } else {
+              // Génération d'un ID si nécessaire
+              const idKey = rec.id || (idCounters[table] || 1);
+              if (!rec.id) {
+                idCounters[table] = (idCounters[table] || 1) + 1;
+              }
+              memory[table].push({ ...rec, id: idKey });
+            }
+          }
+          return { data: records, error: null };
         }
       };
       return stub;
@@ -1074,71 +1128,88 @@ async function adminDeleteUser(id) {
   loadAdminUsers();
 }
 
-document.getElementById('form-admin-user').onsubmit = async function(e) {
-  e.preventDefault();
-  
-  const id = document.getElementById('admin-user-id').value.trim();
-  const prenom = document.getElementById('admin-user-prenom').value.trim();
-  const nom = document.getElementById('admin-user-nom').value.trim();
-  const email = document.getElementById('admin-user-email').value.trim();
-  const role = document.getElementById('admin-user-role').value;
-  const password = document.getElementById('admin-user-pass').value;
-
-  // Extraire les droits par module en utilisant les attributs data-module plutôt
-  // que le texte du tableau (qui peut contenir des accents).  Cela évite
-  // l'incohérence entre "Événements" et le code interne "events".
-  const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => {
-    const viewEl = tr.querySelector('.mod-view');
-    const editEl = tr.querySelector('.mod-edit');
-    const module = viewEl?.dataset.module;
-    return {
-      module,
-      can_view: !!viewEl?.checked,
-      can_edit: !!editEl?.checked
-    };
-  });
-
-  let adminData = { prenom, nom, email, role };
-  if (password) adminData.password_hash = password;
-
-  try {
-    if (!id) {
-      const { data: created, error } = await supabase.from('admins').insert(adminData).select().single();
-      if (error) throw error;
-      
-      await supabase.from('admin_roles').upsert(
-        droits.map(d => ({
-          admin_id: created.id,
-          module: d.module,
-          can_view: d.can_view,
-          can_edit: d.can_edit,
-          can_delete: false
-        }))
-      );
-      toast('✅ Admin créé avec succès');
-    } else {
-      const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
-      if (updateError) throw updateError;
-      
-      await supabase.from('admin_roles').upsert(
-        droits.map(d => ({
-          admin_id: id,
-          module: d.module,
-          can_view: d.can_view,
-          can_edit: d.can_edit,
-          can_delete: false
-        }))
-      );
-      toast('✅ Admin modifié avec succès');
-    }
+// Attach handler for admin user form after DOM is loaded.
+function setupAdminUserForm() {
+  const form = document.getElementById('form-admin-user');
+  if (!form) return;
+  form.onsubmit = async function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
     
-    modal.closeAll();
-    loadAdminUsers();
-  } catch (error) {
-    console.error(error);
-    toast('❌ Erreur : ' + error.message);
-  }
-};
+    const id = document.getElementById('admin-user-id').value.trim();
+    const prenom = document.getElementById('admin-user-prenom').value.trim();
+    const nom = document.getElementById('admin-user-nom').value.trim();
+    const email = document.getElementById('admin-user-email').value.trim();
+    const role = document.getElementById('admin-user-role').value;
+    const password = document.getElementById('admin-user-pass').value;
+
+    // Collecte des droits à partir des attributs data-module
+    const droits = Array.from(document.querySelectorAll('.roles-matrix tbody tr')).map(tr => {
+      const viewEl = tr.querySelector('.mod-view');
+      const editEl = tr.querySelector('.mod-edit');
+      const module = viewEl?.dataset.module;
+      return {
+        module,
+        can_view: !!viewEl?.checked,
+        can_edit: !!editEl?.checked
+      };
+    });
+
+    let adminData = { prenom, nom, email, role };
+    if (password) adminData.password_hash = password;
+
+    try {
+      // Pour la création d'un nouvel admin, un mot de passe est requis car la colonne
+      // password_hash ne tolère pas la valeur NULL.  On affiche une erreur si vide.
+      if (!id && !password) {
+        toast('❌ Veuillez saisir un mot de passe pour ce nouvel administrateur');
+        return;
+      }
+      if (!id) {
+        // Création d'un nouvel administrateur
+        const { error } = await supabase.from('admins').insert(adminData);
+        if (error) throw error;
+        // Récupérer la dernière entrée insérée pour obtenir l'ID
+        const { data: rows } = await supabase.from('admins').select().order('id', { ascending: false }).limit(1);
+        const created = rows && rows.length ? rows[0] : null;
+        const newId = created?.id;
+        await supabase.from('admin_roles').upsert(
+          droits.map(d => ({
+            admin_id: newId,
+            module: d.module,
+            can_view: d.can_view,
+            can_edit: d.can_edit,
+            can_delete: false
+          }))
+        );
+        toast('✅ Admin créé avec succès');
+      } else {
+        // Mise à jour d'un administrateur existant
+        const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
+        if (updateError) throw updateError;
+        await supabase.from('admin_roles').upsert(
+          droits.map(d => ({
+            admin_id: id,
+            module: d.module,
+            can_view: d.can_view,
+            can_edit: d.can_edit,
+            can_delete: false
+          }))
+        );
+        toast('✅ Admin modifié avec succès');
+      }
+      
+      modal.closeAll();
+      loadAdminUsers();
+    } catch (error) {
+      console.error(error);
+      toast('❌ Erreur : ' + error.message);
+    }
+  };
+}
+// Bind the admin user form handler once DOM is ready and immediately in case the element already exists
+document.addEventListener('DOMContentLoaded', setupAdminUserForm);
+setupAdminUserForm();
 
 async function loadAdminUsers() {
   if (!adminPermissions.admins?.view) {
