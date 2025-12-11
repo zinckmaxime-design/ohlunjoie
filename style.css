@@ -2461,6 +2461,39 @@ footer {
     font-size: var(--font-size-lg);
     gap: var(--space-4);
   }
+  /* Mobile-friendly admin tables: convert rows into blocks */
+  .admin-events-table thead,
+  .insc-table-admin thead,
+  .volunteers-table-admin thead {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+  }
+  .admin-events-table tr,
+  .insc-table-admin tr,
+  .volunteers-table-admin tr {
+    display: block;
+    margin: 0 0 var(--space-8) 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-8);
+    background: var(--color-surface);
+  }
+  .admin-events-table td,
+  .insc-table-admin td,
+  .volunteers-table-admin td {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-4) 0;
+    text-align: left;
+  }
+  .admin-events-table td::before,
+  .insc-table-admin td::before,
+  .volunteers-table-admin td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: var(--space-8);
+  }
 }
 
 footer a {
