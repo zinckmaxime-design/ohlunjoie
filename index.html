@@ -46,18 +46,28 @@
     <div class="container">
       Développé avec ❤️ par <strong>Zinck Maxime</strong> — 
       <a href="https://www.linkedin.com/in/zinck-maxime-88302b207" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <!-- Bouton de contact placé juste au-dessus du footer -->
+      <button id="contact-button" class="btn btn-secondary" style="margin-bottom:1em;">Nous contacter</button>
       <hr style="margin:1.5em 0;">
-      <section id="contact-section">
-        <h3>Nous contacter</h3>
-        <form id="contact-form" class="contact-form">
-          <label>Nom*<input type="text" name="nom" required></label>
-          <label>Email*<input type="email" name="email" required></label>
-          <label class="full-width">Message<textarea name="message" rows="3" required></textarea></label>
-          <button type="submit" class="btn btn-primary">Envoyer</button>
-        </form>
-      </section>
+      <!-- La section de contact a été déplacée dans une modale pour ne pas alourdir le pied de page -->
     </div>
   </footer>
+
+  <!-- MODALE NOUS CONTACTER -->
+  <div id="modal-contact" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+    <div class="modal-card modal-card-small">
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+      <h3 id="contact-modal-title">Nous contacter</h3>
+      <form id="contact-form" class="form-grid">
+        <label>Nom*<input name="nom" required></label>
+        <label>Prénom*<input name="prenom" required></label>
+        <label>Email*<input name="email" type="email" required></label>
+        <label>Téléphone*<input name="telephone" required></label>
+        <label class="full-width">Message<textarea name="message" rows="3" required></textarea></label>
+        <button type="submit" class="btn btn-primary full-width">Envoyer</button>
+      </form>
+    </div>
+  </div>
 
   <div id="modal-backdrop" class="modal-backdrop" hidden></div>
 
@@ -311,7 +321,7 @@
             <option value="super_admin">Super Admin</option>
           </select>
         </label>
-        <label><span>Mot de passe</span><input id="admin-user-pass" required type="password"></label>
+        <label><span>Mot de passe</span><input id="admin-user-pass" type="password"></label>
       </div>
       <div class="roles-matrix">
         <div class="roles-matrix-title"><b>Droits par onglet</b></div>
