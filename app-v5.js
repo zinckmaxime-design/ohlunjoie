@@ -1,4 +1,4 @@
-// OHLUN'JOIE V5 - APP COMPLÈTE + BACKOFFICE 6 MODULES - VERSION FINALE CORRIGÉE
+// OHLUN'JOIE V5 - APP COMPLÃˆTE + BACKOFFICE 6 MODULES - VERSION FINALE CORRIGÃ‰E
 // =====================================================
 
 const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
@@ -15,97 +15,27 @@ const toast = (msg) => {
 };
 
 let isAdmin = sessionStorage.getItem('isAdmin') === '1';
-// ✅ CORRECTIF - INIT ÉVÉNEMENTS AU DÉMARRAGE
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 DOM Chargé');
-
-  async function initPublic() {
-    try {
-      const { data: events } = await supabase
-        .from('events')
-        .select('*')
-        .eq('visible', true)
-        .eq('archived', false)
-        .order('date', { ascending: true });
-      
-      console.log('✅ ' + (events?.length || 0) + ' événements trouvés');
-      
-      if (events && events.length > 0) {
-        if (typeof renderTimeline !== 'undefined') renderTimeline(events);
-        if (typeof renderList !== 'undefined') renderList(events);
-        if (typeof renderCards !== 'undefined') renderCards(events);
-        if (typeof updateNextEvent !== 'undefined') updateNextEvent(events);
-      }
-    } catch (error) {
-      console.error('❌ Erreur:', error);
-    }
-  }
-
-  if (typeof loadSiteConfig !== 'undefined') await loadSiteConfig();
-  await initPublic();
-  
-  if (isAdmin && typeof mountAdmin !== 'undefined') {
-    adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
-    mountAdmin();
-  } else if (typeof unmountAdmin !== 'undefined') {
-    unmountAdmin();
-  }
-});
-
 let adminUser = null;
 let adminPermissions = {};
 
-// ✅ INIT THEME - Auto jour/nuit 19h-8h
+// THEME: Auto 19h-8h + manuel
 (function initTheme() {
   function detectTheme() {
-    // Vérifier si l'utilisateur a un préférence sauvegardée
     const saved = localStorage.getItem('theme');
-    if (saved && saved !== 'auto') return saved;
-    
-    // Auto mode: détectez l'heure
+    if (saved) return saved;
     const hour = new Date().getHours();
-    const isDarkHour = (hour >= 19 || hour < 8); // Dark de 19h à 8h
-    
-    return isDarkHour ? 'dark' : 'light';
+    return (hour >= 19 || hour < 8) ? 'dark' : 'light';
   }
-  
   const theme = detectTheme();
-  document.documentElement.setAttribute('data-theme', theme);
-  console.log('🌙 Thème auto:', theme, '(' + new Date().getHours() + 'h)');
-  
-  // Mettre à jour le bouton
-  const btn = document.getElementById('theme-toggle');
-  if (btn) {
-    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-    
-    btn.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const newTheme = current === 'dark' ? 'light' : 'dark';
-      
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
-      btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-      console.log('🌙 Thème changé:', newTheme);
-    });
-  }
-  
-  // Vérifier l'heure toutes les minutes pour AUTO-SWITCH si c'était en AUTO
-  setInterval(() => {
-    const autoTheme = detectTheme();
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    
-    if (autoTheme !== currentTheme) {
-      const saved = localStorage.getItem('theme');
-      if (!saved || saved === 'auto') {
-        // Si pas de préférence OR si "auto", on rechange
-        document.documentElement.setAttribute('data-theme', autoTheme);
-        if (btn) btn.textContent = autoTheme === 'dark' ? '☀️' : '🌙';
-        console.log('🌙 Auto-switch:', autoTheme);
-      }
-    }
-  }, 60000); // Tous les 60 secondes
+  document.documentElement.dataset.theme = theme;
+  $('#theme-toggle').textContent = theme === 'dark' ? 'â˜€ï¸' : 'ðŸŒ™';
+  $('#theme-toggle').onclick = () => {
+    const newTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = newTheme;
+    localStorage.setItem('theme', newTheme);
+    $('#theme-toggle').textContent = newTheme === 'dark' ? 'â˜€ï¸' : 'ðŸŒ™';
+  };
 })();
-
 
 // MODALES
 const modal = {
@@ -126,73 +56,53 @@ document.addEventListener('click', (e) => {
   if (e.target.id === 'modal-backdrop') modal.closeAll();
 });
 
-// ✅ CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
-// ✅ SOLUTION FINALE - AFFICHE L'IMAGE EN CSS BACKGROUND
+// âœ… CHARGE CONFIG SITE - VERSION UNIQUE ET FINALE (SANS EMOJI, AVEC IMAGE)
 async function loadSiteConfig() {
-  try {
-    const { data } = await supabase.from('site_config').select('*').limit(1).single();
-    if (!data) return;
+  const { data } = await supabase.from('site_config').select('*').limit(1).single();
+  if (data) {
+    // âœ… EMOJI - masquer si image existe
+    const logoEmoji = document.getElementById('logo-emoji');
+    if (logoEmoji) {
+      if (data.logo_url) {
+        logoEmoji.style.display = 'none';
+      } else {
+        logoEmoji.style.display = 'inline';
+        logoEmoji.textContent = data.logo_emoji || 'ðŸ¤';
+      }
+    }
     
-    // 1️⃣ NOM
+    // âœ… NOM
     const brandName = document.querySelector('.brand-name');
     if (brandName) {
       brandName.textContent = data.association_name || 'Ohlun\'Joie';
     }
     
-    // 2️⃣ EMOJI - masquer si image
-    const logoEmoji = document.getElementById('logo-emoji');
-    if (logoEmoji) {
-      logoEmoji.style.display = data.logo_url ? 'none' : 'inline';
-      if (!data.logo_url) {
-        logoEmoji.textContent = data.logo_emoji || '🤝';
-      }
-    }
-    
-    // 3️⃣ IMAGE - EN CSS BACKGROUND (plus stable)
+    // âœ… IMAGE
     if (data.logo_url) {
-      let headerLogo = document.getElementById('header-logo-bg');
-      if (!headerLogo) {
-        headerLogo = document.createElement('div');
-        headerLogo.id = 'header-logo-bg';
-        headerLogo.style.cssText = `
-          width: 90px;
-          height: 90px;
-          margin: 0 1.5em;
-          border-radius: 12px;
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
-          flex-shrink: 0;
-        `;
+      let headerImg = document.getElementById('header-logo-image');
+      if (!headerImg) {
+        headerImg = document.createElement('img');
+        headerImg.id = 'header-logo-image';
+        headerImg.style.cssText = 'max-width:90px;max-height:90px;margin:0 1.5em;border-radius:12px;object-fit:contain;vertical-align:middle;';
         
-        if (logoEmoji?.parentNode) {
-          logoEmoji.parentNode.insertBefore(headerLogo, logoEmoji.nextSibling);
+        const logoEmoji = document.getElementById('logo-emoji');
+        if (logoEmoji && logoEmoji.parentNode) {
+          logoEmoji.parentNode.insertBefore(headerImg, logoEmoji.nextSibling);
         }
       }
-      // ✅ UTILISER LE CSS BACKGROUND AVEC DATA URL
-      headerLogo.style.backgroundImage = `url('${data.logo_url}')`;
-      console.log('✅ Image affichée en CSS background');
+      headerImg.src = data.logo_url;
+      headerImg.alt = 'Logo';
     }
     
-    // 4️⃣ INTRO
+    // âœ… INTRO
     const introText = document.getElementById('intro-text');
     if (introText) {
       introText.textContent = data.intro_text || '';
     }
     
-    document.title = (data.association_name || 'Ohlun\'Joie') + ' — Événements';
-  } catch (err) {
-    console.error('Erreur loadSiteConfig:', err);
+    document.title = (data.association_name || 'Ohlun\'Joie') + ' â€” Ã‰vÃ©nements';
   }
 }
-
-loadSiteConfig();
-console.log('✅ loadSiteConfig V2 - CSS BACKGROUND CHARGÉE');
-
-
-// Appelle la fonction maintenant
-loadSiteConfig();
-console.log('✅ loadSiteConfig CHARGÉE - Image persiste après Ctrl+F5');
 
 // ENREGISTRE VISITE
 async function trackPageView() {
@@ -232,9 +142,9 @@ $('#admin-form').addEventListener('submit', async (e) => {
     $('#admin-email').value = '';
     $('#admin-password').value = '';
     mountAdmin();
-    toast('✅ Connecté');
+    toast('âœ… ConnectÃ©');
   } else {
-    toast('❌ Identifiants invalides');
+    toast('âŒ Identifiants invalides');
   }
 });
 
@@ -257,15 +167,15 @@ function mountAdmin() {
   host.innerHTML = `
     <div class="admin-header">
       <h2>Tableau de Bord Administration</h2>
-      <button id="admin-logout" class="btn btn-danger">Déconnexion</button>
+      <button id="admin-logout" class="btn btn-danger">DÃ©connexion</button>
     </div>
     <div class="admin-tabs">
-      <button class="admin-tab active" data-module="dashboard">📊 Dashboard</button>
-      <button class="admin-tab" data-module="events">📅 Événements</button>
-      <button class="admin-tab" data-module="inscriptions">📝 Inscriptions</button>
-      <button class="admin-tab" data-module="volunteers">👥 Bénévoles</button>
-      <button class="admin-tab" data-module="admins">👨‍💼 Admins</button>
-      <button class="admin-tab" data-module="association">⚙️ Association</button>
+      <button class="admin-tab active" data-module="dashboard">ðŸ“Š Dashboard</button>
+      <button class="admin-tab" data-module="events">ðŸ“… Ã‰vÃ©nements</button>
+      <button class="admin-tab" data-module="inscriptions">ðŸ“ Inscriptions</button>
+      <button class="admin-tab" data-module="volunteers">ðŸ‘¥ BÃ©nÃ©voles</button>
+      <button class="admin-tab" data-module="admins">ðŸ‘¨â€ðŸ’¼ Admins</button>
+      <button class="admin-tab" data-module="association">âš™ï¸ Association</button>
     </div>
     <div class="admin-content">
       <div class="admin-module active" id="module-dashboard"></div>
@@ -283,7 +193,7 @@ function mountAdmin() {
     } else {
       btn.style.opacity = '0.5';
       btn.disabled = true;
-      btn.title = 'Accès refusé';
+      btn.title = 'AccÃ¨s refusÃ©';
     }
   });
   
@@ -339,7 +249,7 @@ async function loadAdminDashboard() {
         <div class="kpi-value">${inscRes.count || 0}</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Événements Actifs</div>
+        <div class="kpi-label">Ã‰vÃ©nements Actifs</div>
         <div class="kpi-value">${eventsRes.count || 0}</div>
       </div>
       <div class="kpi-card">
@@ -355,24 +265,24 @@ async function loadAdminDashboard() {
         <div class="kpi-value">${pageViewsRes.count || 0}</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Dernière Visite</div>
+        <div class="kpi-label">DerniÃ¨re Visite</div>
         <div class="kpi-value">Il y a 2h</div>
       </div>
     </div>
     <div class="chart-placeholder">
-      📊 Graphiques des visites (intégration future)
+      ðŸ“Š Graphiques des visites (intÃ©gration future)
     </div>
   `;
 }
 
-// ÉVÉNEMENTS
+// Ã‰VÃ‰NEMENTS
 async function loadAdminEvents() {
   const host = $('#module-events');
-  host.innerHTML = '<p>Chargement des événements...</p>';
+  host.innerHTML = '<p>Chargement des Ã©vÃ©nements...</p>';
   
   const { data: events } = await supabase.from('events').select('*').order('date', { ascending: false });
   
-  let html = `<button class="btn btn-primary" onclick="adminCreateEvent()">+ Nouvel événement</button>
+  let html = `<button class="btn btn-primary" onclick="adminCreateEvent()">+ Nouvel Ã©vÃ©nement</button>
     <div class="admin-events-table">
       <table>
         <thead>
@@ -388,10 +298,10 @@ async function loadAdminEvents() {
       <td>${ev.lieu}</td>
       <td>${ev.max_participants}</td>
       <td>${count || 0}</td>
-      <td>${ev.visible ? '✅' : '❌'}</td>
+      <td>${ev.visible ? 'âœ…' : 'âŒ'}</td>
       <td>
-        <button class="btn-small" onclick="adminEditEvent(${ev.id})">✏️ Edit</button>
-        <button class="btn-small btn-danger" onclick="adminDeleteEvent(${ev.id})">🗑️ Del</button>
+        <button class="btn-small" onclick="adminEditEvent(${ev.id})">âœï¸ Edit</button>
+        <button class="btn-small btn-danger" onclick="adminDeleteEvent(${ev.id})">ðŸ—‘ï¸ Del</button>
       </td>
     </tr>`;
   }
@@ -408,7 +318,7 @@ async function loadAdminInscriptions() {
   const { data: events } = await supabase.from('events').select('id, titre').order('date', { ascending: false });
   
   let html = `<select id="event-filter" onchange="filterInscriptions()">
-    <option value="">-- Tous les événements --</option>`;
+    <option value="">-- Tous les Ã©vÃ©nements --</option>`;
   
   events.forEach(e => html += `<option value="${e.id}">${e.titre}</option>`);
   html += `</select>
@@ -443,17 +353,17 @@ async function filterInscriptions() {
   if (selectedEventData) {
     html += `
       <div class="event-detail-admin">
-        <div class="event-detail-title">${selectedEventData.image || '📅'} <strong>${selectedEventData.titre}</strong></div>
+        <div class="event-detail-title">${selectedEventData.image || 'ðŸ“…'} <strong>${selectedEventData.titre}</strong></div>
         <div class="event-detail-meta">
           ${selectedEventData.date || ''} 
-          ${selectedEventData.heure ? '• ' + selectedEventData.heure : ''} 
-          ${selectedEventData.lieu ? '• ' + selectedEventData.lieu : ''}
+          ${selectedEventData.heure ? 'â€¢ ' + selectedEventData.heure : ''} 
+          ${selectedEventData.lieu ? 'â€¢ ' + selectedEventData.lieu : ''}
         </div>
         <div class="event-detail-desc">${selectedEventData.description || ''}</div>
         <div class="event-detail-totals">
-          <b>Préparation&nbsp;:</b> ${countPrep} &nbsp;|&nbsp; 
-          <b>Soirée entière&nbsp;:</b> ${countEntier} &nbsp;|&nbsp; 
-          <b>Partie de la soirée&nbsp;:</b> ${countPartie}
+          <b>PrÃ©paration&nbsp;:</b> ${countPrep} &nbsp;|&nbsp; 
+          <b>SoirÃ©e entiÃ¨re&nbsp;:</b> ${countEntier} &nbsp;|&nbsp; 
+          <b>Partie de la soirÃ©e&nbsp;:</b> ${countPartie}
         </div>
       </div>
     `;
@@ -463,9 +373,9 @@ async function filterInscriptions() {
     <table class="insc-table-admin">
       <thead>
         <tr>
-          <th data-sort="heure_arrivee">ARRIVÉE</th>
-          <th data-sort="heure_depart">DÉPART</th>
-          <th data-sort="prenom">PRÉNOM</th>
+          <th data-sort="heure_arrivee">ARRIVÃ‰E</th>
+          <th data-sort="heure_depart">DÃ‰PART</th>
+          <th data-sort="prenom">PRÃ‰NOM</th>
           <th data-sort="nom">NOM</th>
           <th data-sort="participation">PARTICIPATIONS</th>
           <th data-sort="commentaire">COMMENTAIRE</th>
@@ -476,12 +386,12 @@ async function filterInscriptions() {
   `;
   inscs.forEach((i, idx) => {
     const parts = [];
-    if (i.preparation_salle) parts.push('Prépa');
+    if (i.preparation_salle) parts.push('PrÃ©pa');
     if (i.partie_evenement) parts.push('Partie');
     if (i.evenement_entier) parts.push('Entier');
     const autres = [];
     if (i.email) autres.push('Email&nbsp;:&nbsp;' + i.email);
-    if (i.telephone) autres.push('Tél&nbsp;:&nbsp;' + i.telephone);
+    if (i.telephone) autres.push('TÃ©l&nbsp;:&nbsp;' + i.telephone);
     
     html += `<tr>
       <td>${i.heure_arrivee || '-'}</td>
@@ -495,9 +405,9 @@ async function filterInscriptions() {
     <tr class="insc-details-row" style="display:none;">
       <td colspan="7">
         <div class="details-panel">
-          <strong>Heure arrivée :</strong> ${i.heure_arrivee || '-'}<br>
-          <strong>Heure départ :</strong> ${i.heure_depart || '-'}<br>
-          <strong>Prénom :</strong> ${i.prenom}<br>
+          <strong>Heure arrivÃ©e :</strong> ${i.heure_arrivee || '-'}<br>
+          <strong>Heure dÃ©part :</strong> ${i.heure_depart || '-'}<br>
+          <strong>PrÃ©nom :</strong> ${i.prenom}<br>
           <strong>Nom :</strong> ${i.nom}<br>
           <strong>Participations :</strong> ${parts.join(', ') || '-'}<br>
           ${autres.length > 0 ? '<hr><b>Autres infos :</b><br>' + autres.join('<br>') : ''}
@@ -520,17 +430,17 @@ async function filterInscriptions() {
   });
 }
 
-// BÉNÉVOLES
+// BÃ‰NÃ‰VOLES
 async function loadAdminVolunteers() {
   const host = $('#module-volunteers');
-  host.innerHTML = `<p>Chargement des bénévoles...</p>`;
+  host.innerHTML = `<p>Chargement des bÃ©nÃ©voles...</p>`;
 
   const thisYear = new Date().getFullYear();
   const years = [thisYear, thisYear + 1];
-  let selectHtml = `<label>Filtrer par année: 
+  let selectHtml = `<label>Filtrer par annÃ©e: 
     <select id="year-volunteers" style="margin-right:1em;">${years.map(y =>
       `<option value="${y}">${y}</option>`).join('')}</select>
-    <input id="search-volunteers" type="text" placeholder="Recherche prénom, nom, email..." style="padding:0.45em 1em;border-radius:8px;border:1.5px solid #ddd; margin-left:1em;width:260px;">
+    <input id="search-volunteers" type="text" placeholder="Recherche prÃ©nom, nom, email..." style="padding:0.45em 1em;border-radius:8px;border:1.5px solid #ddd; margin-left:1em;width:260px;">
   </label>`;
 
   host.innerHTML = selectHtml + `<div id="volunteers-list"></div>`;
@@ -582,13 +492,13 @@ async function loadAdminVolunteers() {
       <table class="volunteers-table-admin">
         <thead>
           <tr>
-            <th data-sort="prenom">Prénom</th>
+            <th data-sort="prenom">PrÃ©nom</th>
             <th data-sort="nom">Nom</th>
             <th data-sort="email">Email</th>
-            <th data-sort="prepa">Prépa</th>
+            <th data-sort="prepa">PrÃ©pa</th>
             <th data-sort="entier">Entier</th>
             <th data-sort="partie">Partie</th>
-            <th data-sort="presence">Présence (%)</th>
+            <th data-sort="presence">PrÃ©sence (%)</th>
             <th data-sort="participations">Nb participations</th>
           </tr>
         </thead>
@@ -663,7 +573,7 @@ async function openEditAdmin(adminData, droits) {
 
 async function adminEditUser(id) {
   const { data: admin } = await supabase.from('admins').select('*').eq('id', id).single();
-  if (!admin) return toast('❌ Admin introuvable');
+  if (!admin) return toast('âŒ Admin introuvable');
   
   const { data: droits } = await supabase.from('admin_roles').select('*').eq('admin_id', id);
   openEditAdmin(admin, droits.map(d => ({
@@ -674,11 +584,11 @@ async function adminEditUser(id) {
 }
 
 async function adminDeleteUser(id) {
-  if (!confirm("⚠️ Confirmer la suppression de cet administrateur ?")) return;
+  if (!confirm("âš ï¸ Confirmer la suppression de cet administrateur ?")) return;
   
   await supabase.from('admins').delete().eq('id', id);
   await supabase.from('admin_roles').delete().eq('admin_id', id);
-  toast('✅ Admin supprimé');
+  toast('âœ… Admin supprimÃ©');
   loadAdminUsers();
 }
 
@@ -715,7 +625,7 @@ document.getElementById('form-admin-user').onsubmit = async function(e) {
           can_delete: false
         }))
       );
-      toast('✅ Admin créé avec succès');
+      toast('âœ… Admin crÃ©Ã© avec succÃ¨s');
     } else {
       const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
       if (updateError) throw updateError;
@@ -729,20 +639,20 @@ document.getElementById('form-admin-user').onsubmit = async function(e) {
           can_delete: false
         }))
       );
-      toast('✅ Admin modifié avec succès');
+      toast('âœ… Admin modifiÃ© avec succÃ¨s');
     }
     
     modal.closeAll();
     loadAdminUsers();
   } catch (error) {
     console.error(error);
-    toast('❌ Erreur : ' + error.message);
+    toast('âŒ Erreur : ' + error.message);
   }
 };
 
 async function loadAdminUsers() {
   if (!adminPermissions.admins?.view) {
-    $('#module-admins').innerHTML = '<p>❌ Accès refusé</p>';
+    $('#module-admins').innerHTML = '<p>âŒ AccÃ¨s refusÃ©</p>';
     return;
   }
   
@@ -751,15 +661,15 @@ async function loadAdminUsers() {
   
   const { data: admins } = await supabase.from('admins').select('*').order('created_at');
   
-  let html = `<button class="btn btn-primary" onclick="adminCreateUser()">➕ Nouvel Admin</button>
+  let html = `<button class="btn btn-primary" onclick="adminCreateUser()">âž• Nouvel Admin</button>
     <table>
       <thead>
         <tr>
           <th>Nom</th>
           <th>Email</th>
-          <th>Rôle</th>
+          <th>RÃ´le</th>
           <th>Actif</th>
-          <th>Dernière Visite</th>
+          <th>DerniÃ¨re Visite</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -770,11 +680,11 @@ async function loadAdminUsers() {
       <td>${a.prenom} ${a.nom}</td>
       <td>${a.email}</td>
       <td>${a.role}</td>
-      <td>${a.is_active ? '✅' : '❌'}</td>
+      <td>${a.is_active ? 'âœ…' : 'âŒ'}</td>
       <td>${a.last_login ? new Date(a.last_login).toLocaleDateString('fr-FR') : '-'}</td>
       <td>
-        <button class="btn-small" onclick="adminEditUser('${a.id}')">✏️</button>
-        <button class="btn-small btn-danger" onclick="adminDeleteUser('${a.id}')">🗑️</button>
+        <button class="btn-small" onclick="adminEditUser('${a.id}')">âœï¸</button>
+        <button class="btn-small btn-danger" onclick="adminDeleteUser('${a.id}')">ðŸ—‘ï¸</button>
       </td>
     </tr>`;
   });
@@ -791,17 +701,17 @@ function adminCreateUser() {
   modal.open('#modal-admin-user');
 }
 
-// ✅ ASSOCIATION - VERSION FINALE CORRIGÉE
+// âœ… ASSOCIATION - VERSION FINALE CORRIGÃ‰E
 async function initSiteConfig() {
   const { data: configs } = await supabase.from('site_config').select('id').limit(1);
   if (!configs || configs.length === 0) {
     await supabase.from('site_config').insert([{
       association_name: 'Ohlun\'Joie',
-      intro_text: 'Notre association rassemble des bénévoles passionnés...',
-      association_description: 'Association locale de bénévolat',
+      intro_text: 'Notre association rassemble des bÃ©nÃ©voles passionnÃ©s...',
+      association_description: 'Association locale de bÃ©nÃ©volat',
       logo_url: null
     }]);
-    console.log('✅ Config initiale créée');
+    console.log('âœ… Config initiale crÃ©Ã©e');
   }
 }
 initSiteConfig();
@@ -816,11 +726,11 @@ async function loadAdminAssociation() {
   host.innerHTML = `
     <div class="config-panel">
       <div class="config-section">
-        <h3>📋 Configuration de l'association</h3>
+        <h3>ðŸ“‹ Configuration de l'association</h3>
         
         <div class="config-group">
           <label class="config-label">
-            <span class="label-title">🖼️ Logo de l'association</span>
+            <span class="label-title">ðŸ–¼ï¸ Logo de l'association</span>
             <span class="label-desc">Upload une image (PNG, JPG, max 2MB)</span>
             <input type="file" id="logo-upload" accept="image/png,image/jpeg" style="margin-top:0.5em;padding:0.5em;border:1px solid #ddd;border-radius:6px;width:100%;cursor:pointer;">
             <div id="logo-preview" style="margin-top:1em;"></div>
@@ -829,7 +739,7 @@ async function loadAdminAssociation() {
 
         <div class="config-group">
           <label class="config-label">
-            <span class="label-title">📛 Nom de l'association</span>
+            <span class="label-title">ðŸ“› Nom de l'association</span>
             <span class="label-desc">Ex: Ohlun'Joie, La Main Tendue, etc.</span>
             <input id="name-input" type="text" value="${config?.association_name || 'Ohlun\'Joie'}" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;">
           </label>
@@ -837,31 +747,31 @@ async function loadAdminAssociation() {
 
         <div class="config-group">
           <label class="config-label">
-            <span class="label-title">📝 Texte d'introduction (Site Public)</span>
-            <span class="label-desc">Affiché sur la page publique des événements</span>
+            <span class="label-title">ðŸ“ Texte d'introduction (Site Public)</span>
+            <span class="label-desc">AffichÃ© sur la page publique des Ã©vÃ©nements</span>
             <textarea id="intro-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.intro_text || ''}</textarea>
           </label>
         </div>
 
         <div class="config-group">
           <label class="config-label">
-            <span class="label-title">👥 Description pour les bénévoles</span>
+            <span class="label-title">ðŸ‘¥ Description pour les bÃ©nÃ©voles</span>
             <span class="label-desc">Texte encourageant pour les volontaires</span>
             <textarea id="desc-input" rows="3" style="width:100%;padding:0.7em;border:1.5px solid #ddd;border-radius:6px;font-size:1em;margin-top:0.5em;font-family:inherit;">${config?.association_description || ''}</textarea>
           </label>
         </div>
 
         <div class="config-actions">
-          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">💾 Enregistrer les modifications</button>
-          <button class="btn btn-secondary" onclick="resetAssociationForm()">↺ Réinitialiser</button>
+          <button class="btn btn-primary btn-large" onclick="saveAssociationConfig()">ðŸ’¾ Enregistrer les modifications</button>
+          <button class="btn btn-secondary" onclick="resetAssociationForm()">â†º RÃ©initialiser</button>
         </div>
       </div>
 
       <div class="config-section info-section">
-        <h3>ℹ️ Aperçu Public</h3>
+        <h3>â„¹ï¸ AperÃ§u Public</h3>
         <div class="preview-box">
           <div id="preview-logo" style="text-align:center;margin-bottom:1em;min-height:100px;display:flex;align-items:center;justify-content:center;">
-            ${logoDisplay ? logoDisplay : '<span style="font-size:3em;">🤝</span>'}
+            ${logoDisplay ? logoDisplay : '<span style="font-size:3em;">ðŸ¤</span>'}
           </div>
           <div id="preview-name" style="font-size:1.3em;font-weight:bold;text-align:center;margin-bottom:0.5em;">${config?.association_name || 'Ohlun\'Joie'}</div>
           <div id="preview-intro" style="font-size:0.95em;color:#555;text-align:center;line-height:1.5;">${config?.intro_text || 'Votre texte d\'introduction...'}</div>
@@ -878,7 +788,7 @@ async function loadAdminAssociation() {
       if (!file) return;
       
       if (file.size > 2 * 1024 * 1024) {
-        toast('❌ Image trop grande (max 2MB)');
+        toast('âŒ Image trop grande (max 2MB)');
         return;
       }
       
@@ -886,16 +796,16 @@ async function loadAdminAssociation() {
       reader.onload = (event) => {
         const base64 = event.target.result;
         
-        // Afficher l'aperçu
+        // Afficher l'aperÃ§u
         const previewDiv = document.getElementById('logo-preview');
         previewDiv.innerHTML = `
           <div style="border:2px dashed #0d7377;border-radius:8px;padding:1em;text-align:center;">
             <img src="${base64}" alt="Preview" style="max-width:100%;max-height:150px;border-radius:6px;">
-            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">✅ Image sélectionnée</p>
+            <p style="margin-top:0.5em;color:#666;font-size:0.9em;">âœ… Image sÃ©lectionnÃ©e</p>
           </div>
         `;
         
-        // Mettre à jour aussi l'aperçu public
+        // Mettre Ã  jour aussi l'aperÃ§u public
         const previewLogo = document.getElementById('preview-logo');
         if (previewLogo) {
           previewLogo.innerHTML = `<img src="${base64}" alt="Logo Preview" style="max-width:150px;height:auto;border-radius:8px;">`;
@@ -903,16 +813,16 @@ async function loadAdminAssociation() {
         
         // Stocker en base64 dans un attribut data
         logoUpload.dataset.imageBase64 = base64;
-        toast('✅ Image uploadée (aperçu mis à jour)');
+        toast('âœ… Image uploadÃ©e (aperÃ§u mis Ã  jour)');
       };
       reader.readAsDataURL(file);
     });
   }
 }
 
-// ✅ SAUVEGARDER LA CONFIGURATION - VERSION FINALE AVEC AUTO-RELOAD
+// âœ… SAUVEGARDER LA CONFIGURATION - VERSION FINALE AVEC AUTO-RELOAD
 async function saveAssociationConfig() {
-  console.log('🔄 Sauvegarde en cours...');
+  console.log('ðŸ”„ Sauvegarde en cours...');
   
   const nameInput = document.getElementById('name-input');
   const introInput = document.getElementById('intro-input');
@@ -920,7 +830,7 @@ async function saveAssociationConfig() {
   const logoUpload = document.getElementById('logo-upload');
   
   if (!nameInput || !introInput || !descInput) {
-    toast('⚠️ Formulaire non trouvé');
+    toast('âš ï¸ Formulaire non trouvÃ©');
     return;
   }
   
@@ -930,7 +840,7 @@ async function saveAssociationConfig() {
   const logoBase64 = logoUpload?.dataset.imageBase64 || null;
   
   if (!name) {
-    toast('⚠️ Le nom est requis');
+    toast('âš ï¸ Le nom est requis');
     return;
   }
   
@@ -956,23 +866,23 @@ async function saveAssociationConfig() {
       if (error) throw error;
     }
     
-    toast('✅ Configuration enregistrée !');
+    toast('âœ… Configuration enregistrÃ©e !');
     
-    // ✅ MET À JOUR LE HEADER IMMÉDIATEMENT (pas de reload)
+    // âœ… MET Ã€ JOUR LE HEADER IMMÃ‰DIATEMENT (pas de reload)
     await loadSiteConfig();
     
-    // ✅ RECHARGE LE FORMULAIRE ADMIN (pour voir l'image)
+    // âœ… RECHARGE LE FORMULAIRE ADMIN (pour voir l'image)
     setTimeout(() => {
       loadAdminAssociation();
     }, 500);
     
   } catch (err) {
-    console.error('❌ Erreur:', err);
-    toast('❌ Erreur: ' + err.message);
+    console.error('âŒ Erreur:', err);
+    toast('âŒ Erreur: ' + err.message);
   }
 }
 
-console.log('✅ saveAssociationConfig CORRIGÉE - SANS RELOAD');
+console.log('âœ… saveAssociationConfig CORRIGÃ‰E - SANS RELOAD');
 
 // EVENT STUBS
 function adminCreateEvent() {
@@ -984,7 +894,7 @@ function adminCreateEvent() {
 
 function adminEditEvent(id) {
   supabase.from('events').select('*').eq('id', id).single().then(({ data }) => {
-    if (!data) return toast('Erreur chargement événement');
+    if (!data) return toast('Erreur chargement Ã©vÃ©nement');
     document.getElementById('modal-edit-event').hidden = false;
     document.getElementById('edit-event-id').value = data.id;
     document.getElementById('edit-event-titre').value = data.titre || '';
@@ -997,9 +907,9 @@ function adminEditEvent(id) {
 }
 
 function adminDeleteEvent(id) {
-  if (!confirm("Supprimer cet événement ?")) return;
+  if (!confirm("Supprimer cet Ã©vÃ©nement ?")) return;
   supabase.from('events').delete().eq('id', id).then(() => {
-    toast('✅ Événement supprimé');
+    toast('âœ… Ã‰vÃ©nement supprimÃ©');
     loadAdminEvents();
   });
 }
@@ -1015,7 +925,7 @@ document.getElementById('form-edit-event').onsubmit = async function(e) {
   const max = Number(document.getElementById('edit-event-max').value);
   const desc = document.getElementById('edit-event-description').value;
   await supabase.from('events').update({ titre, date, heure, lieu, max_participants: max, description: desc }).eq('id', id);
-  toast('✅ Événement modifié');
+  toast('âœ… Ã‰vÃ©nement modifiÃ©');
   document.getElementById('modal-edit-event').hidden = true;
   loadAdminEvents();
 };
@@ -1033,7 +943,7 @@ document.getElementById('form-create-event').onsubmit = async function(e) {
   const visible = !!fd.get('visible');
   
   if (!titre || !date || !lieu || max_participants < 1) {
-    toast('⚠️ Veuillez remplir tous les champs obligatoires');
+    toast('âš ï¸ Veuillez remplir tous les champs obligatoires');
     return;
   }
   
@@ -1050,11 +960,11 @@ document.getElementById('form-create-event').onsubmit = async function(e) {
   
   if (error) {
     console.error(error);
-    toast('❌ Erreur lors de la création');
+    toast('âŒ Erreur lors de la crÃ©ation');
     return;
   }
   
-  toast('✅ Événement créé avec succès');
+  toast('âœ… Ã‰vÃ©nement crÃ©Ã© avec succÃ¨s');
   modal.closeAll();
   e.target.reset();
   loadAdminEvents();
@@ -1072,8 +982,8 @@ async function fetchInscriptionsForEvent(eventId) {
 }
 
 function openInscription(ev) {
-  $('#insc-event-title').textContent = `${ev.image || '📅'} ${ev.titre}`;
-  $('#insc-event-meta').textContent = `${ev.date} • ${ev.heure || ''} • ${ev.lieu}`;
+  $('#insc-event-title').textContent = `${ev.image || 'ðŸ“…'} ${ev.titre}`;
+  $('#insc-event-meta').textContent = `${ev.date} â€¢ ${ev.heure || ''} â€¢ ${ev.lieu}`;
   $('#insc-event-id').value = ev.id;
   modal.open('#modal-inscription');
 }
@@ -1098,8 +1008,8 @@ function renderTimeline(events) {
     card.innerHTML = `
       <div class="card-header">
         <div>
-          <div class="card-title">${ev.image || '📅'} ${ev.titre}</div>
-          <div class="muted">${ev.date} • ${ev.heure || ''} • ${ev.lieu}</div>
+          <div class="card-title">${ev.image || 'ðŸ“…'} ${ev.titre}</div>
+          <div class="muted">${ev.date} â€¢ ${ev.heure || ''} â€¢ ${ev.lieu}</div>
         </div>
         <div class="card-actions"><button class="subscribe-btn"></button></div>
       </div>
@@ -1156,8 +1066,8 @@ function renderCards(events) {
     card.innerHTML = `
       <div class="card-header">
         <div>
-          <div class="card-title">${ev.image || '📅'} ${ev.titre}</div>
-          <div class="muted">${ev.date} • ${ev.heure || ''} • ${ev.lieu}</div>
+          <div class="card-title">${ev.image || 'ðŸ“…'} ${ev.titre}</div>
+          <div class="muted">${ev.date} â€¢ ${ev.heure || ''} â€¢ ${ev.lieu}</div>
         </div>
         <div class="card-actions"><button class="subscribe-btn"></button></div>
       </div>
@@ -1170,25 +1080,12 @@ function renderCards(events) {
   root.appendChild(grid);
 }
 
-// ✅ RÉACTIVE LES ONGLETS LISTE ET CARTES
 function setActiveView(which) {
-  console.log('🔄 Changement vers:', which);
-  
   $$('.view').forEach(v => v.classList.remove('active'));
-  const targetView = $('#' + which + '-view');
-  if (targetView) targetView.classList.add('active');
-  
+  $('#' + which + '-view').classList.add('active');
   $$('.view-switch .tab').forEach(b => b.classList.remove('active'));
-  const targetTab = $('#view-' + which);
-  if (targetTab) targetTab.classList.add('active');
+  $('#view-' + which).classList.add('active');
 }
-
-// Assigne les clics sur les onglets
-document.getElementById('view-timeline').onclick = () => setActiveView('timeline');
-document.getElementById('view-list').onclick = () => setActiveView('list');
-document.getElementById('view-cards').onclick = () => setActiveView('cards');
-
-console.log('✅ Onglets Liste et Cartes RÉACTIVÉS');
 
 $('#view-timeline').onclick = () => setActiveView('timeline');
 $('#view-list').onclick = () => setActiveView('list');
@@ -1212,39 +1109,11 @@ function updateNextEvent(events) {
   const eventDate = new Date(firstEvent.date + 'T' + (firstEvent.heure || '00:00'));
   const today = new Date();
   const diffDays = Math.max(0, Math.ceil((eventDate - today) / 86400000));
-  badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+  badge.textContent = `Prochain Ã©vÃ©nement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
 
-// ✅ AFFICHE LES ÉVÉNEMENTS AU DÉMARRAGE
-async function loadPublicAsync() {
-  const { data: events } = await supabase.from('events').select('*').eq('visible', true).eq('archived', false).order('date', { ascending: true });
-  if (events && events.length > 0) {
-    renderTimeline(events);
-    renderList(events);
-    renderCards(events);
-    updateNextEvent(events);
-  }
-}
-// Attendre que le DOM soit prêt avant de charger
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ DOM chargé');
-  loadPublic();
-  loadSiteConfig();
-  
-  if (isAdmin) {
-    adminUser = { id: sessionStorage.getItem('adminId'), email: sessionStorage.getItem('adminEmail') };
-    mountAdmin();
-  } else {
-    unmountAdmin();
-  }
-});
-
-loadPublicAsync();
+loadPublic();
 loadSiteConfig();
-
-
-
-
 
 $('#insc-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1266,7 +1135,7 @@ $('#insc-form').addEventListener('submit', async (e) => {
   const minOne = preparation_salle || partie_evenement || evenement_entier;
   
   if (!prenom || !nom || !emailOk || !telOk || !minOne) {
-    toast('⚠️ Vérifie les champs requis');
+    toast('âš ï¸ VÃ©rifie les champs requis');
     return;
   }
   
@@ -1286,15 +1155,15 @@ $('#insc-form').addEventListener('submit', async (e) => {
   
   if (error) {
     console.error(error);
-    toast('❌ Erreur lors de l\'inscription');
+    toast('âŒ Erreur lors de l\'inscription');
     return;
   }
   
-  toast('✅ Inscription enregistrée !');
+  toast('âœ… Inscription enregistrÃ©e !');
   modal.closeAll();
   e.target.reset();
+  loadPublic();
 });
-
 
 function scheduleAutoArchive() {
   setInterval(async () => {
