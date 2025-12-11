@@ -46,6 +46,16 @@
     <div class="container">
       Développé avec ❤️ par <strong>Zinck Maxime</strong> — 
       <a href="https://www.linkedin.com/in/zinck-maxime-88302b207" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <hr style="margin:1.5em 0;">
+      <section id="contact-section">
+        <h3>Nous contacter</h3>
+        <form id="contact-form" class="contact-form">
+          <label>Nom*<input type="text" name="nom" required></label>
+          <label>Email*<input type="email" name="email" required></label>
+          <label class="full-width">Message<textarea name="message" rows="3" required></textarea></label>
+          <button type="submit" class="btn btn-primary">Envoyer</button>
+        </form>
+      </section>
     </div>
   </footer>
 
@@ -252,6 +262,33 @@
     </form>
   </div>
 </div>
+
+<!-- MODALE EDITION INSCRIPTION -->
+<div id="modal-edit-inscription" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="edit-insc-title">
+  <div class="modal-card">
+    <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    <h3 id="edit-insc-title">Modifier l'inscription</h3>
+    <form id="edit-insc-form" class="form-grid">
+      <input type="hidden" id="edit-insc-id">
+      <label>Prénom*<input id="edit-insc-prenom" name="prenom" required></label>
+      <label>Nom*<input id="edit-insc-nom" name="nom" required></label>
+      <label>Email*<input id="edit-insc-email" name="email" type="email" required></label>
+      <label>Téléphone*<input id="edit-insc-telephone" name="telephone" required></label>
+      <label>Heure d'arrivée<input id="edit-insc-arrivee" name="heure_arrivee" type="time"></label>
+      <label>Heure de départ<input id="edit-insc-depart" name="heure_depart" type="time"></label>
+      <label class="full-width">Commentaire<textarea id="edit-insc-commentaire" name="commentaire" rows="2"></textarea></label>
+      <fieldset class="full-width participations" style="margin-top:10px; border:1px dashed #ddd; border-radius:8px; padding:10px 16px 6px;">
+        <legend>Participations</legend>
+        <div style="display: flex; gap: 32px; align-items: center; flex-wrap: wrap;">
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="edit-insc-prepa"> Préparation salle</label>
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="edit-insc-partie"> Partie soirée</label>
+          <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="edit-insc-entier"> Soirée entière</label>
+        </div>
+      </fieldset>
+      <button type="submit" class="btn btn-primary full-width">Enregistrer</button>
+    </form>
+  </div>
+</div>
 <div class="modal" id="modal-admin-user" hidden>
   <div class="modal-card modal-card-large">
     <div class="modal-header">
@@ -287,6 +324,8 @@
             <tr><td>Bénévoles</td><td><input type="checkbox" class="mod-view" data-module="volunteers"></td><td><input type="checkbox" class="mod-edit" data-module="volunteers"></td></tr>
             <tr><td>Admins</td><td><input type="checkbox" class="mod-view" data-module="admins"></td><td><input type="checkbox" class="mod-edit" data-module="admins"></td></tr>
             <tr><td>Association</td><td><input type="checkbox" class="mod-view" data-module="association"></td><td><input type="checkbox" class="mod-edit" data-module="association"></td></tr>
+            <!-- Ajout des droits pour le module Messages -->
+            <tr><td>Messages</td><td><input type="checkbox" class="mod-view" data-module="messages"></td><td><input type="checkbox" class="mod-edit" data-module="messages"></td></tr>
           </tbody>
         </table>
       </div>
