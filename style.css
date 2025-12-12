@@ -2018,6 +2018,15 @@ button:disabled, .btn[disabled] {
 .roles-matrix td {
   background: #f9faff;
 }
+
+/* Agrandir les cases à cocher de la matrice des rôles pour faciliter la saisie,
+   notamment sur mobile. Les boîtes deviennent plus visibles et plus faciles à toucher. */
+.roles-matrix input[type="checkbox"] {
+  width: 1.2em;
+  height: 1.2em;
+  cursor: pointer;
+}
+.roles-matrix td { cursor: pointer; }
 .roles-matrix tr td:first-child {
   text-align: left;
   font-weight: 500;
