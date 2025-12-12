@@ -69,7 +69,9 @@ if (window.supabase && typeof window.supabase.createClient === 'function') {
       // Query context holds table name and filters to apply
       const query = { table, filters: [], limitCount: null, orderField: null, orderAsc: true };
       function applyFilters(rows) {
-        return query.filters.reduce((res, [field, value]) => res.filter(row => row[field] === value), rows);
+        // Pour le stub, on utilise une égalité large (==) afin d'éviter les problèmes
+        // de typage lors de la comparaison (par exemple, '3' == 3).
+        return query.filters.reduce((res, [field, value]) => res.filter(row => row[field] == value), rows);
       }
       const stub = {
         eq(field, value) {
@@ -179,6 +181,27 @@ let isAdmin = sessionStorage.getItem('isAdmin') === '1';
 // ✅ CORRECTIF - INIT ÉVÉNEMENTS AU DÉMARRAGE
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 DOM Chargé');
+
+  // Archiver automatiquement les événements passés
+  // Cette fonction marque comme archivés tous les événements dont la date est antérieure à aujourd'hui.
+  async function archivePastEvents() {
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      const { data: past } = await supabase.from('events').select('id, date, archived').lt('date', today).eq('archived', false);
+      if (past && past.length) {
+        for (const ev of past) {
+          await supabase.from('events').update({ archived: true }).eq('id', ev.id);
+        }
+      }
+    } catch (err) {
+      console.warn('Erreur archivage événements:', err);
+    }
+  }
+
+  // Archive les événements passés avant de charger la partie publique ou admin
+  if (typeof archivePastEvents === 'function') {
+    await archivePastEvents();
+  }
 
   async function initPublic() {
     try {
@@ -579,9 +602,29 @@ async function loadAdminEvents() {
   const host = $('#module-events');
   host.innerHTML = '<p>Chargement des événements...</p>';
   
-  const { data: events } = await supabase.from('events').select('*').order('date', { ascending: false });
-  
+  // Déterminer l'année sélectionnée pour filtrer les événements
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let y = 2023; y <= 2030; y++) years.push(y);
+  let yearFilter = document.getElementById('year-events');
+  const selectedYear = yearFilter ? yearFilter.value : String(currentYear);
+
+  // Récupère les événements non archivés de l'année choisie
+  const { data: events } = await supabase.from('events')
+    .select('*')
+    .gte('date', `${selectedYear}-01-01`)
+    .lte('date', `${selectedYear}-12-31`)
+    .eq('archived', false)
+    .order('date', { ascending: false });
+
+  // Génère le sélecteur d'année et l'en-tête de la table.  On affiche également un
+  // résumé du nombre d'événements pour l'année sélectionnée.
+  const eventsCount = events.length;
   let html = `<button class="btn btn-primary" onclick="adminCreateEvent()">+ Nouvel événement</button>
+    <label style="margin-left:1em;">Année : <select id="year-events">
+      ${years.map(y => `<option value="${y}" ${String(y) === selectedYear ? 'selected' : ''}>${y}</option>`).join('')}
+    </select></label>
+    <p style="margin:0.5em 0;font-weight:bold;">${eventsCount} événement(s) en ${selectedYear}</p>
     <div class="admin-events-table">
       <table>
         <thead>
@@ -607,6 +650,11 @@ async function loadAdminEvents() {
   
   html += `</tbody></table></div>`;
   host.innerHTML = html;
+  // recharge les événements lorsque l'année change
+  const yearSel = document.getElementById('year-events');
+  if (yearSel) {
+    yearSel.onchange = () => loadAdminEvents();
+  }
 }
 
 // INSCRIPTIONS
@@ -614,11 +662,27 @@ async function loadAdminInscriptions() {
   const host = $('#module-inscriptions');
   host.innerHTML = '<p>Chargement des inscriptions...</p>';
   
-  const { data: events } = await supabase.from('events').select('id, titre').order('date', { ascending: false });
-  
-  let html = `<select id="event-filter" onchange="filterInscriptions()">
+  // Préparer les années pour le filtre
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let y = 2023; y <= 2030; y++) years.push(y);
+  let yearSel = document.getElementById('year-inscriptions');
+  const selectedYear = yearSel ? yearSel.value : String(currentYear);
+
+  // Récupère les événements non archivés de l'année sélectionnée
+  const { data: events } = await supabase.from('events')
+    .select('id, titre, date')
+    .gte('date', `${selectedYear}-01-01`)
+    .lte('date', `${selectedYear}-12-31`)
+    .eq('archived', false)
+    .order('date', { ascending: false });
+
+  let html = `<label>Année : <select id="year-inscriptions">
+      ${years.map(y => `<option value="${y}" ${String(y) === selectedYear ? 'selected' : ''}>${y}</option>`).join('')}
+    </select></label>
+    <select id="event-filter" onchange="filterInscriptions()" style="margin-left:1em;">
     <option value="">-- Tous les événements --</option>`;
-  
+
   events.forEach(e => {
     const label = e.titre + (e.date ? ` — ${formatDateFr(e.date)}` : '');
     html += `<option value="${e.id}">${label}</option>`;
@@ -627,6 +691,11 @@ async function loadAdminInscriptions() {
     <div id="inscriptions-list"></div>`;
   
   host.innerHTML = html;
+  // attache le changement d'année pour recharger les inscriptions
+  const yearInsc = document.getElementById('year-inscriptions');
+  if (yearInsc) {
+    yearInsc.onchange = () => loadAdminInscriptions();
+  }
   await filterInscriptions();
 }
 
@@ -642,7 +711,13 @@ async function filterInscriptions() {
 
   let query = supabase.from('inscriptions').select('*');
   if (eventId) query = query.eq('event_id', eventId);
-  const { data: inscs } = await query.order('date_inscription', { ascending: false });
+  let { data: inscs } = await query.order('date_inscription', { ascending: false });
+  // Exclure les inscriptions liées à des événements archivés si aucun événement spécifique n'est sélectionné
+  if (!eventId) {
+    const { data: allEvents } = await supabase.from('events').select('id, archived');
+    const archivedIds = new Set((allEvents || []).filter(ev => ev.archived).map(ev => ev.id));
+    inscs = (inscs || []).filter(i => !archivedIds.has(i.event_id));
+  }
   // Apply client-side sorting based on the currently selected column and direction.
   if (inscSortField) {
     inscs.sort((a, b) => {
@@ -676,6 +751,8 @@ async function filterInscriptions() {
     if (i.partie_evenement) countPartie++;
   });
 
+  // Démarre la construction du HTML pour la liste des inscriptions.
+  // Nous ajouterons un résumé du nombre d'inscriptions et de participants avant le tableau.
   let html = '';
   if (selectedEventData) {
     html += `
@@ -695,8 +772,12 @@ async function filterInscriptions() {
       </div>
     `;
   }
-
+  // Ajout du résumé si aucun événement spécifique n'est sélectionné, ou en complément du détail.
+  // Calcule le nombre total d'inscriptions affichées et le nombre de participants uniques.
+  const totalInsc = inscs.length;
+  const uniqueParticipants = new Set(inscs.map(i => i.email || '')).size;
   html += `
+    <p style="margin:0.5em 0;font-weight:bold;">${totalInsc} inscription(s) · ${uniqueParticipants} participant(s)</p>
     <table class="insc-table-admin">
       <thead>
         <tr>
@@ -881,11 +962,13 @@ async function loadAdminVolunteers() {
   const host = $('#module-volunteers');
   host.innerHTML = `<p>Chargement des bénévoles...</p>`;
 
-  const thisYear = new Date().getFullYear();
-  const years = [thisYear, thisYear + 1];
+  // Liste des années disponibles (2023 à 2030) pour filtrer les bénévoles
+  const years = [];
+  for (let y = 2023; y <= 2030; y++) years.push(y);
+  const currentYear = new Date().getFullYear();
   let selectHtml = `<label>Filtrer par année: 
     <select id="year-volunteers" style="margin-right:1em;">${years.map(y =>
-      `<option value="${y}">${y}</option>`).join('')}</select>
+      `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`).join('')}</select>
     <input id="search-volunteers" type="text" placeholder="Recherche prénom, nom, email..." style="padding:0.45em 1em;border-radius:8px;border:1.5px solid #ddd; margin-left:1em;width:260px;">
   </label>`;
 
@@ -894,7 +977,11 @@ async function loadAdminVolunteers() {
   async function renderList() {
     const year = $('#year-volunteers').value;
     const search = $('#search-volunteers').value.trim().toLowerCase();
-    const { data: events } = await supabase.from('events').select('id, date').gte('date', year + '-01-01').lte('date', year + '-12-31');
+    const { data: events } = await supabase.from('events')
+      .select('id, date')
+      .gte('date', year + '-01-01')
+      .lte('date', year + '-12-31')
+      .eq('archived', false);
     const { data: inscs } = await supabase.from('inscriptions').select('*');
     const allEventIds = new Set(events.map(e => e.id));
 
@@ -934,7 +1021,10 @@ async function loadAdminVolunteers() {
     const totalEvents = allEventIds.size;
     array.sort((a, b) => (a.prenom || '').localeCompare(b.prenom || '', 'fr'));
 
-    let html = `
+    // Résumé année : nombre de bénévoles et nombre d'événements
+    const summaryHtml = `<p style="margin:0.5em 0; font-weight:bold;">${array.length} bénévoles · ${totalEvents} événement(s)</p>`;
+
+    let html = summaryHtml + `
       <table class="volunteers-table-admin">
         <thead>
           <tr>
@@ -1102,6 +1192,24 @@ async function openEditAdmin(adminData, droits) {
       if (editBox) editBox.checked = !!d.edit;
     });
   }
+
+  // 💡 Permettre de cocher/décocher les cases à cocher en cliquant sur la cellule entière.
+  // Ceci améliore l'ergonomie, notamment sur mobile, où les petites cases sont difficiles à viser.
+  // On attache l'écouteur après avoir inséré les droits pour s'assurer que les éléments existent.
+  document.querySelectorAll('.roles-matrix tbody tr').forEach(tr => {
+    // Chaque cellule (sauf la première qui contient le nom du module) se voit attribuer
+    // un gestionnaire de clic qui inverse l'état de la checkbox qu'elle contient.
+    const cells = Array.from(tr.children).slice(1);
+    cells.forEach(td => {
+      td.style.cursor = 'pointer';
+      td.onclick = (e) => {
+        // Si l'utilisateur clique directement sur la checkbox, on laisse le comportement par défaut.
+        if (e.target.tagName.toLowerCase() === 'input') return;
+        const cb = td.querySelector('input[type="checkbox"]');
+        if (cb) cb.checked = !cb.checked;
+      };
+    });
+  });
 
   document.getElementById('admin-user-mod-title').textContent = adminData?.id ? 'Modifier Admin' : 'Nouvel Admin';
   modal.open('#modal-admin-user');
