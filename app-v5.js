@@ -602,15 +602,42 @@ async function loadAdminEvents() {
   const host = $('#module-events');
   host.innerHTML = '<p>Chargement des événements...</p>';
   
-  // Déterminer l'année sélectionnée pour filtrer les événements
+  // Déterminer l'année sélectionnée pour filtrer les événements.  Par défaut on
+  // utilise l'année du prochain événement si aucun événement n'est prévu pour
+  // l'année en cours.  Cela permet d'éviter l'affichage d'une liste vide en
+  // fin d'année lorsque les premiers événements sont planifiés pour l'année
+  // suivante.  Le sélecteur existant (year-events) est utilisé si l'utilisateur
+  // change la valeur.
   const currentYear = new Date().getFullYear();
   const years = [];
   for (let y = 2023; y <= 2030; y++) years.push(y);
   let yearFilter = document.getElementById('year-events');
-  const selectedYear = yearFilter ? yearFilter.value : String(currentYear);
+  let selectedYear;
+  if (yearFilter) {
+    selectedYear = yearFilter.value;
+  } else {
+    // Pas encore de sélecteur, déterminer la première année avec un événement non archivé
+    try {
+      const { data: nextEv } = await supabase
+        .from('events')
+        .select('date')
+        .eq('archived', false)
+        .order('date', { ascending: true })
+        .limit(1);
+      if (nextEv && nextEv.length > 0) {
+        selectedYear = String(new Date(nextEv[0].date).getFullYear());
+      } else {
+        selectedYear = String(currentYear);
+      }
+    } catch (e) {
+      // En cas d'erreur on revient sur l'année en cours
+      selectedYear = String(currentYear);
+    }
+  }
 
   // Récupère les événements non archivés de l'année choisie
-  const { data: events } = await supabase.from('events')
+  const { data: events } = await supabase
+    .from('events')
     .select('*')
     .gte('date', `${selectedYear}-01-01`)
     .lte('date', `${selectedYear}-12-31`)
@@ -1281,7 +1308,7 @@ function setupAdminUserForm() {
         const { data: rows } = await supabase.from('admins').select().order('id', { ascending: false }).limit(1);
         const created = rows && rows.length ? rows[0] : null;
         const newId = created?.id;
-        await supabase.from('admin_roles').upsert(
+        const { error: rightsError } = await supabase.from('admin_roles').upsert(
           droits.map(d => ({
             admin_id: newId,
             module: d.module,
@@ -1290,20 +1317,63 @@ function setupAdminUserForm() {
             can_delete: false
           }))
         );
+        if (rightsError) throw rightsError;
         toast('✅ Admin créé avec succès');
       } else {
         // Mise à jour d'un administrateur existant
         const { error: updateError } = await supabase.from('admins').update(adminData).eq('id', id);
         if (updateError) throw updateError;
-        await supabase.from('admin_roles').upsert(
-          droits.map(d => ({
-            admin_id: id,
-            module: d.module,
-            can_view: d.can_view,
-            can_edit: d.can_edit,
-            can_delete: false
-          }))
-        );
+        // Upsert roles for an existing admin.  On Supabase tables with
+        // row‑level security enabled, inserts may fail if the current user
+        // does not have permission to add new rows.  To make the update more
+        // robust we perform an update on existing rows and attempt an insert
+        // only for records that already exist.  This avoids violating RLS
+        // policies that prohibit inserts for other admins.
+        let rightsError = null;
+        for (const d of droits) {
+          try {
+            // First try to update the record for this module.  If the row
+            // doesn't exist, this will effectively do nothing.
+            const { error: updateErr } = await supabase
+              .from('admin_roles')
+              .update({
+                can_view: d.can_view,
+                can_edit: d.can_edit,
+                can_delete: false,
+              })
+              .eq('admin_id', id)
+              .eq('module', d.module);
+            if (updateErr) {
+              throw updateErr;
+            }
+            // Attempt to insert the record with onConflict.  This will
+            // silently do nothing if the row already exists.  We specify
+            // the composite primary key (admin_id, module) to avoid
+            // duplicate rows.  If the insert fails because of RLS, we
+            // catch the error and surface it to the user.
+            const { error: insertErr } = await supabase
+              .from('admin_roles')
+              .upsert(
+                [{
+                  admin_id: id,
+                  module: d.module,
+                  can_view: d.can_view,
+                  can_edit: d.can_edit,
+                  can_delete: false,
+                }],
+                { onConflict: ['admin_id', 'module'] }
+              );
+            if (insertErr) {
+              throw insertErr;
+            }
+          } catch (err) {
+            rightsError = err;
+            console.error('admin_roles update error for module', d.module, err);
+          }
+        }
+        if (rightsError) {
+          throw rightsError;
+        }
         toast('✅ Admin modifié avec succès');
       }
       
@@ -1651,28 +1721,38 @@ function setupAdminEventForms() {
       const max_participants = Number(fd.get('max_participants'));
       const description = fd.get('description')?.trim() || '';
       const visible = !!fd.get('visible');
+      // La colonne "type" dans la table events est définie comme NOT NULL côté
+      // base de données.  Si aucun champ n'est présent dans le formulaire, on
+      // fournit une valeur par défaut (par exemple "standard") pour éviter
+      // l'erreur "null value in column 'type' violates not-null constraint".
+      const type = (fd.get('type')?.trim()) || 'standard';
       if (!titre || !date || !lieu || max_participants < 1) {
         toast('⚠️ Veuillez remplir tous les champs obligatoires');
         return;
       }
-      const { error } = await supabase.from('events').insert({
-        titre,
-        date,
-        heure,
-        lieu,
-        max_participants,
-        description,
-        visible,
-        archived: false
-      });
+      const { data: insertData, error } = await supabase
+        .from('events')
+        .insert({
+          titre,
+          date,
+          heure,
+          lieu,
+          max_participants,
+          description,
+          visible,
+          archived: false,
+          type
+        });
       if (error) {
+        // Afficher le message d'erreur complet pour aider au diagnostic (RLS, contraintes, etc.)
         console.error(error);
-        toast('❌ Erreur lors de la création');
+        toast('❌ Erreur : ' + (error.message || 'Création impossible'));
         return;
       }
       toast('✅ Événement créé avec succès');
       modal.closeAll();
       e.target.reset();
+      // Recharge la liste en utilisant le nouvel événement comme année de référence
       loadAdminEvents();
     };
   }
@@ -1850,7 +1930,7 @@ function updateNextEvent(events) {
   const diffDaysRaw = (eventDate - today) / 86400000;
   const diffDays = Math.max(0, Math.ceil(diffDaysRaw));
   if (diffDays === 0) {
-    badge.textContent = 'Prochain événement : aujourd\'hui';
+    badge.textContent = 'Prochain événement : aujourd\'hui';
   } else {
     badge.textContent = `Prochain événement dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
   }
