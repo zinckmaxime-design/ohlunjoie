@@ -1730,6 +1730,9 @@ function setupAdminEventForms() {
         toast('⚠️ Veuillez remplir tous les champs obligatoires');
         return;
       }
+
+      // Afficher un feedback immédiat pour indiquer que l'enregistrement démarre
+      toast('⏳ Création de l\'événement en cours...');
       const { data: insertData, error } = await supabase
         .from('events')
         .insert({
@@ -2006,6 +2009,9 @@ function setupInscriptionForm() {
       toast('⚠️ Vérifie les champs requis');
       return;
     }
+
+    // Afficher un feedback immédiat indiquant que l'envoi est en cours.
+    toast('⏳ Envoi de votre inscription en cours...');
 
     // Check for duplicate inscription for the same event and email address.
     try {
