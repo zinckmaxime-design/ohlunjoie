@@ -290,6 +290,8 @@ if (window.location.protocol === 'file:') {
     association: { view: true, edit: true, delete: true },
     messages: { view: true, edit: true, delete: true }
   };
+  // en mode local, on attribue un rôle super_admin pour tester les restrictions
+  adminUser = { id: '0', email: 'local@example.com', role: 'super_admin' };
   // If the DOM has already loaded, mount the admin interface immediately.
   // Otherwise, it will be mounted during DOMContentLoaded based on isAdmin.
   if (document.readyState !== 'loading' && typeof mountAdmin !== 'undefined') {
@@ -611,33 +613,33 @@ async function loadAdminEvents() {
   const currentYear = new Date().getFullYear();
   const years = [];
   for (let y = 2023; y <= 2030; y++) years.push(y);
-  let yearFilter = document.getElementById('year-events');
+  const yearFilter = document.getElementById('year-events');
   let selectedYear;
-  if (yearFilter) {
-    // On utilise directement la valeur sélectionnée
+  // On privilégie l'année stockée dans localStorage si elle existe, afin de
+  // conserver la sélection de l'utilisateur même si aucun événement n'est
+  // disponible.  Sinon, si un sélecteur existe, on lit sa valeur.  Enfin,
+  // on retombe sur l'année du prochain événement ou l'année courante.
+  const storedYear = localStorage.getItem('adminEventsYear');
+  if (storedYear) {
+    selectedYear = storedYear;
+  } else if (yearFilter) {
     selectedYear = yearFilter.value;
   } else {
-    // Pas de sélecteur encore monté : on tente de récupérer l'année mémorisée
-    const stored = localStorage.getItem('adminEventsYear');
-    if (stored) {
-      selectedYear = stored;
-    } else {
-      // Déterminer la première année avec un événement non archivé
-      try {
-        const { data: nextEv } = await supabase
-          .from('events')
-          .select('date')
-          .eq('archived', false)
-          .order('date', { ascending: true })
-          .limit(1);
-        if (nextEv && nextEv.length > 0) {
-          selectedYear = String(new Date(nextEv[0].date).getFullYear());
-        } else {
-          selectedYear = String(currentYear);
-        }
-      } catch (e) {
+    // Déterminer la première année avec un événement non archivé
+    try {
+      const { data: nextEv } = await supabase
+        .from('events')
+        .select('date')
+        .eq('archived', false)
+        .order('date', { ascending: true })
+        .limit(1);
+      if (nextEv && nextEv.length > 0) {
+        selectedYear = String(new Date(nextEv[0].date).getFullYear());
+      } else {
         selectedYear = String(currentYear);
       }
+    } catch (e) {
+      selectedYear = String(currentYear);
     }
   }
 
@@ -703,8 +705,20 @@ async function loadAdminInscriptions() {
   const currentYear = new Date().getFullYear();
   const years = [];
   for (let y = 2023; y <= 2030; y++) years.push(y);
-  let yearSel = document.getElementById('year-inscriptions');
-  const selectedYear = yearSel ? yearSel.value : String(currentYear);
+  // Déterminer l'année sélectionnée. Si un sélecteur est déjà présent
+  // dans le DOM, on utilise sa valeur. Sinon, on récupère la valeur
+  // mémorisée dans localStorage. Si aucune valeur n'est trouvée, on
+  // revient à l'année courante. Ceci évite de revenir systématiquement
+  // à l'année courante lorsque l'utilisateur sélectionne une année sans
+  // événements. Voir loadAdminEvents() pour une logique similaire.
+  let yearSelEl = document.getElementById('year-inscriptions');
+  let selectedYear;
+  if (yearSelEl) {
+    selectedYear = yearSelEl.value;
+  } else {
+    const storedYear = localStorage.getItem('adminInscYear');
+    selectedYear = storedYear || String(currentYear);
+  }
 
   // Récupère les événements non archivés de l'année sélectionnée
   const { data: events } = await supabase.from('events')
@@ -731,7 +745,12 @@ async function loadAdminInscriptions() {
   // attache le changement d'année pour recharger les inscriptions
   const yearInsc = document.getElementById('year-inscriptions');
   if (yearInsc) {
-    yearInsc.onchange = () => loadAdminInscriptions();
+    yearInsc.onchange = () => {
+      // enregistrer la sélection de l'utilisateur pour conserver
+      // l'année même si aucun événement n'est disponible
+      localStorage.setItem('adminInscYear', yearInsc.value);
+      loadAdminInscriptions();
+    };
   }
   await filterInscriptions();
 }
@@ -1249,10 +1268,54 @@ async function openEditAdmin(adminData, droits) {
   });
 
   document.getElementById('admin-user-mod-title').textContent = adminData?.id ? 'Modifier Admin' : 'Nouvel Admin';
+
+  // Gestion des options du rôle selon les permissions courantes.  Un
+  // administrateur non-super_admin ne peut pas créer ou attribuer le
+  // rôle super_admin.  On désactive ou supprime l'option selon le
+  // contexte.  Si on est en train d'éditer un super_admin alors
+  // que l'utilisateur n'est pas super_admin, on verrouille le champ.
+  const roleSelect = document.getElementById('admin-user-role');
+  if (roleSelect) {
+    const superOpt = roleSelect.querySelector('option[value="super_admin"]');
+    const isSuper = adminUser?.role === 'super_admin';
+    if (!isSuper) {
+      // Interdire la création d'un super_admin.  Si l'admin en cours
+      // d'édition est déjà super_admin, on ne permet pas de changer
+      // son rôle.  Sinon on supprime la possibilité de sélectionner
+      // super_admin.
+      if (superOpt) {
+        superOpt.disabled = true;
+      }
+      if (adminData?.role === 'super_admin') {
+        roleSelect.disabled = true;
+      } else {
+        roleSelect.disabled = false;
+      }
+    } else {
+      // Super admin peut tout : réactiver l'option et le champ
+      if (superOpt) superOpt.disabled = false;
+      roleSelect.disabled = false;
+    }
+  }
+
+  // Désactivation des cases à cocher des droits si l'utilisateur
+  // n'a pas les droits d'édition des admins et n'est pas super_admin.
+  const canEditAdmins = (adminUser?.role === 'super_admin') || (adminPermissions.admins?.edit);
+  document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => {
+    cb.disabled = !canEditAdmins;
+  });
   modal.open('#modal-admin-user');
 }
 
 async function adminEditUser(id) {
+  // Vérifie les droits avant d'autoriser l'édition.  Seuls les super_admins
+  // ou les administrateurs disposant du droit d'édition sur les admins
+  // peuvent modifier un autre compte.
+  const hasEditRights = (adminUser?.role === 'super_admin') || (adminPermissions.admins?.edit);
+  if (!hasEditRights) {
+    toast('❌ Accès refusé');
+    return;
+  }
   const { data: admin } = await supabase.from('admins').select('*').eq('id', id).single();
   if (!admin) return toast('❌ Admin introuvable');
   
@@ -1265,6 +1328,12 @@ async function adminEditUser(id) {
 }
 
 async function adminDeleteUser(id) {
+  // Vérifie que l'utilisateur courant a le droit de supprimer un administrateur.
+  const canDelete = (adminUser?.role === 'super_admin') || (adminPermissions.admins?.edit);
+  if (!canDelete) {
+    toast('❌ Accès refusé');
+    return;
+  }
   if (!confirm("⚠️ Confirmer la suppression de cet administrateur ?")) return;
   
   await supabase.from('admins').delete().eq('id', id);
@@ -1407,10 +1476,21 @@ async function loadAdminUsers() {
   
   const host = $('#module-admins');
   host.innerHTML = '<p>Chargement des administrateurs...</p>';
-  
+
   const { data: admins } = await supabase.from('admins').select('*').order('created_at');
-  
-  let html = `<button class="btn btn-primary" onclick="adminCreateUser()">➕ Nouvel Admin</button>
+
+  // Détermination des droits : seul un super_admin peut créer de nouveaux
+  // administrateurs. L'édition/suppression d'admins est autorisée pour les
+  // utilisateurs disposant du droit adminPermissions.admins.edit ou pour les
+  // super_admins.  Ces droits impactent l'affichage des boutons d'action.
+  const canCreateAdmin = adminUser?.role === 'super_admin';
+  const canEditAdmins = canCreateAdmin || adminPermissions.admins?.edit;
+
+  let html = '';
+  if (canCreateAdmin) {
+    html += `<button class="btn btn-primary" onclick="adminCreateUser()">➕ Nouvel Admin</button>`;
+  }
+  html += `
     <table>
       <thead>
         <tr>
@@ -1423,7 +1503,7 @@ async function loadAdminUsers() {
         </tr>
       </thead>
       <tbody>`;
-  
+
   admins.forEach(a => {
     html += `<tr>
       <td>${a.prenom} ${a.nom}</td>
@@ -1431,18 +1511,29 @@ async function loadAdminUsers() {
       <td>${a.role}</td>
       <td>${a.is_active ? '✅' : '❌'}</td>
       <td>${a.last_login ? new Date(a.last_login).toLocaleDateString('fr-FR') : '-'}</td>
-      <td>
+      <td>`;
+    if (canEditAdmins) {
+      html += `
         <button class="btn-small" onclick="adminEditUser('${a.id}')">✏️</button>
-        <button class="btn-small btn-danger" onclick="adminDeleteUser('${a.id}')">🗑️</button>
-      </td>
+        <button class="btn-small btn-danger" onclick="adminDeleteUser('${a.id}')">🗑️</button>`;
+    } else {
+      html += '-';
+    }
+    html += `</td>
     </tr>`;
   });
-  
+
   html += '</tbody></table>';
   host.innerHTML = html;
 }
 
 function adminCreateUser() {
+  // Vérifie que l'utilisateur courant peut créer un nouvel administrateur :
+  // seul un super_admin est autorisé à effectuer cette action.
+  if (adminUser?.role !== 'super_admin') {
+    toast('❌ Accès refusé');
+    return;
+  }
   document.getElementById('form-admin-user').reset();
   document.getElementById('admin-user-id').value = '';
   document.querySelectorAll('.roles-matrix input[type=checkbox]').forEach(cb => cb.checked = false);
