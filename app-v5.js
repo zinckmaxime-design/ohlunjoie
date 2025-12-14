@@ -614,24 +614,30 @@ async function loadAdminEvents() {
   let yearFilter = document.getElementById('year-events');
   let selectedYear;
   if (yearFilter) {
+    // On utilise directement la valeur sélectionnée
     selectedYear = yearFilter.value;
   } else {
-    // Pas encore de sélecteur, déterminer la première année avec un événement non archivé
-    try {
-      const { data: nextEv } = await supabase
-        .from('events')
-        .select('date')
-        .eq('archived', false)
-        .order('date', { ascending: true })
-        .limit(1);
-      if (nextEv && nextEv.length > 0) {
-        selectedYear = String(new Date(nextEv[0].date).getFullYear());
-      } else {
+    // Pas de sélecteur encore monté : on tente de récupérer l'année mémorisée
+    const stored = localStorage.getItem('adminEventsYear');
+    if (stored) {
+      selectedYear = stored;
+    } else {
+      // Déterminer la première année avec un événement non archivé
+      try {
+        const { data: nextEv } = await supabase
+          .from('events')
+          .select('date')
+          .eq('archived', false)
+          .order('date', { ascending: true })
+          .limit(1);
+        if (nextEv && nextEv.length > 0) {
+          selectedYear = String(new Date(nextEv[0].date).getFullYear());
+        } else {
+          selectedYear = String(currentYear);
+        }
+      } catch (e) {
         selectedYear = String(currentYear);
       }
-    } catch (e) {
-      // En cas d'erreur on revient sur l'année en cours
-      selectedYear = String(currentYear);
     }
   }
 
@@ -680,7 +686,11 @@ async function loadAdminEvents() {
   // recharge les événements lorsque l'année change
   const yearSel = document.getElementById('year-events');
   if (yearSel) {
-    yearSel.onchange = () => loadAdminEvents();
+    yearSel.onchange = () => {
+      // mémoriser l'année choisie afin de ne pas revenir automatiquement à une autre année
+      localStorage.setItem('adminEventsYear', yearSel.value);
+      loadAdminEvents();
+    };
   }
 }
 
