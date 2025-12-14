@@ -829,7 +829,14 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-8);
-  font-weight: var(--font-weight-bold);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.brand-name {
+  font-size: 18px;
+  font-weight: 600;: var(--font-weight-bold);
   font-size: var(--font-size-xl);
 }
 
@@ -2498,7 +2505,22 @@ header button:hover {
 /* Logo et texte */
 #header-logo-bg,
 .logo-emoji {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  width: 60px;
+  height: 60px;
+  margin: 0 8px;
+  border-radius: 8px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+.logo-emoji {
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Footer */
