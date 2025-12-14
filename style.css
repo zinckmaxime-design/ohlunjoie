@@ -1228,6 +1228,23 @@ body {
   font-weight: var(--font-weight-normal);
 }
 
+/* Amélioration de l'affichage des participations sur mobile
+   Sur les petits écrans, les cases à cocher pour "préparation salle",
+   "partie soirée" et "soirée entière" s'affichaient en une seule ligne,
+   rendant la lecture difficile.  On force une disposition en colonne
+   et on réduit les espacements lorsque la largeur de l'écran est
+   inférieure à 600px. */
+@media (max-width: 600px) {
+  #insc-form .participations > div {
+    flex-direction: column !important;
+    gap: var(--space-8) !important;
+  }
+  #insc-form .participations label {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .form-notice {
   background: rgba(var(--color-teal-500-rgb), 0.1);
   padding: var(--space-10);
@@ -2470,7 +2487,7 @@ footer {
     font-size: var(--font-size-lg);
     gap: var(--space-4);
   }
-  /* Amélioration mobile : conserver l'affichage en tableau
+  /* Amélioration mobile : conserver l'affichage en tableau
      pour les modules administrateur, mais réduire légèrement la
      taille de police et l'espacement pour une lecture plus
      confortable.  Les tables restent scrollables en largeur. */
