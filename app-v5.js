@@ -215,10 +215,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.log('✅ ' + (events?.length || 0) + ' événements trouvés');
       
       if (events && events.length > 0) {
-        if (typeof renderTimeline !== 'undefined') renderTimeline(events);
-        if (typeof renderList !== 'undefined') renderList(events);
-        if (typeof renderCards !== 'undefined') renderCards(events);
-        if (typeof updateNextEvent !== 'undefined') updateNextEvent(events);
+        // ✅ TRIER LES ÉVÉNEMENTS PAR DATE (croissant)
+        const sortedEvents = [...events].sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA - dateB;
+        });
+        if (typeof renderTimeline !== 'undefined') renderTimeline(sortedEvents);
+        if (typeof renderList !== 'undefined') renderList(sortedEvents);
+        if (typeof renderCards !== 'undefined') renderCards(sortedEvents);
+        if (typeof updateNextEvent !== 'undefined') updateNextEvent(sortedEvents);
       }
     } catch (error) {
       console.error('❌ Erreur:', error);
@@ -1387,16 +1393,17 @@ function setupAdminUserForm() {
         const { data: rows } = await supabase.from('admins').select().order('id', { ascending: false }).limit(1);
         const created = rows && rows.length ? rows[0] : null;
         const newId = created?.id;
-        const { error: rightsError } = await supabase.from('admin_roles').upsert(
-          droits.map(d => ({
+        // ✅ INSERT les droits d'admin (nouvelle logic insert/update)
+        for (const d of droits) {
+          const { error: insertErr } = await supabase.from('admin_roles').insert({
             admin_id: newId,
             module: d.module,
             can_view: d.can_view,
             can_edit: d.can_edit,
             can_delete: false
-          }))
-        );
-        if (rightsError) throw rightsError;
+          });
+          if (insertErr) throw insertErr;
+        }
         toast('✅ Admin créé avec succès');
       } else {
         // Mise à jour d'un administrateur existant
