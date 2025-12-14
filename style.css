@@ -1245,6 +1245,56 @@ body {
   }
 }
 
+/* Forcer le thème clair même lorsque l'utilisateur utilise un thème sombre.
+   On copie les couleurs du thème clair pour le cas dark afin de désactiver
+   l'apparence sombre et on définit color-scheme: light pour les éléments
+   natifs (scrollbars, formulaires). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light;
+    --color-background: var(--color-cream-50);
+    --color-surface: var(--color-cream-100);
+    --color-text: var(--color-slate-900);
+    --color-text-secondary: var(--color-slate-500);
+    --color-primary: var(--color-teal-500);
+    --color-primary-hover: var(--color-teal-600);
+    --color-primary-active: var(--color-teal-700);
+    --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+    --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+    --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+    --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+    --color-error: var(--color-red-500);
+    --color-success: var(--color-teal-500);
+    --color-warning: var(--color-orange-500);
+    --color-info: var(--color-slate-500);
+    --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+    --color-btn-primary-text: var(--color-cream-50);
+    --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+    --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+    --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
+  }
+}
+
+/* Amélioration de l'accessibilité des sélecteurs d'année dans le tableau de bord Admin. */
+#module-events label,
+#module-inscriptions label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+@media (max-width: 600px) {
+  #module-events label,
+  #module-inscriptions label {
+    display: block;
+    margin-bottom: 0.5em;
+  }
+  #module-events select,
+  #module-inscriptions select {
+    width: 100%;
+  }
+}
+
 .form-notice {
   background: rgba(var(--color-teal-500-rgb), 0.1);
   padding: var(--space-10);
