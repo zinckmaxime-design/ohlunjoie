@@ -829,14 +829,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-8);
-  font-weight: 600;
-  font-size: 18px;
-  color: var(--color-text);
-}
-
-.brand-name {
-  font-size: 18px;
-  font-weight: 600;: var(--font-weight-bold);
+  font-weight: var(--font-weight-bold);
   font-size: var(--font-size-xl);
 }
 
@@ -1229,6 +1222,12 @@ body {
 }
 
 .participations label {
+  /* Ensure labels in the participations fieldset behave like a flex row.
+     Without an explicit display value the browser defaults to block which
+     causes the checkbox and its label text to wrap onto separate lines on
+     some screens.  Using display:flex keeps the checkbox and text aligned
+     horizontally and preserves spacing defined by the gap property. */
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: var(--space-8);
@@ -2505,22 +2504,7 @@ header button:hover {
 /* Logo et texte */
 #header-logo-bg,
 .logo-emoji {
-  width: 60px;
-  height: 60px;
-  margin: 0 8px;
-  border-radius: 8px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  flex-shrink: 0;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
-}
-
-.logo-emoji {
-  font-size: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 /* Footer */
