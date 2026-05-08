@@ -1,270 +1,259 @@
-# Ohlun'Joie V3.0 - Guide d'Installation Complet
+# Ohlun'Joie — Guide d'installation et de déploiement
 
-## 📦 Contenu du Projet
+## Contenu du projet
 
-- ✅ `supabase-schema-v3-final.sql` - Schéma BDD complet
-- ✅ `index-v3-final.html` - Interface HTML complète
-- ✅ `app-v3-final.js` - Logique JavaScript complète
-- ✅ `style-v3-final.css` - Styles CSS complets
-- ✅ `README-installation.md` - Ce fichier
+```
+/
+├── index.html                      # Structure HTML principale (modales incluses)
+├── style.css                       # Tous les styles (thème clair)
+├── js/
+│   ├── config.js                   # Connexion Supabase & client stub hors-ligne
+│   ├── utils.js                    # Helpers DOM, toast, modal, validators, escapeHtml
+│   ├── auth.js                     # Authentification, vérifications de rôle
+│   ├── public.js                   # Rendu public, formulaires, loadSiteConfig
+│   ├── admin.js                    # Back-office admin (7 onglets)
+│   ├── data.js                     # Seed app_config (rarement nécessaire)
+│   └── app.js                      # Point d'entrée principal
+├── api/
+│   ├── admin-users.js              # Serverless : inviter/supprimer des admins
+│   ├── send-confirmation.js        # Serverless : email de confirmation d'inscription
+│   └── keep-alive.js               # Serverless : ping Supabase quotidien (cron)
+├── supabase-schema-v4-roles.sql    # Schéma actuel (rôles : viewer/editor/super_admin)
+├── vercel.json                     # Configuration Vercel (en-têtes de sécurité + cron)
+└── package.json                    # Dépendances Node.js (nodemailer pour les emails)
+```
 
 ---
 
-## 🚀 Installation Rapide (3 étapes)
+## Déploiement (4 étapes)
 
-### **Étape 1 : Configurer Supabase**
+### Étape 1 : Appliquer le schéma Supabase
 
-1. Allez sur [supabase.com](https://supabase.com) et connectez-vous
-2. Créez un nouveau projet ou ouvrez `ohlunjoie-db`
-3. Ouvrez **SQL Editor** → **New query**
-4. Copiez tout le contenu de `supabase-schema-v3-final.sql`
-5. Collez dans l'éditeur et cliquez **Run** (ou Ctrl+Entrée)
-6. Vérifiez dans **Table Editor** que vous avez 7 tables :
+1. Aller sur [supabase.com](https://supabase.com) et ouvrir votre projet
+2. Aller dans **SQL Editor** → **New query**
+3. Copier le contenu de `supabase-schema-v4-roles.sql` et cliquer **Run**
+4. Vérifier dans **Table Editor** que les 8 tables sont présentes :
    - `events`
    - `inscriptions`
    - `admins`
-   - `analytics`
    - `volunteer_profiles`
+   - `analytics`
    - `activity_logs`
+   - `contact_messages`
    - `app_config`
 
-### **Étape 2 : Déployer sur GitHub**
+> **Migration depuis v3 :** c'est un changement cassant. La colonne `password_hash` est supprimée. Les comptes admin doivent être recréés via Supabase Auth (voir Étape 4).
 
-1. Allez sur votre dépôt `github.com/zinckmaxime-design/ohlunjoie`
-2. Uploadez/Remplacez ces 4 fichiers à la racine :
-   - `index-v3-final.html` → **renommer en** `index.html`
-   - `app-v3-final.js` → garder le nom ou renommer en `app.js`
-   - `style-v3-final.css` → garder le nom ou renommer en `style.css`
-   - `README-installation.md`
-3. Commit les changements sur la branche `main`
+### Étape 2 : Configurer les variables d'environnement sur Vercel
 
-### **Étape 3 : Vérifier Vercel**
+Aller dans le projet Vercel → **Settings** → **Environment Variables** :
 
-1. Vercel détecte automatiquement le push GitHub
-2. Un nouveau déploiement démarre (environ 30 secondes)
-3. Ouvrez votre URL Vercel : `ohlunjoie.vercel.app`
-4. Testez la page publique (événements visibles)
+| Variable | Utilisée par | Description |
+|---|---|---|
+| `SUPABASE_URL` | `api/admin-users.js`, `api/keep-alive.js` | URL du projet Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | `api/admin-users.js` | Clé service role (accès admin complet) |
+| `SUPABASE_ANON_KEY` | `api/keep-alive.js` | Clé publique anon (fallback) |
+| `GMAIL_USER` | `api/send-confirmation.js` | Adresse Gmail d'envoi |
+| `GMAIL_APP_PASSWORD` | `api/send-confirmation.js` | Mot de passe d'application Gmail |
+| `GMAIL_FROM_NAME` | `api/send-confirmation.js` | Nom d'expéditeur (défaut : "Ohlun'Joie") |
+| `SITE_URL` | `api/admin-users.js` | URL du site (ex. `https://ohlunjoie.vercel.app`) |
+| `ALLOWED_ORIGINS` | `api/admin-users.js` | Origines autorisées séparées par virgule |
 
----
+### Étape 3 : Pousser le code sur GitHub
 
-## 🧪 Tests de Validation
-
-### **Test 1 : Page Publique**
-- ✅ Les 3 événements exemples s'affichent
-- ✅ Le compte à rebours fonctionne
-- ✅ Les 3 vues (Timeline / Liste / Cartes) fonctionnent
-- ✅ Le formulaire d'inscription valide email/téléphone FR
-
-### **Test 2 : Inscription**
-1. Remplissez le formulaire :
-   - Prénom : `Test`
-   - Nom : `Dupont`
-   - Email : `test@example.com`
-   - Téléphone : `0612345678`
-   - Cochez au moins 1 case participation
-   - Sélectionnez un événement
-2. Cliquez **S'inscrire**
-3. Toast vert **"Inscription enregistrée"** apparaît
-
-### **Test 3 : Connexion Admin**
-1. Scrollez jusqu'à **Administration**
-2. Email : `zinck.maxime@gmail.com`
-3. Mot de passe : `Zz/max789`
-4. Cliquez **Connexion**
-5. Message **"Connecté"** + nom affiché
-
-### **Test 4 : Dashboard Admin**
-- ✅ 4 KPI s'affichent avec chiffres corrects
-- ✅ Onglets Dashboard / Événements / Stats / Bénévoles / Admins / Config / Logs
-
-### **Test 5 : Gestion Événements**
-- ✅ Cartes modernes avec emoji, jauge, inscrits
-- ✅ Badges : 🟢 Actif, 🟠 Masqué, ⚫ Archivé
-- ✅ Boutons : ✏️ Modifier, 🗑️ Supprimer, 👁️ Toggle, 📥 Export CSV, 🔄 Restaurer
-- ✅ Filtres fonctionnels
-
-### **Test 6 : Thème Sombre**
-- ✅ Bouton 🌙/☀️ en haut à droite
-- ✅ Bascule entre clair/sombre
-- ✅ Mémorisation dans localStorage
-
----
-
-## ⚙️ Configuration Supabase
-
-### **URL et Clé Anon (déjà configurées)**
-```javascript
-URL: https://duqkrpgcqbasbnzynfuh.supabase.co
-KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```bash
+git add .
+git commit -m "Deploy v4"
+git push origin main
 ```
 
-### **RLS Policies**
-Les policies actuelles autorisent l'accès public (anon) pour :
-- ✅ Lecture des événements visibles
-- ✅ Insertion des inscriptions
-- ✅ Lecture de la config
-- ✅ Insertion des analytics
+Vercel détecte automatiquement le push et redéploie. Aucune étape de build requise (JS vanilla).
 
-⚠️ **En production**, restreindre les policies admin avec Supabase Auth.
+### Étape 4 : Créer le premier super_admin
 
----
+1. Aller dans Supabase → **Authentication** → **Users** → **Add user**
+2. Saisir l'email et un mot de passe temporaire
+3. Copier l'UUID affiché pour cet utilisateur
+4. Dans **SQL Editor**, exécuter :
 
-## 🎨 Fonctionnalités Complètes
+```sql
+INSERT INTO admins (user_id, email, nom, prenom, role)
+VALUES ('COLLER-UUID-ICI', 'votre@email.com', 'Nom', 'Prénom', 'super_admin');
+```
 
-### **Section Publique**
-- 3 vues switchables (Timeline, Liste, Cartes)
-- Affichage uniquement `visible=true` et `archived=false`
-- Compte à rebours "Prochain événement dans X jours"
-- Formulaire inscription avec validations
-- Notice RGPD
-- Analytics automatiques (page_view, event_click)
-
-### **Back-Office Admin**
-**Dashboard**
-- 4 KPI : Total Inscrits, Événements Actifs, Emails Uniques, Taux Moyen
-
-**Événements**
-- Cartes modernes avec emoji, titre, date, heure, lieu
-- Jauge remplissage visuelle
-- Liste inscrits dépliable
-- Badges statut : 🟢 Actif, 🟠 Masqué, ⚫ Archivé
-- Actions : Modifier, Supprimer, Toggle visible, Export CSV, Restaurer
-- Filtres : Actifs (défaut), Masqués, Archivés, Tous
-
-**Statistiques**
-- KPI détaillés : Vues de pages, Clics événements
-- Tableau : Titre | Vues | Clics | Inscrits | Places | Taux
-- Export emails mailing (TXT) : `email1; email2; email3...`
-- Export stats (CSV)
-
-**Bénévoles**
-- Tableau : Prénom | Nom | Email | Téléphone | Participations 2025
-- Badge "X participations en 2025"
-- Barre recherche nom/prénom/email
-- Bouton "Historique" : liste événements
-- Export CSV
-
-**Gestion Admins**
-- Tableau avec 7 permissions éditables
-- Permissions : view_events, edit_events, view_stats, view_logs, view_volunteers, manage_admins, config
-- Ajouter / Modifier / Supprimer admins
-- Logs connexion
-
-**Configuration**
-- Upload logo (Base64, max 2MB) avec prévisualisation
-- Édition texte intro
-- Gestion types événements (JSON array)
-
-**Logs**
-- Historique activités admin (100 dernières)
+Une fois connecté, tous les futurs admins peuvent être invités directement depuis l'onglet **Admins** de l'application (aucun SQL nécessaire).
 
 ---
 
-## 🔧 Archivage Automatique Minuit
+## Configuration locale (développement)
 
-- Tâche JavaScript côté navigateur
-- Exécution quotidienne à 00:00:00 heure locale
-- Logique : `UPDATE events SET archived=true WHERE date < today AND archived=false`
-- Idempotent (ne ré-archive pas)
-- N'affecte pas la colonne `visible`
+### Avec Supabase CLI (Docker requis)
 
----
+```bash
+# Démarrer Supabase en local
+npx supabase start
 
-## 🎭 Mode Sombre
+# Services disponibles :
+# Studio :  http://127.0.0.1:54323
+# API :     http://127.0.0.1:54321
+# Mailpit : http://127.0.0.1:54324
+```
 
-- Détection système par défaut : `prefers-color-scheme: dark`
-- Toggle manuel : bouton 🌙/☀️
-- Mémorisation : `localStorage.getItem('theme')`
-- Priorité : localStorage > système
-- Palettes AA (contraste minimum WCAG)
-- Appliqué à : cartes, tableaux, modales, toasts, formulaires
+Mettre à jour `js/config.js` avec l'URL et la clé locale :
 
----
+```javascript
+const SUPABASE_URL = 'http://127.0.0.1:54321';
+const SUPABASE_ANON_KEY = 'eyJhbGc...'; // Clé anon locale affichée par supabase start
+```
 
-## 📱 Responsive Design
+Puis exécuter `supabase-schema-v4-roles.sql` dans le SQL Editor de Studio.
 
-- **Mobile (<640px)** : 1 colonne, menu hamburger
-- **Tablette (640-1024px)** : 2 colonnes
-- **Desktop (>1024px)** : 3-4 colonnes
-- Touch-friendly : boutons min 44x44px
+### Mode démo (sans Supabase, sans réseau)
 
----
+Le mode démo permet de travailler entièrement hors-ligne, sans projet Supabase ni variables d'environnement. Il utilise un client en mémoire à la place de Supabase.
 
-## 🔒 Sécurité (à durcir en production)
+**Activer le mode démo :**
 
-⚠️ **Actuel (Développement)**
-- Policies RLS ouvertes au public (anon)
-- Authentification admin simple (email/password en dur)
+Dans `js/config.js`, passer le flag à `true` :
 
-✅ **Production (Recommandé)**
-1. Activer Supabase Auth avec providers (Google, GitHub, etc.)
-2. Restreindre policies RLS avec `auth.uid()`
-3. Implémenter bcrypt côté serveur pour password_hash
-4. Ajouter CORS restrictions côté Supabase
-5. Activer rate limiting côté Vercel
+```javascript
+const demoMode = true;
+```
 
----
+**Ce que ça fait :**
+- Ignore la librairie Supabase CDN même si elle est chargée
+- Connecte automatiquement un compte `super_admin` au chargement de la page (aucun login requis)
+- Pré-charge 3 événements exemples et une configuration d'association par défaut
+- Toutes les opérations CRUD (créer, modifier, supprimer) fonctionnent en mémoire
+- Les données ne sont pas persistantes : elles sont réinitialisées à chaque rechargement de page
 
-## 🐛 Troubleshooting
+**Lancer localement :**
 
-### **Erreur : "Failed to load events"**
-➡️ Vérifiez que le SQL a été exécuté (Table Editor doit montrer 7 tables)
+Il est possible d'ouvrir `index.html` directement dans le navigateur (double-clic ou `Fichier > Ouvrir`) sans aucun serveur. Ou via un serveur HTTP local :
 
-### **Erreur : "createClient is not defined"**
-➡️ Vérifiez que `<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>` est **avant** `<script src="app-v3-final.js"></script>`
+```bash
+python3 -m http.server 8000
+# Ouvrir http://localhost:8000
+```
 
-### **Erreur : "Invalid API key"**
-➡️ Vérifiez dans `app-v3-final.js` que l'URL et la KEY Supabase sont corrects
+> **Important :** Remettre `demoMode = false` avant de pousser sur `main`. En mode démo, personne ne peut se connecter avec un vrai compte — l'application ignore complètement Supabase Auth.
 
-### **Erreur : "Téléphone FR invalide"**
-➡️ Formats acceptés : `0612345678`, `06 12 34 56 78`, `06.12.34.56.78`, `+33 6 12 34 56 78`
-
-### **CSS ne charge pas**
-➡️ Vérifiez que `style-v3-final.css` est bien à la racine et référencé correctement dans `index.html`
-
-### **Événements archivés apparaissent**
-➡️ La vue publique filtre avec `.eq('visible', true).eq('archived', false)`. Vérifiez la console pour erreurs.
+**Mode stub automatique (sans flag) :** Si `demoMode` est `false` mais que le CDN Supabase ne charge pas (coupure réseau, etc.), le client stub s'active aussi automatiquement. La console affiche alors : `Supabase library not found, using stub client.` Dans ce cas, la connexion auto en super_admin ne se déclenche pas — la page publique s'affiche normalement.
 
 ---
 
-## 📞 Support
+## Fonctionnalités
+
+### Section publique
+
+- **3 vues switchables** : Timeline, Liste, Cartes
+- Affichage uniquement des événements `visible=true` et `archived=false`
+- Badge "Prochain événement dans X jours" dans le header
+- Formulaire d'inscription avec validation email et téléphone FR
+- Email de confirmation envoyé au bénévole à l'inscription
+- Formulaire de contact
+- Suivi analytique automatique (page_view par session)
+
+### Back-office admin (7 onglets)
+
+| Onglet | Rôle minimum | Contenu |
+|---|---|---|
+| Dashboard | viewer | 6 KPIs : inscrits, événements actifs, emails uniques, taux moyen, visites, dernière visite |
+| Événements | viewer | CRUD événements, filtre par année, auto-archivage des événements passés |
+| Inscriptions | viewer | Liste complète avec recherche, tri, filtre et export CSV |
+| Bénévoles | viewer | Profils agrégés, historique de participations, export CSV |
+| Messages | viewer | Boîte de réception des messages de contact (marquer lu / supprimer) |
+| Admins | super_admin | Inviter et gérer les comptes admin |
+| Association | super_admin | Éditeur de configuration du site (nom, logo, intro, types d'événements) |
+
+### Rôles
+
+| Rôle | Accès |
+|---|---|
+| `viewer` | Consultation de tous les onglets sauf Admins et Association |
+| `editor` | Modification de tous les onglets sauf Admins et Association |
+| `super_admin` | Accès complet à tous les onglets |
+
+---
+
+## Authentification
+
+L'application utilise **Supabase Auth** (JWT). Aucun mot de passe n'est stocké en base.
+
+**Flux de connexion :**
+1. L'admin saisit son email et mot de passe dans la modale de connexion
+2. `signInWithPassword()` déclenche `onAuthStateChange`
+3. Le profil admin est chargé depuis la table `admins` (vérifie `user_id` et `is_active`)
+4. Si aucun profil n'est trouvé, la session est immédiatement révoquée
+
+**Mot de passe oublié :**
+1. Cliquer "Mot de passe oublié" sur la modale de connexion
+2. Saisir l'adresse email → un lien de réinitialisation est envoyé
+3. Le lien ouvre la modale de réinitialisation dans l'application
+
+**Inviter un admin (depuis l'app) :**
+1. Se connecter en tant que super_admin
+2. Aller dans l'onglet **Admins** → **Inviter un admin**
+3. Renseigner prénom, nom, email et rôle
+4. L'API `/api/admin-users` crée le compte et envoie un email de réinitialisation de mot de passe
+
+---
+
+## Sécurité
+
+- Authentification via Supabase Auth (JWT) — aucun mot de passe en base
+- Politiques RLS granulaires par rôle sur toutes les tables
+- `escapeHtml()` appliqué sur tout contenu utilisateur injecté via `innerHTML`
+- `maxlength` sur tous les champs de formulaire
+- En-têtes de sécurité HTTP via `vercel.json` : CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy
+- Fonctions de rôle DB : `is_admin()`, `is_editor()`, `is_super_admin()`, `get_admin_role()`
+
+---
+
+## Dépannage
+
+**"Supabase library not found"**
+- Vérifier la connexion réseau
+- Vérifier que le script CDN est chargé avant les modules JS dans `index.html`
+- Le client stub s'active automatiquement pour les tests locaux
+
+**La connexion admin échoue**
+- Vérifier que l'utilisateur existe dans Supabase → Authentication → Users
+- Vérifier qu'un enregistrement `admins` existe avec `user_id` correspondant et `is_active = true`
+- Consulter la console navigateur pour les erreurs d'authentification
+
+**Les événements ne s'affichent pas sur la page publique**
+- S'assurer que les événements ont `visible=true` et `archived=false`
+- Vérifier que la date est au format ISO valide (`YYYY-MM-DD`)
+
+**Erreur "permission denied" (RLS)**
+- Vérifier que les fonctions `is_admin()`, `is_editor()`, `is_super_admin()` existent en base
+- Vérifier que le rôle de l'admin est bien `viewer`, `editor` ou `super_admin`
+
+**L'email de confirmation ne part pas**
+- Vérifier que `GMAIL_USER` et `GMAIL_APP_PASSWORD` sont définis dans les variables Vercel
+- Utiliser un mot de passe d'application Gmail (pas le mot de passe du compte Google)
+- Activer la validation en 2 étapes sur le compte Gmail pour pouvoir créer un mot de passe d'application
+
+---
+
+## Checklist de déploiement
+
+- [ ] Schéma SQL v4 exécuté dans Supabase (8 tables créées)
+- [ ] Variables d'environnement configurées dans Vercel
+- [ ] Code pushé sur `main` et déploiement Vercel validé
+- [ ] Premier super_admin créé (via SQL)
+- [ ] Connexion admin testée
+- [ ] Page publique affiche les événements (toutes les 3 vues)
+- [ ] Formulaire d'inscription fonctionnel (email de confirmation reçu)
+- [ ] Formulaire de contact fonctionnel
+- [ ] Invitation d'un admin depuis l'onglet Admins testée
+- [ ] Exports CSV fonctionnels
+- [ ] Cron keep-alive visible dans les logs Vercel
+
+---
+
+## Support
 
 - **Dépôt GitHub** : [github.com/zinckmaxime-design/ohlunjoie](https://github.com/zinckmaxime-design/ohlunjoie)
-- **LinkedIn** : [linkedin.com/in/zinck-maxime-88302b207](https://www.linkedin.com/in/zinck-maxime-88302b207)
 - **Email** : zinck.maxime@gmail.com
-
----
-
-## 📄 Licence
-
-MIT - Développé avec ❤️ par Zinck Maxime
-
----
-
-## 🎯 Checklist Finale
-
-- [ ] SQL exécuté dans Supabase (7 tables créées)
-- [ ] 4 fichiers uploadés sur GitHub
-- [ ] Vercel a redéployé automatiquement
-- [ ] Page publique charge les événements
-- [ ] Inscription fonctionne avec validation
-- [ ] Connexion admin fonctionne
-- [ ] Dashboard affiche les KPI
-- [ ] Cartes événements s'affichent en admin
-- [ ] Toggle visible fonctionne
-- [ ] Exports CSV fonctionnent
-- [ ] Thème sombre fonctionne
-- [ ] Mode responsive fonctionne
-
-**Si tous les éléments sont cochés, votre application est prête en production !** 🎉
-
----
-
-**Prochaines étapes recommandées :**
-1. Créer d'autres événements via l'interface admin
-2. Tester l'archivage automatique (attendre minuit ou modifier l'heure dans le code)
-3. Inviter des bénévoles à s'inscrire
-4. Configurer le logo et le texte d'intro
-5. Ajouter des types d'événements personnalisés
-
-**Bon déploiement !** 🚀
