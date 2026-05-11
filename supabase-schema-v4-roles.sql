@@ -397,8 +397,33 @@ CREATE POLICY config_super_delete ON app_config
 -- GRANTS
 -- ============================================
 
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+-- anon: only tables/operations exposed to the public (RLS enforces row restrictions)
+GRANT SELECT ON events TO anon;
+GRANT SELECT, INSERT ON inscriptions TO anon;
+GRANT INSERT ON analytics TO anon;
+GRANT INSERT ON contact_messages TO anon;
+GRANT SELECT ON app_config TO anon;
+
+-- authenticated: all tables (RLS enforces role restrictions)
+GRANT SELECT, INSERT, UPDATE, DELETE ON events TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON inscriptions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON admins TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON analytics TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON volunteer_profiles TO authenticated;
+GRANT SELECT, INSERT ON activity_logs TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON contact_messages TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON app_config TO authenticated;
+
+-- service_role: full access (used for admin operations, bypasses RLS)
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO service_role;
+
+-- Sequences: USAGE (nextval) + SELECT (lastval/currval) needed for inserts with serial columns
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
 
 -- ============================================
 -- INITIAL DATA
