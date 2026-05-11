@@ -1541,8 +1541,49 @@ body {
   margin: 0;
 }
 
-#admin-logout {
+.admin-header-right {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.admin-user-name {
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.admin-user-role-label {
+  font-size: 0.8em;
+  color: #666;
+  background: #f0f0f0;
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.btn-logout {
+  padding: 0.5em 1.2em;
+  border: 1.5px solid #d44;
+  border-radius: 8px;
+  background: transparent;
+  color: #d44;
+  font-weight: 600;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: #d44;
+  color: #fff;
 }
 
 .admin-tabs {
