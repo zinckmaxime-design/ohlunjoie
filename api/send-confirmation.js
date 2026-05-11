@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 function escapeHtml(str) {
   if (str == null) return '';
@@ -145,11 +145,10 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
-  const fromName = process.env.GMAIL_FROM_NAME || 'Ohlun\'Joie';
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromAddress = process.env.RESEND_FROM || "Ohlun'Joie <noreply@ohlunjoie.fr>";
 
-  if (!gmailUser || !gmailAppPassword) {
+  if (!resendApiKey) {
     return res.status(400).json({ error: 'Email service not configured' });
   }
 
@@ -172,26 +171,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: gmailUser,
-        pass: gmailAppPassword
-      }
-    });
-
+    const resend = new Resend(resendApiKey);
     const html = buildEmailHtml(volunteer, event);
 
-    await transporter.sendMail({
-      from: `"${fromName}" <${gmailUser}>`,
+    const { error } = await resend.emails.send({
+      from: fromAddress,
       to: email,
       subject: `Confirmation d'inscription - ${titre}`,
       html
     });
 
+    if (error) throw error;
+
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error('Gmail email error:', err);
+    console.error('Resend email error:', err);
     return res.status(500).json({ error: 'Failed to send email' });
   }
 };

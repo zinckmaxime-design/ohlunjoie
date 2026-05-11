@@ -41,7 +41,7 @@ The application is deployed on Vercel and uses Supabase as its backend (PostgreS
 │   └── app.js                      # Main entry point & initialization
 ├── api/
 │   ├── admin-users.js              # Serverless: invite/delete admin users (super_admin only)
-│   ├── send-confirmation.js        # Serverless: send registration confirmation email (nodemailer)
+│   ├── send-confirmation.js        # Serverless: send registration confirmation email (resend)
 │   └── keep-alive.js               # Serverless: daily Supabase ping (Vercel cron)
 ├── supabase-schema-v4-roles.sql    # Current schema: role-based (viewer/editor/super_admin)
 └── README-installation.md          # Detailed deployment guide
@@ -210,13 +210,13 @@ Three Vercel serverless functions:
 | Endpoint | Auth required | Purpose |
 |---|---|---|
 | `POST /api/admin-users` | super_admin JWT | Invite new admin (creates auth user + admin record + sends reset email) or delete admin |
-| `POST /api/send-confirmation` | None | Send registration confirmation email via Gmail/nodemailer |
+| `POST /api/send-confirmation` | None | Send registration confirmation email via Resend |
 | `GET /api/keep-alive` | None | Daily Supabase ping via Vercel cron to prevent free-tier sleep |
 
 **Environment variables needed:**
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — for `admin-users` and `keep-alive`
 - `SUPABASE_ANON_KEY` — fallback for `keep-alive`
-- `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `GMAIL_FROM_NAME` — for `send-confirmation`
+- `RESEND_API_KEY`, `RESEND_FROM` — for `send-confirmation`
 - `SITE_URL`, `ALLOWED_ORIGINS` — for password reset redirect in `admin-users`
 
 ## Development Workflow
