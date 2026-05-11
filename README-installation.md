@@ -20,7 +20,7 @@
 │   └── keep-alive.js               # Serverless : ping Supabase quotidien (cron)
 ├── supabase-schema-v4-roles.sql    # Schéma actuel (rôles : viewer/editor/super_admin)
 ├── vercel.json                     # Configuration Vercel (en-têtes de sécurité + cron)
-└── package.json                    # Dépendances Node.js (resend pour les emails)
+└── package.json                    # Dépendances Node.js (nodemailer pour les emails)
 ```
 
 ---
@@ -53,8 +53,9 @@ Aller dans le projet Vercel → **Settings** → **Environment Variables** :
 | `SUPABASE_URL` | `api/admin-users.js`, `api/keep-alive.js` | URL du projet Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | `api/admin-users.js` | Clé service role (accès admin complet) |
 | `SUPABASE_ANON_KEY` | `api/keep-alive.js` | Clé publique anon (fallback) |
-| `RESEND_API_KEY` | `api/send-confirmation.js` | Clé API Resend |
-| `RESEND_FROM` | `api/send-confirmation.js` | Adresse d'expéditeur vérifiée (défaut : "Ohlun'Joie <noreply@ohlunjoie.fr>") |
+| `GMAIL_USER` | `api/send-confirmation.js` | Adresse Gmail d'envoi |
+| `GMAIL_APP_PASSWORD` | `api/send-confirmation.js` | Mot de passe d'application Gmail |
+| `GMAIL_FROM_NAME` | `api/send-confirmation.js` | Nom d'expéditeur (défaut : "Ohlun'Joie") |
 | `SITE_URL` | `api/admin-users.js` | URL du site (ex. `https://ohlunjoie.vercel.app`) |
 | `ALLOWED_ORIGINS` | `api/admin-users.js` | Origines autorisées séparées par virgule |
 
@@ -230,9 +231,9 @@ L'application utilise **Supabase Auth** (JWT). Aucun mot de passe n'est stocké 
 - Vérifier que le rôle de l'admin est bien `viewer`, `editor` ou `super_admin`
 
 **L'email de confirmation ne part pas**
-- Vérifier que `RESEND_API_KEY` est définie dans les variables Vercel
-- Vérifier que le domaine utilisé dans `RESEND_FROM` est vérifié dans le tableau de bord Resend
-- Consulter les logs d'envoi sur [resend.com](https://resend.com) pour identifier l'erreur
+- Vérifier que `GMAIL_USER` et `GMAIL_APP_PASSWORD` sont définis dans les variables Vercel
+- Utiliser un mot de passe d'application Gmail (pas le mot de passe du compte Google)
+- Activer la validation en 2 étapes sur le compte Gmail pour pouvoir créer un mot de passe d'application
 
 ---
 
