@@ -394,6 +394,13 @@ CREATE POLICY config_super_delete ON app_config
   FOR DELETE USING (public.is_super_admin());
 
 -- ============================================
+-- GRANTS
+-- ============================================
+
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- ============================================
 -- INITIAL DATA
 -- ============================================
 
