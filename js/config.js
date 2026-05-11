@@ -3,8 +3,8 @@
 // =============================================================================
 
 // Supabase connection settings
-const SUPABASE_URL = 'https://duqkrpgcqbasbnzynfuh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1cWtycGdjcWJhc2JuenluZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDM5NTAsImV4cCI6MjA3NjExOTk1MH0.nikdF6TMoFgQHSeEtpfXjWHNOazALoFF_stkunz8OcU';
+const SUPABASE_URL = 'https://vwbondhbvkqokqzcvapc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3Ym9uZGhidmtxb2txemN2YXBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjEzNTIsImV4cCI6MjA5NDA5NzM1Mn0.D_p2nX_xLtYu-qICblrcPwPIID7AuDZQr7j-QnhiT2c';
 
 // Demo mode flag - set to true for local testing without auth
 const demoMode = false;
