@@ -881,8 +881,12 @@ body {
   border: 1px solid var(--border);
 }
 
-.icon-btn:hover { 
-  background: var(--color-secondary); 
+.icon-btn:hover {
+  background: var(--color-secondary);
+}
+
+#admin-toggle {
+  padding: 0;
 }
 
 /* Intro */
